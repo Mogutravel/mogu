@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -39,6 +39,7 @@ export default function Panel() {
   const [links, setLinks] = useState<LinkItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
+  const [subiendo, setSubiendo] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -134,6 +135,62 @@ export default function Panel() {
     setLinks(links.filter((l) => l.id !== id));
   }
 
+  async function subirLogo(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !business) return;
+
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      setMsg("Usa una imagen PNG, JPG o WebP");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setMsg("La imagen pesa más de 2 MB");
+      return;
+    }
+
+    setSubiendo(true);
+    setMsg("Subiendo logo...");
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    const ext =
+      file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+    const ruta = user.id + "/logo-" + Date.now() + "." + ext;
+
+    const { error } = await supabase.storage
+      .from("logos")
+      .upload(ruta, file, { contentType: file.type });
+    if (error) {
+      setMsg("Error al subir: " + error.message);
+      setSubiendo(false);
+      return;
+    }
+
+    const { data } = supabase.storage.from("logos").getPublicUrl(ruta);
+    const url = data.publicUrl;
+
+    const { error: e2 } = await supabase
+      .from("businesses")
+      .update({ logo_url: url })
+      .eq("id", business.id);
+    if (e2) {
+      setMsg("Error: " + e2.message);
+      setSubiendo(false);
+      return;
+    }
+
+    setBusiness({ ...business, logo_url: url });
+    setMsg("Logo actualizado ✓");
+    setSubiendo(false);
+    e.target.value = "";
+  }
+
   async function salir() {
     await supabase.auth.signOut();
     router.push("/login");
@@ -198,17 +255,31 @@ export default function Panel() {
             onChange={(e) => setBusiness({ ...business, color: e.target.value })}
             className="w-16 h-10"
           />
-          <label className="text-sm text-mogu-wine/70">
-            Enlace de tu logo (opcional)
-          </label>
-          <input
-            className={campo}
-            placeholder="https://..."
-            value={business.logo_url ?? ""}
-            onChange={(e) =>
-              setBusiness({ ...business, logo_url: e.target.value })
-            }
-          />
+          <label className="text-sm text-mogu-wine/70">Logo de tu negocio</label>
+          <div className="flex items-center gap-4">
+            {business.logo_url ? (
+              <img
+                src={business.logo_url}
+                alt="Logo"
+                className="w-16 h-16 rounded-full object-cover border border-mogu-pink"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-mogu-pink flex items-center justify-center text-xs text-mogu-wine/50">
+                Sin logo
+              </div>
+            )}
+            <label className="cursor-pointer bg-mogu-red text-white text-sm font-medium rounded-lg px-4 py-2">
+              {subiendo ? "Subiendo..." : "Subir logo"}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={subirLogo}
+                disabled={subiendo}
+                className="hidden"
+              />
+            </label>
+          </div>
+          <p className="text-xs text-mogu-wine/50">PNG, JPG o WebP, hasta 2 MB.</p>
         </section>
 
         <section className="mb-6">
