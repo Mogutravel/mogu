@@ -193,7 +193,7 @@ export default function Admin() {
             <p>
               Página para la tarjeta NFC:
               <br />
-              <b>https://mogu.cl/n/{creado.slug}</b>
+              <b>https://mogu.cl/nfc/{creado.slug}</b>
             </p>
             <p className="mt-2">
               Acceso del cliente (mogu.cl/login):
@@ -216,12 +216,12 @@ export default function Admin() {
             {negocios.map((n) => (
               <a
                 key={n.id}
-                href={`/n/${n.slug}`}
+                href={`/nfc/${n.slug}`}
                 target="_blank"
                 className="flex justify-between text-sm text-mogu-wine border-b border-mogu-pink pb-2"
               >
                 <span>{n.name}</span>
-                <span className="text-mogu-red">/n/{n.slug} ↗</span>
+                <span className="text-mogu-red">/nfc/{n.slug} ↗</span>
               </a>
             ))}
           </div>

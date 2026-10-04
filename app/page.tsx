@@ -32,7 +32,7 @@ export default function Home() {
             Cotizar por WhatsApp
           </a>
           <a
-            href="/n/cafe-raices"
+            href="/nfc/cafe-raices"
             className="border border-mogu-pink bg-white font-medium rounded-lg px-6 py-3"
           >
             Ver un ejemplo

@@ -227,11 +227,11 @@ export default function Panel() {
         </div>
 
         <a
-          href={`/n/${business.slug}`}
+          href={`/nfc/${business.slug}`}
           target="_blank"
           className="block bg-white border border-mogu-pink rounded-xl p-4 mb-6 text-mogu-red"
         >
-          Ver mi página pública: mogu.cl/n/{business.slug} ↗
+          Ver mi página pública: mogu.cl/nfc/{business.slug} ↗
         </a>
 
         <Stats businessId={business.id} />
