@@ -57,6 +57,10 @@ export default function Login() {
         >
           {loading ? "Entrando..." : "Entrar"}
         </button>
+
+        <a href="/recuperar" className="block text-center text-sm text-mogu-wine/70 mt-4">
+          ¿Olvidaste tu contraseña?
+        </a>
       </div>
     </main>
   );

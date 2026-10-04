@@ -4,6 +4,7 @@ import { useEffect, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Stats from "./Stats";
+import CambiarClave from "./CambiarClave";
 
 type Business = {
   id: string;
@@ -352,6 +353,7 @@ export default function Panel() {
           Guardar cambios
         </button>
         {msg && <p className="text-center text-sm text-mogu-wine mt-3">{msg}</p>}
+        <CambiarClave />
       </div>
     </main>
   );
