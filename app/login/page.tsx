@@ -27,17 +27,17 @@ export default function Login() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Mogu</h1>
-        <p className="text-gray-600 mb-6">Ingresa a tu panel</p>
+    <main className="min-h-screen bg-mogu-cream flex items-center justify-center px-4">
+      <div className="w-full max-w-sm bg-white rounded-2xl border border-mogu-pink p-6">
+        <img src="/mogu-logo.png" alt="Mogu" className="h-28 w-auto mx-auto mb-4" />
+        <p className="text-mogu-wine/70 mb-6">Ingresa a tu panel</p>
 
         <input
           type="email"
           placeholder="Correo"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-3 py-3 mb-3 text-gray-900"
+          className="w-full border border-mogu-pink rounded-lg px-3 py-3 mb-3 text-mogu-wine"
         />
         <input
           type="password"
@@ -45,7 +45,7 @@ export default function Login() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && entrar()}
-          className="w-full border border-gray-300 rounded-lg px-3 py-3 mb-3 text-gray-900"
+          className="w-full border border-mogu-pink rounded-lg px-3 py-3 mb-3 text-mogu-wine"
         />
 
         {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
@@ -53,7 +53,7 @@ export default function Login() {
         <button
           onClick={entrar}
           disabled={loading}
-          className="w-full bg-teal-700 text-white font-medium rounded-lg py-3 disabled:opacity-50"
+          className="w-full bg-mogu-red text-white font-medium rounded-lg py-3 disabled:opacity-50"
         >
           {loading ? "Entrando..." : "Entrar"}
         </button>

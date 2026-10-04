@@ -140,12 +140,12 @@ export default function Panel() {
   }
 
   if (loading) {
-    return <main className="p-8 text-gray-600">Cargando...</main>;
+    return <main className="p-8 text-mogu-wine/70">Cargando...</main>;
   }
 
   if (!business) {
     return (
-      <main className="p-8 text-gray-700">
+      <main className="p-8 text-mogu-wine">
         <p>Tu cuenta todavía no tiene un negocio asignado.</p>
         <button onClick={salir} className="underline mt-4">
           Salir
@@ -155,14 +155,14 @@ export default function Panel() {
   }
 
   const campo =
-    "w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 bg-white";
+    "w-full border border-mogu-pink rounded-lg px-3 py-2 text-mogu-wine bg-white";
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-8 flex justify-center">
+    <main className="min-h-screen bg-mogu-cream px-4 py-8 flex justify-center">
       <div className="w-full max-w-xl">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Mi página</h1>
-          <button onClick={salir} className="text-sm text-gray-600 underline">
+          <div className="flex items-center gap-3"><img src="/mogu-icon.png" alt="Mogu" className="h-10 w-auto" /><h1 className="text-2xl font-bold text-mogu-wine">Mi página</h1></div>
+          <button onClick={salir} className="text-sm text-mogu-wine/70 underline">
             Salir
           </button>
         </div>
@@ -170,20 +170,20 @@ export default function Panel() {
         <a
           href={`/n/${business.slug}`}
           target="_blank"
-          className="block bg-white border border-gray-200 rounded-xl p-4 mb-6 text-teal-700"
+          className="block bg-white border border-mogu-pink rounded-xl p-4 mb-6 text-mogu-red"
         >
           Ver mi página pública: mogu.cl/n/{business.slug} ↗
         </a>
 
-        <section className="bg-white border border-gray-200 rounded-xl p-4 mb-6 flex flex-col gap-3">
-          <h2 className="font-bold text-gray-900">Datos del negocio</h2>
-          <label className="text-sm text-gray-600">Nombre</label>
+        <section className="bg-white border border-mogu-pink rounded-xl p-4 mb-6 flex flex-col gap-3">
+          <h2 className="font-bold text-mogu-wine">Datos del negocio</h2>
+          <label className="text-sm text-mogu-wine/70">Nombre</label>
           <input
             className={campo}
             value={business.name}
             onChange={(e) => setBusiness({ ...business, name: e.target.value })}
           />
-          <label className="text-sm text-gray-600">Descripción</label>
+          <label className="text-sm text-mogu-wine/70">Descripción</label>
           <input
             className={campo}
             value={business.description ?? ""}
@@ -191,14 +191,14 @@ export default function Panel() {
               setBusiness({ ...business, description: e.target.value })
             }
           />
-          <label className="text-sm text-gray-600">Color de tu marca</label>
+          <label className="text-sm text-mogu-wine/70">Color de tu marca</label>
           <input
             type="color"
             value={business.color}
             onChange={(e) => setBusiness({ ...business, color: e.target.value })}
             className="w-16 h-10"
           />
-          <label className="text-sm text-gray-600">
+          <label className="text-sm text-mogu-wine/70">
             Enlace de tu logo (opcional)
           </label>
           <input
@@ -212,12 +212,12 @@ export default function Panel() {
         </section>
 
         <section className="mb-6">
-          <h2 className="font-bold text-gray-900 mb-3">Botones</h2>
+          <h2 className="font-bold text-mogu-wine mb-3">Botones</h2>
           <div className="flex flex-col gap-3">
             {links.map((l) => (
               <div
                 key={l.id}
-                className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-2"
+                className="bg-white border border-mogu-pink rounded-xl p-4 flex flex-col gap-2"
               >
                 <select
                   className={campo}
@@ -243,7 +243,7 @@ export default function Panel() {
                   onChange={(e) => updateLink(l.id, { url: e.target.value })}
                 />
                 <div className="flex items-center justify-between">
-                  <label className="text-sm text-gray-700 flex items-center gap-2">
+                  <label className="text-sm text-mogu-wine flex items-center gap-2">
                     <input
                       type="checkbox"
                       checked={l.active}
@@ -265,7 +265,7 @@ export default function Panel() {
           </div>
           <button
             onClick={agregar}
-            className="mt-3 text-teal-700 font-medium"
+            className="mt-3 text-mogu-red font-medium"
           >
             + Agregar botón
           </button>
@@ -273,11 +273,11 @@ export default function Panel() {
 
         <button
           onClick={guardar}
-          className="w-full bg-teal-700 text-white font-medium rounded-lg py-3"
+          className="w-full bg-mogu-red text-white font-medium rounded-lg py-3"
         >
           Guardar cambios
         </button>
-        {msg && <p className="text-center text-sm text-gray-700 mt-3">{msg}</p>}
+        {msg && <p className="text-center text-sm text-mogu-wine mt-3">{msg}</p>}
       </div>
     </main>
   );

@@ -24,3 +24,10 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@theme {
+  --color-mogu-red: #E42D5D;
+  --color-mogu-wine: #4B1724;
+  --color-mogu-pink: #FAD9E2;
+  --color-mogu-cream: #FFF6F8;
+}

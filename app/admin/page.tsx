@@ -88,30 +88,28 @@ export default function Admin() {
   }
 
   if (cargando) {
-    return <main className="p-8 text-gray-600">Cargando...</main>;
+    return <main className="p-8 text-mogu-wine/70">Cargando...</main>;
   }
 
   const campo =
-    "w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 bg-white";
+    "w-full border border-mogu-pink rounded-lg px-3 py-2 text-mogu-wine bg-white";
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-8 flex justify-center">
+    <main className="min-h-screen bg-mogu-cream px-4 py-8 flex justify-center">
       <div className="w-full max-w-xl">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">
-          Administrador Mogu
-        </h1>
+        <div className="flex items-center gap-3 mb-6"><img src="/mogu-icon.png" alt="Mogu" className="h-10 w-auto" /><h1 className="text-2xl font-bold text-mogu-wine">Administrador Mogu</h1></div>
 
-        <section className="bg-white border border-gray-200 rounded-xl p-4 mb-6 flex flex-col gap-3">
-          <h2 className="font-bold text-gray-900">Crear negocio nuevo</h2>
+        <section className="bg-white border border-mogu-pink rounded-xl p-4 mb-6 flex flex-col gap-3">
+          <h2 className="font-bold text-mogu-wine">Crear negocio nuevo</h2>
 
-          <label className="text-sm text-gray-600">Nombre del negocio</label>
+          <label className="text-sm text-mogu-wine/70">Nombre del negocio</label>
           <input
             className={campo}
             value={form.name}
             onChange={(e) => cambiar("name", e.target.value)}
           />
 
-          <label className="text-sm text-gray-600">
+          <label className="text-sm text-mogu-wine/70">
             Dirección (opcional, se arma con el nombre)
           </label>
           <input
@@ -121,14 +119,14 @@ export default function Admin() {
             onChange={(e) => cambiar("slug", e.target.value)}
           />
 
-          <label className="text-sm text-gray-600">Descripción</label>
+          <label className="text-sm text-mogu-wine/70">Descripción</label>
           <input
             className={campo}
             value={form.description}
             onChange={(e) => cambiar("description", e.target.value)}
           />
 
-          <label className="text-sm text-gray-600">Color de la marca</label>
+          <label className="text-sm text-mogu-wine/70">Color de la marca</label>
           <input
             type="color"
             value={form.color}
@@ -136,7 +134,7 @@ export default function Admin() {
             className="w-16 h-10"
           />
 
-          <h3 className="font-medium text-gray-900 mt-2">Acceso del dueño</h3>
+          <h3 className="font-medium text-mogu-wine mt-2">Acceso del dueño</h3>
           <input
             className={campo}
             type="email"
@@ -151,7 +149,7 @@ export default function Admin() {
             onChange={(e) => cambiar("password", e.target.value)}
           />
 
-          <h3 className="font-medium text-gray-900 mt-2">
+          <h3 className="font-medium text-mogu-wine mt-2">
             Botones (deja vacío los que no use)
           </h3>
           <input
@@ -182,7 +180,7 @@ export default function Admin() {
           <button
             onClick={crear}
             disabled={enviando}
-            className="w-full bg-teal-700 text-white font-medium rounded-lg py-3 mt-2 disabled:opacity-50"
+            className="w-full bg-mogu-red text-white font-medium rounded-lg py-3 mt-2 disabled:opacity-50"
           >
             {enviando ? "Creando..." : "Crear negocio"}
           </button>
@@ -190,7 +188,7 @@ export default function Admin() {
         </section>
 
         {creado && (
-          <section className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 text-sm text-gray-800">
+          <section className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 text-sm text-mogu-wine">
             <p className="font-bold mb-2">Negocio creado ✓</p>
             <p>
               Página para la tarjeta NFC:
@@ -204,14 +202,14 @@ export default function Admin() {
               <br />
               Contraseña: <b>{creado.password}</b>
             </p>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-mogu-wine/70">
               Copia estos datos ahora: la contraseña no se vuelve a mostrar.
             </p>
           </section>
         )}
 
-        <section className="bg-white border border-gray-200 rounded-xl p-4">
-          <h2 className="font-bold text-gray-900 mb-3">
+        <section className="bg-white border border-mogu-pink rounded-xl p-4">
+          <h2 className="font-bold text-mogu-wine mb-3">
             Negocios creados ({negocios.length})
           </h2>
           <div className="flex flex-col gap-2">
@@ -220,10 +218,10 @@ export default function Admin() {
                 key={n.id}
                 href={`/n/${n.slug}`}
                 target="_blank"
-                className="flex justify-between text-sm text-gray-800 border-b border-gray-100 pb-2"
+                className="flex justify-between text-sm text-mogu-wine border-b border-mogu-pink pb-2"
               >
                 <span>{n.name}</span>
-                <span className="text-teal-700">/n/{n.slug} ↗</span>
+                <span className="text-mogu-red">/n/{n.slug} ↗</span>
               </a>
             ))}
           </div>
