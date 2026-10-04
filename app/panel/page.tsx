@@ -3,6 +3,7 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Stats from "./Stats";
 
 type Business = {
   id: string;
@@ -231,6 +232,8 @@ export default function Panel() {
         >
           Ver mi página pública: mogu.cl/n/{business.slug} ↗
         </a>
+
+        <Stats businessId={business.id} />
 
         <section className="bg-white border border-mogu-pink rounded-xl p-4 mb-6 flex flex-col gap-3">
           <h2 className="font-bold text-mogu-wine">Datos del negocio</h2>

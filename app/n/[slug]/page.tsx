@@ -1,5 +1,8 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { esBot, dispositivo } from "@/lib/track";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +39,16 @@ export default async function BusinessPage({
     .eq("active", true)
     .order("position");
 
+  // Contar el toque (sin robots)
+  const ua = (await headers()).get("user-agent") ?? "";
+  if (!esBot(ua)) {
+    await supabaseAdmin.from("events").insert({
+      business_id: business.id,
+      type: "view",
+      device: dispositivo(ua),
+    });
+  }
+
   return (
     <main className="min-h-screen bg-gray-50 flex justify-center px-4 py-10">
       <div className="w-full max-w-sm">
@@ -66,7 +79,7 @@ export default async function BusinessPage({
             return (
               <a
                 key={link.id}
-                href={link.url}
+                href={`/r/${link.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={
