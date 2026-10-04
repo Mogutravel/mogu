@@ -6,6 +6,15 @@ const MENSAJE = encodeURIComponent(
 export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900">
+            <header className="max-w-2xl mx-auto px-6 pt-6 flex items-center justify-between">
+        <span className="font-bold text-teal-700">Mogu</span>
+        <a
+          href="/login"
+          className="border border-gray-300 bg-white text-sm font-medium rounded-lg px-4 py-2"
+        >
+          Ingresar
+        </a>
+      </header>
       <section className="max-w-2xl mx-auto px-6 pt-20 pb-12 text-center">
         <p className="text-teal-700 font-medium mb-3">Mogu</p>
         <h1 className="text-4xl font-bold mb-4">
