@@ -1,3 +1,6 @@
+import { Header, Footer } from "@/components/layout";
+import { ButtonLink, Card, Container, Section } from "@/components/ui";
+
 const WHATSAPP = "56928689888";
 const MENSAJE = encodeURIComponent(
   "Hola, me interesa una tarjeta NFC de Mogu para mi negocio"
@@ -5,64 +8,90 @@ const MENSAJE = encodeURIComponent(
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-mogu-cream text-mogu-wine">
-            <header className="max-w-2xl mx-auto px-6 pt-6 flex items-center justify-between">
-        <img src="/mogu-icon.png" alt="Mogu" className="h-10 w-auto" />
-        <a
-          href="/login"
-          className="border border-mogu-pink bg-white text-sm font-medium rounded-lg px-4 py-2"
-        >
-          Ingresar
-        </a>
-      </header>
-      <section className="max-w-2xl mx-auto px-6 pt-20 pb-12 text-center">
-        <img src="/mogu-logo.png" alt="Mogu" className="h-40 w-auto mx-auto mb-6" />
-        <h1 className="text-4xl font-bold mb-4">
-          Más reseñas y clientes con un solo toque
-        </h1>
-        <p className="text-lg text-mogu-wine/70 mb-8">
-          Una tarjeta NFC para tu negocio. Tus clientes acercan el celular y
-          acceden a tu reseña de Google, WhatsApp, Instagram, carta y ubicación.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <a
-            href={`https://wa.me/${WHATSAPP}?text=${MENSAJE}`}
-            className="bg-mogu-red text-white font-medium rounded-lg px-6 py-3"
-          >
-            Cotizar por WhatsApp
-          </a>
-          <a
-            href="/nfc/cafe-raices"
-            className="border border-mogu-pink bg-white font-medium rounded-lg px-6 py-3"
-          >
-            Ver un ejemplo
-          </a>
-        </div>
-      </section>
+    <div className="flex min-h-screen flex-col bg-mogu-cream text-mogu-wine">
+      <Header />
 
-      <section className="max-w-2xl mx-auto px-6 pb-16">
-        <h2 className="text-2xl font-bold text-center mb-8">Cómo funciona</h2>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {[
-            ["1", "Eliges tu tarjeta", "Te la entregamos lista y con tu marca."],
-            ["2", "Armamos tu página", "Con tus enlaces, tu logo y tus colores."],
-            ["3", "Tus clientes la tocan", "Y llegan directo a lo que necesitas."],
-          ].map(([n, titulo, texto]) => (
-            <div
-              key={n}
-              className="bg-white border border-mogu-pink rounded-xl p-5"
-            >
-              <p className="text-mogu-red font-bold text-xl mb-1">{n}</p>
-              <p className="font-medium mb-1">{titulo}</p>
-              <p className="text-sm text-mogu-wine/70">{texto}</p>
+      <main className="flex-1">
+        {/* Hero */}
+        <Section background="cream" spacing="lg" className="pt-10 sm:pt-16">
+          <Container size="md" className="text-center">
+            <img
+              src="/mogu-logo.png"
+              alt="Mogu"
+              className="mx-auto mb-6 h-32 w-auto sm:h-40"
+            />
+            <h1 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
+              Más reseñas y clientes con un solo toque
+            </h1>
+            <p className="mx-auto mb-8 max-w-lg text-base text-mogu-gray-600 sm:text-lg">
+              Una tarjeta NFC para tu negocio. Tus clientes acercan el celular y
+              acceden a tu reseña de Google, WhatsApp, Instagram, carta y
+              ubicación.
+            </p>
+            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <ButtonLink
+                href={`https://wa.me/${WHATSAPP}?text=${MENSAJE}`}
+                variant="primary"
+                size="lg"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Cotizar por WhatsApp
+              </ButtonLink>
+              <ButtonLink
+                href="/nfc/cafe-raices"
+                variant="secondary"
+                size="lg"
+              >
+                Ver un ejemplo
+              </ButtonLink>
             </div>
-          ))}
-        </div>
-      </section>
+            <p className="mt-6 text-sm text-mogu-gray-500">
+              Compatible iOS y Android · Sin apps · Envío a Chile
+            </p>
+          </Container>
+        </Section>
 
-      <footer className="text-center text-xs text-mogu-wine/50 pb-8">
-        Mogu · Curicó, Chile
-      </footer>
-    </main>
+        {/* Cómo funciona */}
+        <Section background="white" spacing="md">
+          <Container size="md">
+            <h2 className="mb-8 text-center text-2xl font-bold sm:text-3xl">
+              Cómo funciona
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {[
+                {
+                  n: "1",
+                  titulo: "Eliges tu tarjeta",
+                  texto: "Te la entregamos lista y con tu marca.",
+                },
+                {
+                  n: "2",
+                  titulo: "Armamos tu página",
+                  texto: "Con tus enlaces, tu logo y tus colores.",
+                },
+                {
+                  n: "3",
+                  titulo: "Tus clientes la tocan",
+                  texto: "Y llegan directo a lo que necesitas.",
+                },
+              ].map((paso) => (
+                <Card key={paso.n} padding="md" hover>
+                  <p className="mb-1 text-xl font-bold text-mogu-red">
+                    {paso.n}
+                  </p>
+                  <p className="mb-1 font-semibold text-mogu-wine">
+                    {paso.titulo}
+                  </p>
+                  <p className="text-sm text-mogu-gray-600">{paso.texto}</p>
+                </Card>
+              ))}
+            </div>
+          </Container>
+        </Section>
+      </main>
+
+      <Footer />
+    </div>
   );
 }
