@@ -248,6 +248,19 @@ export default function AdvancedClientDashboard() {
         {/* COLUMNA IZQUIERDA: CONTROLES DE EDICIÓN (7 COLUMNAS) */}
         <div className="lg:col-span-7 space-y-8">
           
+          {/* BANNER DE BIENVENIDA / PRIMER ACCESO (CRO & UX) */}
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-500/20 backdrop-blur-xl shadow-2xl flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="inline-block px-3 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold uppercase tracking-wider rounded-full mb-1">
+                Estado: Activo ⚡
+              </span>
+              <h2 className="text-lg font-black text-white">¡Bienvenido a tu panel Mogu, {profile?.full_name || 'Emprendedor'}!</h2>
+              <p className="text-xs text-neutral-400">
+                Personaliza tu tarjeta arriba y blinda tu cuenta cambiando tu contraseña genérica abajo del todo.
+              </p>
+            </div>
+          </div>
+
           <div className="p-8 rounded-3xl bg-neutral-900/40 border border-neutral-800 backdrop-blur-xl shadow-2xl">
             <h1 className="text-2xl font-black text-white mb-2">Personaliza tu Negocio 🎨</h1>
             <p className="text-xs text-neutral-400 mb-6">

@@ -61,12 +61,25 @@ export async function processTransferCheckout(data: CheckoutData) {
     
     const { data: existingProfile } = await supabaseAdmin
       .from('profiles')
-      .select('slug')
+      .select('slug, status')
       .eq('user_id', userId)
       .maybeSingle()
 
     if (existingProfile && existingProfile.slug) {
       profileSlug = existingProfile.slug
+      
+      // Si el perfil ya existía (ej. venía de un trial gratuito y ahora pagó), 
+      // lo actualizamos a definitivo 'active'
+      await supabaseAdmin
+        .from('profiles')
+        .update({
+          status: 'active',
+          trial_ends_at: null,
+          full_name: fullName.trim(),
+          phone: phone.trim(),
+        })
+        .eq('user_id', userId)
+
     } else {
       // Generar un slug único basado en el nombre
       let baseSlug = limpiarSlug(fullName) || 'usuario'
@@ -90,7 +103,7 @@ export async function processTransferCheckout(data: CheckoutData) {
         }
       }
 
-      // Crear el perfil directamente
+      // Crear el perfil directamente como ACTIVO/DEFINITIVO por pago de transferencia
       const { data: newProfile, error: profileError } = await supabaseAdmin
         .from('profiles')
         .insert({
@@ -99,6 +112,8 @@ export async function processTransferCheckout(data: CheckoutData) {
           full_name: fullName.trim(),
           phone: phone.trim(),
           theme_color: 'from-emerald-500 to-teal-400',
+          status: 'active',       // <-- Cuenta definitiva al pagar por transferencia
+          trial_ends_at: null,    // <-- Sin caducidad
         })
         .select('slug')
         .single()
@@ -131,7 +146,7 @@ export async function processTransferCheckout(data: CheckoutData) {
       slug: profileSlug,
       email: email.trim(),
       tempPassword,
-      message: '¡Cuenta creada con éxito!',
+      message: '¡Cuenta creada y activada de forma definitiva con éxito!',
     }
   } catch (error: any) {
     console.error('Error en proceso de checkout:', error)

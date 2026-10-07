@@ -20,6 +20,10 @@ export default function LoginPage() {
 
     try {
       if (isRegistering) {
+        if (password.length < 6) {
+          throw new Error('La contraseña debe tener al menos 6 caracteres.')
+        }
+
         // 1. REGISTRO EN SUPABASE AUTH
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
@@ -43,22 +47,34 @@ export default function LoginPage() {
             user = signInData.user
           }
 
-          // 2. BUSCAR O ESPERAR EL PERFIL GENERADO POR EL TRIGGER
+          // 2. CALCULAR FECHA DE EXPIRACIÓN DEL TRIAL (7 DÍAS)
+          const trialEndDate = new Date()
+          trialEndDate.setDate(trialEndDate.getDate() + 7)
+
+          // 3. ACTUALIZAR O ASEGURAR EL PERFIL CON EL ESTADO 'trial' Y FECHA DE VENCIMIENTO
           let profile = null
           let attempts = 0
 
           while (!profile && attempts < 5) {
             attempts++
-            const { data } = await supabase
+            
+            // Intentamos actualizar el perfil generado por el trigger o crearlo si no existe
+            const { data: updatedProfile, error: updateError } = await supabase
               .from('profiles')
-              .select('slug')
+              .update({
+                status: 'trial',
+                trial_ends_at: trialEndDate.toISOString(),
+                full_name: fullName.trim()
+              })
               .eq('user_id', user.id)
+              .select('slug')
               .maybeSingle()
 
-            if (data) {
-              profile = data
+            if (updatedProfile) {
+              profile = updatedProfile
               break
             }
+
             await new Promise((resolve) => setTimeout(resolve, 500))
           }
 
@@ -81,11 +97,17 @@ export default function LoginPage() {
         if (signInData.user) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('slug')
+            .select('slug, status, trial_ends_at')
             .eq('user_id', signInData.user.id)
             .maybeSingle()
 
           if (profile) {
+            // Opcional: Validación si el trial ya expiró
+            if (profile.status === 'trial' && profile.trial_ends_at && new Date(profile.trial_ends_at) < new Date()) {
+              setErrorMessage('Tu periodo de prueba de 7 días ha expirado. Realiza la transferencia para activar tu cuenta de forma definitiva.')
+              return
+            }
+
             window.location.href = `/admin/${profile.slug}`
           } else {
             setErrorMessage('No se encontró un perfil asociado a esta cuenta.')
@@ -115,7 +137,7 @@ export default function LoginPage() {
         <div className="text-center space-y-2">
           <div className="inline-block font-black text-2xl tracking-wider text-white mb-1">MOGU</div>
           <p className="text-xs text-neutral-400 font-medium">
-            Plataforma de Tarjetas NFC Inteligentes
+            Tarjetas NFC Inteligentes para PyMEs ⚡
           </p>
         </div>
 
@@ -147,7 +169,7 @@ export default function LoginPage() {
                 : 'text-neutral-400 hover:text-white'
             }`}
           >
-            Crear Cuenta
+            7 Días Gratis
           </button>
         </div>
 
@@ -162,11 +184,11 @@ export default function LoginPage() {
         <form onSubmit={handleAuth} className="space-y-4">
           {isRegistering && (
             <div className="space-y-1">
-              <label className="block text-[11px] font-medium text-neutral-400">Nombre Completo</label>
+              <label className="block text-[11px] font-medium text-neutral-400">Nombre del Negocio / PyME</label>
               <input
                 type="text"
                 required
-                placeholder="Ej: Sofía Valenzuela"
+                placeholder="Ej: Cafetería Don Luis"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="w-full bg-neutral-900/80 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/80 transition"
@@ -179,7 +201,7 @@ export default function LoginPage() {
             <input
               type="email"
               required
-              placeholder="tu@email.com"
+              placeholder="tu@negocio.cl"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-neutral-900/80 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/80 transition"
@@ -191,7 +213,7 @@ export default function LoginPage() {
             <input
               type="password"
               required
-              placeholder="••••••••"
+              placeholder="Mínimo 6 caracteres"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-neutral-900/80 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/80 transition"
@@ -207,7 +229,7 @@ export default function LoginPage() {
                 : 'bg-white text-black hover:bg-neutral-200'
             }`}
           >
-            {loading ? 'Procesando...' : isRegistering ? 'Crear Cuenta MOGU' : 'Ingresar a mi Panel'}
+            {loading ? 'Procesando...' : isRegistering ? 'Comenzar Prueba Gratis (7 Días)' : 'Ingresar a mi Panel'}
           </button>
         </form>
 
@@ -223,7 +245,7 @@ export default function LoginPage() {
           >
             {isRegistering
               ? '¿Ya tienes una cuenta? Inicia sesión'
-              : '¿Compraste una tarjeta? Regístrate aquí'}
+              : '¿Quieres probar Mogu gratis? Regístrate aquí'}
           </button>
         </div>
 
