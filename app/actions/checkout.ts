@@ -9,6 +9,15 @@ interface CheckoutData {
   productId: string
 }
 
+function limpiarSlug(texto: string) {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export async function processTransferCheckout(data: CheckoutData) {
   try {
     const { fullName, email, phone, productId } = data
@@ -47,27 +56,58 @@ export async function processTransferCheckout(data: CheckoutData) {
       userId = newUser.user.id
     }
 
-    // 3. Obtener el slug generado por el trigger de Supabase
+    // 3. Verificar o crear explícitamente el perfil digital en la tabla 'profiles'
     let profileSlug = ''
-    let attempts = 0
+    
+    const { data: existingProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('slug')
+      .eq('user_id', userId)
+      .maybeSingle()
 
-    while (!profileSlug && attempts < 6) {
-      attempts++
-      const { data: profileData } = await supabaseAdmin
-        .from('profiles')
-        .select('slug')
-        .eq('user_id', userId)
-        .maybeSingle()
+    if (existingProfile && existingProfile.slug) {
+      profileSlug = existingProfile.slug
+    } else {
+      // Generar un slug único basado en el nombre
+      let baseSlug = limpiarSlug(fullName) || 'usuario'
+      let candidateSlug = baseSlug
+      let counter = 1
 
-      if (profileData && profileData.slug) {
-        profileSlug = profileData.slug
-        break
+      // Comprobamos si el slug ya está ocupado
+      while (true) {
+        const { data: checkSlug } = await supabaseAdmin
+          .from('profiles')
+          .select('id')
+          .eq('slug', candidateSlug)
+          .maybeSingle()
+
+        if (!checkSlug) {
+          candidateSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`
+          break
+        } else {
+          candidateSlug = `${baseSlug}-${counter}`
+          counter++
+        }
       }
-      await new Promise((resolve) => setTimeout(resolve, 500))
-    }
 
-    if (!profileSlug) {
-      return { success: false, message: 'Error al generar el perfil digital de la tarjeta.' }
+      // Crear el perfil directamente
+      const { data: newProfile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .insert({
+          user_id: userId,
+          slug: candidateSlug,
+          full_name: fullName.trim(),
+          phone: phone.trim(),
+          theme_color: 'from-emerald-500 to-teal-400',
+        })
+        .select('slug')
+        .single()
+
+      if (profileError || !newProfile) {
+        throw new Error(profileError?.message || 'No se pudo generar el perfil digital.')
+      }
+
+      profileSlug = newProfile.slug
     }
 
     // 4. Registrar la orden de compra

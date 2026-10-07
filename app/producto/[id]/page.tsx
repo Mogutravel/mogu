@@ -30,7 +30,7 @@ export default function ProductDetailPage() {
   const [email, setEmail] = useState('')
   const [shippingAddress, setShippingAddress] = useState('')
 
-  // Cantidade fija por transferencia
+  // Cantidad fija por transferencia
   const [quantity, setQuantity] = useState(1)
 
   // Estado para las instrucciones de transferencia y pantalla de éxito con credenciales
@@ -259,7 +259,7 @@ export default function ProductDetailPage() {
               <form onSubmit={handleInitialSubmit} className="space-y-6">
                 {/* Campos de Datos Cliente */}
                 <div className="space-y-4">
-                  <h2 className="text-sm font-semibold text-neutral-300 tracking-wide uppercase">1. Datos cliente y tarjeta</h2>
+                  <h2 className="text-sm font-semibold text-neutral-300 tracking-wide uppercase">Datos cliente y tarjeta</h2>
                   
                   <div>
                     <label className="block text-xs text-neutral-400 mb-1">Nombre Completo *</label>
@@ -335,7 +335,7 @@ export default function ProductDetailPage() {
                     </span>
                   </div>
                   <p className="text-[11px] text-neutral-400 italic">
-                    * Por el momento, todas nuestras operaciones y activaciones instantáneas se procesan exclusivamente mediante transferencia bancaria.
+                    Por el momento, todas nuestras operaciones y activaciones instantáneas se procesan exclusivamente mediante transferencia bancaria.
                   </p>
                 </div>
 
