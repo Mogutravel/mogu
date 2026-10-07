@@ -69,7 +69,7 @@ export default function PublicProfilePage() {
     loadPublicData()
   }, [slug])
 
-  // Generar y descargar vCard
+  // Generar y descargar vCard optimizado para móviles y escritorio
   const handleDownloadVCard = () => {
     if (!profile) return
 
@@ -89,12 +89,19 @@ export default function PublicProfilePage() {
 
     const blob = new Blob([vCardData], { type: 'text/vcard;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
+    
     const link = document.createElement('a')
     link.href = url
     link.setAttribute('download', `${profile.full_name.replace(/\s+/g, '_')}_MOGU.vcf`)
+    
     document.body.appendChild(link)
     link.click()
-    document.body.removeChild(link)
+    
+    // Limpieza diferida para asegurar que el navegador móvil procese la descarga
+    setTimeout(() => {
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    }, 200)
 
     setSavedContact(true)
     setTimeout(() => setSavedContact(false), 3000)

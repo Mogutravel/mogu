@@ -147,12 +147,38 @@ export default function AdvancedClientDashboard() {
     }
   }
 
-  // Simulación de carga de Logo/Avatar
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Subir imagen real a Supabase Storage Bucket ('avatars')
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file && profile) {
-      const previewUrl = URL.createObjectURL(file)
-      setProfile({ ...profile, avatar_url: previewUrl })
+    if (!file || !profile) return
+
+    try {
+      setMessage('Subiendo imagen...')
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${profile.id}-${Math.random()}.${fileExt}`
+      const filePath = `${fileName}`
+
+      // 1. Subir archivo al bucket 'avatars' (Asegúrate de crear un bucket público llamado 'avatars' en Supabase)
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      // 2. Obtener URL pública permanente
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath)
+
+      // 3. Actualizar estado local
+      setProfile({ ...profile, avatar_url: publicUrl })
+      setMessage('✨ ¡Imagen subida con éxito! Haz clic en "Guardar Cambios Visuales" para fijarla.')
+      setTimeout(() => setMessage(''), 4000)
+    } catch (error: any) {
+      console.error('Error al subir imagen:', error)
+      setMessage(`❌ Error al subir imagen: ${error.message || 'Verifica los permisos del Storage Bucket'}`)
     }
   }
 
