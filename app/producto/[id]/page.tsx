@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { processTransferCheckout } from '@/app/actions/checkout'
 
 interface Product {
   id: string
@@ -29,9 +30,12 @@ export default function ProductDetailPage() {
   const [email, setEmail] = useState('')
   const [shippingAddress, setShippingAddress] = useState('')
 
-  // Selección de Forma de Pago y Cantidad
-  const [paymentMethod, setPaymentMethod] = useState<'Efectivo' | 'Tarjeta' | 'Transferencia'>('Transferencia')
+  // Cantidade fija por transferencia
   const [quantity, setQuantity] = useState(1)
+
+  // Estado para las instrucciones de transferencia y pantalla de éxito con credenciales
+  const [step, setStep] = useState<'form' | 'instructions'>('form')
+  const [successData, setSuccessData] = useState<{ slug: string; email: string; tempPassword: string } | null>(null)
 
   useEffect(() => {
     async function fetchProduct() {
@@ -55,8 +59,8 @@ export default function ProductDetailPage() {
     fetchProduct()
   }, [productId])
 
-  const handleCreateOrder = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
+  const handleInitialSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
 
     if (!product) return
 
@@ -66,111 +70,50 @@ export default function ProductDetailPage() {
       return
     }
 
+    // Pasamos a la pantalla con los datos bancarios y creación de cuenta
+    setStep('instructions')
+  }
+
+  const handleConfirmTransfer = async () => {
+    if (!product) return
     setSubmitting(true)
 
     try {
-      const totalPrice = product.price * quantity
-
-      // 1. Generar un slug único basado en el nombre ingresado
-      const cleanName = cardName
-        .toLowerCase()
-        .trim()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
-        .replace(/[^a-z0-9]/g, '')      // Eliminar caracteres especiales
-
-      const uniqueSuffix = Math.floor(1000 + Math.random() * 9000)
-      const generatedSlug = `${cleanName || 'tarjeta'}-${uniqueSuffix}`
-
-      // 2. Crear el Perfil Digital en Supabase (tabla profiles)
-      const { data: newProfile, error: profileError } = await supabase
-        .from('profiles')
-        .insert([
-          {
-            slug: generatedSlug,
-            full_name: cardName.trim(),
-            title: cardTitle.trim() || null,
-            phone: phone.trim(),
-            email: email.trim(),
-            bio: 'Perfil activado con MOGU NFC',
-          },
-        ])
-        .select()
-        .single()
-
-      if (profileError || !newProfile) {
-        console.error('Error al crear perfil en Supabase:', profileError)
-        alert('Hubo un error al generar tu perfil digital. Por favor intenta nuevamente.')
-        setSubmitting(false)
-        return
-      }
-
-      // URLs generadas
-      const publicProfileUrl = `https://mogu.cl/nfc/${newProfile.slug}`
-      const adminPanelUrl = `https://mogu.cl/admin/${newProfile.slug}?key=${newProfile.admin_token}`
-
-      // 3. Guardar el pedido en Supabase (tabla orders)
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert([
-          {
-            product_id: product.id,
-            product_name: product.name,
-            quantity,
-            unit_price: product.price,
-            total_price: totalPrice,
-            card_name: cardName,
-            card_title: cardTitle,
-            phone,
-            email,
-            shipping_address: shippingAddress.trim() || 'No especificada',
-            payment_method: paymentMethod,
-            status: 'pendiente',
-          },
-        ])
-        .select()
-        .single()
-
-      if (orderError) {
-        throw orderError
-      }
-
-      // 4. Enviar notificación por Formspree con los datos y enlaces
-      const FORMSPREE_ENDPOINT = 'https://formspree.io/f/mzeddgdw'
-
-      const emailResponse = await fetch(FORMSPREE_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          _subject: `Nuevo Pedido MOGU - #${order.id.slice(0, 8)}`,
-          Producto: product.name,
-          Cantidad: quantity,
-          Total: `$${totalPrice.toLocaleString('es-CL')} CLP`,
-          Forma_de_Pago: paymentMethod,
-          Nombre_Tarjeta: cardName,
-          Cargo_Empresa: cardTitle || 'N/A',
-          Telefono_Cliente: phone,
-          Email_Cliente: email,
-          Direccion_Envio: shippingAddress.trim() || 'No especificada',
-          ID_Pedido: order.id,
-          URL_Perfil_Publico: publicProfileUrl,
-          URL_Panel_Administracion: adminPanelUrl,
-        }),
+      // Ejecutamos la Server Action que crea la cuenta, perfil y orden en Supabase de forma segura
+      const result = await processTransferCheckout({
+        fullName: cardName,
+        email,
+        phone,
+        productId: product.id,
       })
 
-      if (!emailResponse.ok) {
-        console.warn('El pedido se guardó en Supabase pero hubo un detalle al enviar el correo.')
+      if (result.success && result.slug && result.email && result.tempPassword) {
+        // Iniciar sesión automáticamente en el cliente de Supabase del navegador
+        const { error: loginError } = await supabase.auth.signInWithPassword({
+          email: result.email,
+          password: result.tempPassword,
+        })
+
+        if (loginError) {
+          alert('Cuenta creada con éxito, pero hubo un problema al autenticar automáticamente. Por favor inicia sesión.')
+          router.push('/login')
+          return
+        }
+
+        // Guardamos los datos para mostrar la tarjeta de bienvenida con credenciales
+        setSuccessData({
+          slug: result.slug,
+          email: result.email,
+          tempPassword: result.tempPassword,
+        })
+      } else {
+        alert(result.message || 'Error al procesar la solicitud.')
+        setStep('form')
       }
-
-      alert('¡Pedido realizado con éxito! Te hemos enviado las instrucciones a tu correo para configurar tu tarjeta NFC.')
-
-      router.push('/')
     } catch (error: any) {
       console.error('Error al procesar el pedido:', error)
       alert(`Error al procesar: ${error?.message || 'Revisa la consola'}`)
+      setStep('form')
     } finally {
       setSubmitting(false)
     }
@@ -200,6 +143,52 @@ export default function ProductDetailPage() {
       </div>
     )
   }
+
+  // PANTALLA DE BIENVENIDA PROFESIONAL CON CREDENCIALES (DESPUÉS DE TRANSFERIR)
+  if (successData) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
+        <div className="max-w-md w-full bg-neutral-900/80 backdrop-blur-xl border border-neutral-800 p-6 sm:p-8 rounded-3xl space-y-6 text-center shadow-2xl">
+          
+          <div className="w-14 h-14 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto text-xl font-bold">
+            ✓
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-lg font-extrabold text-white">¡Pedido y cuenta creados con éxito!</h1>
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              Hemos registrado tu orden por transferencia. Para que personalices tu tarjeta de inmediato, <strong className="text-white">ya hemos creado y activado tu cuenta de acceso</strong>.
+            </p>
+          </div>
+
+          {/* Tarjeta de Credenciales */}
+          <div className="p-4 bg-neutral-950 border border-neutral-800 rounded-2xl text-left space-y-2.5 text-xs">
+            <p className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Tus datos de acceso:</p>
+            <div className="flex justify-between items-center text-neutral-300 border-b border-neutral-900 pb-1.5">
+              <span className="text-neutral-500">Correo:</span>
+              <span className="font-mono text-white">{successData.email}</span>
+            </div>
+            <div className="flex justify-between items-center text-neutral-300">
+              <span className="text-neutral-500">Contraseña temporal:</span>
+              <span className="font-mono bg-neutral-900 px-2 py-0.5 rounded text-emerald-300">{successData.tempPassword}</span>
+            </div>
+            <p className="text-[10px] text-neutral-500 pt-1 italic">
+              Guarda esta contraseña por si deseas iniciar sesión desde otro dispositivo más adelante.
+            </p>
+          </div>
+
+          <button
+            onClick={() => router.push(`/admin/${successData.slug}`)}
+            className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.25)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition cursor-pointer"
+          >
+            Ir a configurar mi tarjeta digital ↗
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const totalPrice = product.price * quantity
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -248,14 +237,14 @@ export default function ProductDetailPage() {
               </div>
 
               <div className="flex justify-between items-end z-10 text-[10px] text-neutral-500 tracking-wider">
-                <span>mogu.cl/{cardName ? cardName.toLowerCase().replace(/\s+/g, '') : 'tu-link'}</span>
+                <span>mogu.cl/{cardName ? cardName.toLowerCase().replace(/[^a-z0-9]/g, '') : 'tu-link'}</span>
                 <span>TAP TO CONNECT</span>
               </div>
             </div>
           </div>
 
           {/* FORMULARIO DE PERSONALIZACIÓN Y COMPRA */}
-          <form onSubmit={handleCreateOrder} className="space-y-8 bg-neutral-900/40 p-8 rounded-2xl border border-neutral-800/80">
+          <div className="bg-neutral-900/40 p-8 rounded-2xl border border-neutral-800/80">
             <div>
               <span className="text-xs font-semibold tracking-wider text-emerald-400 uppercase">{product.category}</span>
               <h1 className="text-3xl font-extrabold mt-1 text-white">{product.name}</h1>
@@ -264,129 +253,173 @@ export default function ProductDetailPage() {
               </p>
             </div>
 
-            <hr className="border-neutral-800" />
+            <hr className="border-neutral-800 my-6" />
 
-            {/* Campos de Datos Cliente */}
-            <div className="space-y-4">
-              <h2 className="text-sm font-semibold text-neutral-300 tracking-wide uppercase">1. Datos cliente</h2>
-              
-              <div>
-                <label className="block text-xs text-neutral-400 mb-1">Nombre Completo *</label>
-                <input
-                  type="text"
-                  required
-                  value={cardName}
-                  onChange={(e) => setCardName(e.target.value)}
-                  placeholder="Ej: Ignacia González"
-                  className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
-                  maxLength={30}
-                />
-              </div>
+            {step === 'form' ? (
+              <form onSubmit={handleInitialSubmit} className="space-y-6">
+                {/* Campos de Datos Cliente */}
+                <div className="space-y-4">
+                  <h2 className="text-sm font-semibold text-neutral-300 tracking-wide uppercase">1. Datos cliente y tarjeta</h2>
+                  
+                  <div>
+                    <label className="block text-xs text-neutral-400 mb-1">Nombre Completo *</label>
+                    <input
+                      type="text"
+                      required
+                      value={cardName}
+                      onChange={(e) => setCardName(e.target.value)}
+                      placeholder="Ej: Ignacia González"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
+                      maxLength={30}
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs text-neutral-400 mb-1">Cargo / Empresa</label>
-                <input
-                  type="text"
-                  value={cardTitle}
-                  onChange={(e) => setCardTitle(e.target.value)}
-                  placeholder="Ej: Founder & CEO"
-                  className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
-                  maxLength={35}
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs text-neutral-400 mb-1">Cargo / Empresa</label>
+                    <input
+                      type="text"
+                      value={cardTitle}
+                      onChange={(e) => setCardTitle(e.target.value)}
+                      placeholder="Ej: Founder & CEO"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
+                      maxLength={35}
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs text-neutral-400 mb-1">Teléfono *</label>
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Ej: +56 9 1234 5678"
-                  className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs text-neutral-400 mb-1">Teléfono *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Ej: +56 9 1234 5678"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs text-neutral-400 mb-1">Correo electrónico *</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Ej: ignacia@ejemplo.cl"
-                  className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs text-neutral-400 mb-1">Correo electrónico (Tu usuario de acceso) *</label>
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Ej: ignacia@ejemplo.cl"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs text-neutral-400 mb-1">Dirección de envío (Opcional)</label>
-                <input
-                  type="text"
-                  value={shippingAddress}
-                  onChange={(e) => setShippingAddress(e.target.value)}
-                  placeholder="Ej: Av. Providencia 1234, Depto 501, Santiago"
-                  className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
-                />
-              </div>
-            </div>
+                  <div>
+                    <label className="block text-xs text-neutral-400 mb-1">Dirección de envío (Opcional)</label>
+                    <input
+                      type="text"
+                      value={shippingAddress}
+                      onChange={(e) => setShippingAddress(e.target.value)}
+                      placeholder="Ej: Av. Providencia 1234, Depto 501, Santiago"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
+                    />
+                  </div>
+                </div>
 
-            {/* Selección de Forma de Pago */}
-            <div className="space-y-3">
-              <h2 className="text-sm font-semibold text-neutral-300 tracking-wide uppercase">2. Forma de pago</h2>
-              <div className="flex gap-3">
-                {(['Efectivo', 'Tarjeta', 'Transferencia'] as const).map((method) => (
+                {/* Método de Pago Fijo (Solo Transferencia) */}
+                <div className="space-y-3">
+                  <h2 className="text-sm font-semibold text-neutral-300 tracking-wide uppercase">2. Método de pago</h2>
+                  <div className="p-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-xs font-bold tracking-wider text-emerald-400 uppercase">Transferencia Bancaria</span>
+                    </div>
+                    <span className="text-[11px] text-neutral-400 bg-neutral-900 px-2.5 py-1 rounded-md border border-neutral-800">
+                      Activación inmediata ⚡
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-neutral-400 italic">
+                    * Por el momento, todas nuestras operaciones y activaciones instantáneas se procesan exclusivamente mediante transferencia bancaria.
+                  </p>
+                </div>
+
+                {/* Cantidad y Botón de Confirmación */}
+                <div className="pt-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-neutral-300">Cantidad</span>
+                    <div className="flex items-center border border-neutral-800 rounded-lg bg-neutral-900">
+                      <button
+                        type="button"
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="px-3 py-1.5 text-neutral-400 hover:text-white transition cursor-pointer"
+                      >
+                        -
+                      </button>
+                      <span className="px-4 text-sm font-semibold">{quantity}</span>
+                      <button
+                        type="button"
+                        onClick={() => setQuantity(quantity + 1)}
+                        className="px-3 py-1.5 text-neutral-400 hover:text-white transition cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
                   <button
-                    key={method}
-                    type="button"
-                    onClick={() => setPaymentMethod(method)}
-                    className={`flex-1 py-2.5 px-3 rounded-lg border text-xs font-medium transition flex items-center justify-center gap-2 cursor-pointer ${
-                      paymentMethod === method
-                        ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
-                        : 'border-neutral-800 bg-neutral-900 text-neutral-400'
-                    }`}
+                    type="submit"
+                    className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-sm rounded-xl transition shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    {method}
+                    Comprar • ${totalPrice.toLocaleString('es-CL')} CLP
                   </button>
-                ))}
-              </div>
-            </div>
+                </div>
+              </form>
+            ) : (
+              /* PASO 2: DATOS DE TRANSFERENCIA BANCARIA */
+              <div className="space-y-6">
+                <div className="border-b border-neutral-800 pb-3">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                    2. Realiza tu Transferencia Bancaria
+                  </h2>
+                  <p className="text-[11px] text-neutral-400 mt-1">
+                    Transfiere el monto exacto a nuestra cuenta corriente.
+                  </p>
+                </div>
 
-            {/* Cantidad y Botón de Confirmación */}
-            <div className="pt-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-neutral-300">Cantidad</span>
-                <div className="flex items-center border border-neutral-800 rounded-lg bg-neutral-900">
+                <div className="p-4 bg-neutral-950 border border-neutral-800 rounded-2xl space-y-2 text-xs text-neutral-300">
+                  <p><span className="text-neutral-500">Banco:</span> Banco Falabella</p>
+                  <p><span className="text-neutral-500">Tipo de Cuenta:</span> Corriente</p>
+                  <p><span className="text-neutral-500">N° de Cuenta:</span> 19802087337</p>
+                  <p><span className="text-neutral-500">RUT:</span> 17984728-0</p>
+                  <p><span className="text-neutral-500">Razón Social:</span> Mogu SpA</p>
+                  <p><span className="text-neutral-500">Correo:</span> pagos@mogu.cl</p>
+                  <div className="pt-2 border-t border-neutral-800 flex justify-between items-center font-bold text-white">
+                    <span>Total a pagar:</span>
+                    <span className="text-emerald-400 text-sm">${totalPrice.toLocaleString('es-CL')} CLP</span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-neutral-400 leading-relaxed bg-emerald-500/5 border border-emerald-500/20 p-3.5 rounded-2xl">
+                  💡 Al hacer clic en <strong className="text-white">"Ya transferí / Configurar mi tarjeta"</strong>, crearemos tu cuenta al instante para que comiences a personalizar tu diseño mientras validamos tu comprobante.
+                </p>
+
+                <div className="flex gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="px-3 py-1.5 text-neutral-400 hover:text-white transition cursor-pointer"
+                    onClick={() => setStep('form')}
+                    className="w-1/3 py-3 bg-neutral-800 hover:bg-neutral-700 text-xs font-semibold rounded-xl transition cursor-pointer"
                   >
-                    -
+                    Volver
                   </button>
-                  <span className="px-4 text-sm font-semibold">{quantity}</span>
                   <button
                     type="button"
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="px-3 py-1.5 text-neutral-400 hover:text-white transition cursor-pointer"
+                    disabled={submitting}
+                    onClick={handleConfirmTransfer}
+                    className="w-2/3 py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.25)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition cursor-pointer flex items-center justify-center"
                   >
-                    +
+                    {submitting ? 'Creando cuenta...' : 'Ya transferí / Configurar'}
                   </button>
                 </div>
               </div>
+            )}
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-neutral-700 disabled:cursor-not-allowed text-black font-bold text-sm rounded-xl transition shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                {submitting
-                  ? 'Procesando pedido...'
-                  : `Realizar Pedido • $${(product.price * quantity).toLocaleString('es-CL')} CLP`}
-              </button>
-            </div>
-
-          </form>
+          </div>
 
         </div>
       </main>
