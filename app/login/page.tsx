@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { Button, Input } from "@/components/ui";
 
 export default function Login() {
   const router = useRouter();
@@ -27,38 +28,60 @@ export default function Login() {
   }
 
   return (
-    <main className="min-h-screen bg-mogu-cream flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl border border-mogu-pink p-6">
-        <img src="/mogu-logo.png" alt="Mogu" className="h-28 w-auto mx-auto mb-4" />
-        <p className="text-mogu-wine/70 mb-6">Ingresa a tu panel</p>
+    <main className="flex min-h-screen items-center justify-center bg-mogu-cream px-4">
+      <div className="w-full max-w-sm rounded-2xl border border-mogu-pink bg-white p-6 shadow-sm">
+        <a href="/" className="mb-4 block text-center">
+          <img
+            src="/mogu-logo.png"
+            alt="Mogu"
+            className="mx-auto h-24 w-auto"
+          />
+        </a>
 
-        <input
-          type="email"
-          placeholder="Correo"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full border border-mogu-pink rounded-lg px-3 py-3 mb-3 text-mogu-wine"
-        />
-        <input
-          type="password"
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && entrar()}
-          className="w-full border border-mogu-pink rounded-lg px-3 py-3 mb-3 text-mogu-wine"
-        />
+        <h1 className="mb-1 text-center text-lg font-semibold text-mogu-wine">
+          Ingresa a tu panel
+        </h1>
+        <p className="mb-6 text-center text-sm text-mogu-wine">
+          Administra tu tarjeta NFC y tus enlaces
+        </p>
 
-        {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
+        <div className="flex flex-col gap-3">
+          <Input
+            type="email"
+            name="email"
+            label="Correo"
+            placeholder="tu@correo.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+          />
+          <Input
+            type="password"
+            name="password"
+            label="Contraseña"
+            placeholder="Tu contraseña"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && entrar()}
+            autoComplete="current-password"
+            error={error || undefined}
+          />
 
-        <button
-          onClick={entrar}
-          disabled={loading}
-          className="w-full bg-mogu-red text-white font-medium rounded-lg py-3 disabled:opacity-50"
+          <Button
+            onClick={entrar}
+            disabled={loading}
+            fullWidth
+            size="lg"
+            className="mt-1"
+          >
+            {loading ? "Entrando..." : "Entrar"}
+          </Button>
+        </div>
+
+        <a
+          href="/recuperar"
+          className="mt-5 block text-center text-sm text-mogu-gray-500 hover:text-mogu-red hover:underline"
         >
-          {loading ? "Entrando..." : "Entrar"}
-        </button>
-
-        <a href="/recuperar" className="block text-center text-sm text-mogu-wine/70 mt-4">
           ¿Olvidaste tu contraseña?
         </a>
       </div>

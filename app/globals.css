@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
+/* ============================================================
+   MOGU Design System — Phase 1 Foundations
+   ============================================================ */
+
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #3f0f1e;
 }
 
 @theme inline {
@@ -12,22 +16,68 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Brand + semantic tokens */
+@theme {
+  /* Brand */
+  --color-mogu-red: #e11d48;
+  --color-mogu-red-hover: #be123c;
+  --color-mogu-wine: #3f0f1e;
+  --color-mogu-pink: #fce7ee;
+  --color-mogu-cream: #fff8f9;
+
+  /* Neutrals */
+  --color-mogu-white: #ffffff;
+  --color-mogu-gray-50: #f9fafb;
+  --color-mogu-gray-100: #f3f4f6;
+  --color-mogu-gray-200: #e5e7eb;
+  --color-mogu-gray-400: #9ca3af;
+  --color-mogu-gray-500: #6b7280;
+  --color-mogu-gray-600: #4b5563;
+  --color-mogu-gray-700: #374151;
+  --color-mogu-gray-900: #111827;
+
+  /* Feedback */
+  --color-mogu-success: #059669;
+  --color-mogu-success-bg: #ecfdf5;
+  --color-mogu-error: #dc2626;
+  --color-mogu-error-bg: #fef2f2;
+
+  /* Radius scale */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-full: 9999px;
+
+  /* Shadow scale */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
 }
 
+/* Base styles */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@theme {
-  --color-mogu-red: #E42D5D;
-  --color-mogu-wine: #4B1724;
-  --color-mogu-pink: #FAD9E2;
-  --color-mogu-cream: #FFF6F8;
+/* Focus visible for accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-mogu-red);
+  outline-offset: 2px;
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection color */
+::selection {
+  background-color: var(--color-mogu-pink);
+  color: var(--color-mogu-wine);
 }

@@ -39,7 +39,6 @@ export default async function BusinessPage({
     .eq("active", true)
     .order("position");
 
-  // Contar el toque (sin robots)
   const ua = (await headers()).get("user-agent") ?? "";
   if (!esBot(ua)) {
     await supabaseAdmin.from("events").insert({
@@ -50,32 +49,38 @@ export default async function BusinessPage({
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 flex justify-center px-4 py-10">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
+    <main className="min-h-screen bg-mogu-cream">
+      <div className="mx-auto flex min-h-screen w-full max-w-sm flex-col px-4 py-10">
+        {/* Cabecera del negocio */}
+        <div className="mb-8 text-center">
           {business.logo_url ? (
             <img
               src={business.logo_url}
               alt={business.name}
-              className="w-24 h-24 rounded-full object-cover mx-auto mb-4"
+              className="mx-auto mb-4 h-24 w-24 rounded-full object-cover shadow-md ring-2 ring-white"
             />
           ) : (
             <div
-              className="w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl font-bold text-white"
-              style={{ backgroundColor: business.color }}
+              className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full text-4xl font-bold text-white shadow-md"
+              style={{ backgroundColor: business.color || "#E11D48" }}
             >
               {business.name.charAt(0)}
             </div>
           )}
-          <h1 className="text-2xl font-bold text-gray-900">{business.name}</h1>
+          <h1 className="text-2xl font-bold text-mogu-wine">{business.name}</h1>
           {business.description && (
-            <p className="text-gray-600 mt-2">{business.description}</p>
+            <p className="mt-2 text-sm leading-relaxed text-mogu-gray-600">
+              {business.description}
+            </p>
           )}
         </div>
 
-        <div className="flex flex-col gap-3">
+        {/* Botones de acción */}
+        <div className="flex flex-1 flex-col gap-3">
           {links?.map((link) => {
             const destacado = link.type === "review";
+            const icono = ICONS[link.type] ?? "🔗";
+
             return (
               <a
                 key={link.id}
@@ -83,22 +88,27 @@ export default async function BusinessPage({
                 target="_blank"
                 rel="noopener noreferrer"
                 className={
-                  "flex items-center gap-3 rounded-xl px-4 py-4 font-medium transition active:scale-95 " +
+                  "flex items-center gap-3 rounded-xl px-4 py-4 font-medium transition active:scale-[0.98] " +
                   (destacado
-                    ? "text-white shadow-md"
-                    : "bg-white text-gray-900 border border-gray-200")
+                    ? "bg-mogu-red text-white shadow-md"
+                    : "border border-mogu-pink bg-white text-mogu-wine shadow-sm hover:border-mogu-red/30 hover:shadow-md")
                 }
-                style={destacado ? { backgroundColor: business.color } : undefined}
               >
-                <span className="text-xl">{ICONS[link.type] ?? "🔗"}</span>
-                <span>{link.label}</span>
+                <span className="text-xl" aria-hidden>
+                  {icono}
+                </span>
+                <span className="flex-1 text-left">{link.label}</span>
               </a>
             );
           })}
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-10">
-          Hecho con Mogu
+        {/* Marca Mogu */}
+        <p className="mt-10 text-center text-xs text-mogu-gray-400">
+          Hecho con{" "}
+          <a href="/" className="font-medium text-mogu-red hover:underline">
+            Mogu
+          </a>
         </p>
       </div>
     </main>
