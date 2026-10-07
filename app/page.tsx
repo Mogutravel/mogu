@@ -67,13 +67,28 @@ export default async function Home() {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button className="relative rounded-full border border-neutral-700 bg-neutral-900 px-4 py-2 text-xs font-semibold text-white transition hover:border-neutral-500 hover:bg-neutral-800">
               Carrito
               <span className="ml-2 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[10px] font-bold text-black">
                 0
               </span>
             </button>
+
+            {/* BOTONES DE AUTENTICACIÓN EN LA ESQUINA SUPERIOR DERECHA */}
+            <Link
+              href="/login"
+              className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-semibold text-neutral-300 hover:text-white rounded-xl transition backdrop-blur-xl"
+            >
+              Iniciar Sesión
+            </Link>
+
+            <Link
+              href="/login"
+              className="px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-400 text-black text-xs font-extrabold uppercase tracking-wider rounded-xl transition shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:shadow-[0_0_25px_rgba(16,185,129,0.4)]"
+            >
+              Crear Cuenta
+            </Link>
           </div>
         </div>
       </header>

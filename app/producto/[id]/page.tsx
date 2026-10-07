@@ -28,7 +28,7 @@ export default function ProductDetailPage() {
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [shippingAddress, setShippingAddress] = useState('')
-  
+
   // Selección de Forma de Pago y Cantidad
   const [paymentMethod, setPaymentMethod] = useState<'Efectivo' | 'Tarjeta' | 'Transferencia'>('Transferencia')
   const [quantity, setQuantity] = useState(1)
@@ -71,8 +71,46 @@ export default function ProductDetailPage() {
     try {
       const totalPrice = product.price * quantity
 
-      // 1. Guardar el pedido en Supabase
-      const { data: order, error } = await supabase
+      // 1. Generar un slug único basado en el nombre ingresado
+      const cleanName = cardName
+        .toLowerCase()
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
+        .replace(/[^a-z0-9]/g, '')      // Eliminar caracteres especiales
+
+      const uniqueSuffix = Math.floor(1000 + Math.random() * 9000)
+      const generatedSlug = `${cleanName || 'tarjeta'}-${uniqueSuffix}`
+
+      // 2. Crear el Perfil Digital en Supabase (tabla profiles)
+      const { data: newProfile, error: profileError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            slug: generatedSlug,
+            full_name: cardName.trim(),
+            title: cardTitle.trim() || null,
+            phone: phone.trim(),
+            email: email.trim(),
+            bio: 'Perfil activado con MOGU NFC',
+          },
+        ])
+        .select()
+        .single()
+
+      if (profileError || !newProfile) {
+        console.error('Error al crear perfil en Supabase:', profileError)
+        alert('Hubo un error al generar tu perfil digital. Por favor intenta nuevamente.')
+        setSubmitting(false)
+        return
+      }
+
+      // URLs generadas
+      const publicProfileUrl = `https://mogu.cl/nfc/${newProfile.slug}`
+      const adminPanelUrl = `https://mogu.cl/admin/${newProfile.slug}?key=${newProfile.admin_token}`
+
+      // 3. Guardar el pedido en Supabase (tabla orders)
+      const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert([
           {
@@ -93,18 +131,18 @@ export default function ProductDetailPage() {
         .select()
         .single()
 
-      if (error) {
-        throw error
+      if (orderError) {
+        throw orderError
       }
 
-      // 2. Enviar datos del pedido a tu correo electrónico vía Formspree
+      // 4. Enviar notificación por Formspree con los datos y enlaces
       const FORMSPREE_ENDPOINT = 'https://formspree.io/f/mzeddgdw'
 
       const emailResponse = await fetch(FORMSPREE_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
         },
         body: JSON.stringify({
           _subject: `Nuevo Pedido MOGU - #${order.id.slice(0, 8)}`,
@@ -117,19 +155,19 @@ export default function ProductDetailPage() {
           Telefono_Cliente: phone,
           Email_Cliente: email,
           Direccion_Envio: shippingAddress.trim() || 'No especificada',
-          ID_Pedido: order.id
-        })
+          ID_Pedido: order.id,
+          URL_Perfil_Publico: publicProfileUrl,
+          URL_Panel_Administracion: adminPanelUrl,
+        }),
       })
 
       if (!emailResponse.ok) {
         console.warn('El pedido se guardó en Supabase pero hubo un detalle al enviar el correo.')
       }
 
-      alert('¡Pedido realizado con éxito! Nos pondremos en contacto contigo a la brevedad.')
-      
-      // Redirigir a la página principal tras completar la compra
-      router.push('/')
+      alert('¡Pedido realizado con éxito! Te hemos enviado las instrucciones a tu correo para configurar tu tarjeta NFC.')
 
+      router.push('/')
     } catch (error: any) {
       console.error('Error al procesar el pedido:', error)
       alert(`Error al procesar: ${error?.message || 'Revisa la consola'}`)
@@ -302,7 +340,7 @@ export default function ProductDetailPage() {
                     key={method}
                     type="button"
                     onClick={() => setPaymentMethod(method)}
-                    className={`flex-1 py-2.5 px-3 rounded-lg border text-xs font-medium transition flex items-center justify-center gap-2 ${
+                    className={`flex-1 py-2.5 px-3 rounded-lg border text-xs font-medium transition flex items-center justify-center gap-2 cursor-pointer ${
                       paymentMethod === method
                         ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
                         : 'border-neutral-800 bg-neutral-900 text-neutral-400'
@@ -322,7 +360,7 @@ export default function ProductDetailPage() {
                   <button
                     type="button"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="px-3 py-1.5 text-neutral-400 hover:text-white transition"
+                    className="px-3 py-1.5 text-neutral-400 hover:text-white transition cursor-pointer"
                   >
                     -
                   </button>
@@ -330,7 +368,7 @@ export default function ProductDetailPage() {
                   <button
                     type="button"
                     onClick={() => setQuantity(quantity + 1)}
-                    className="px-3 py-1.5 text-neutral-400 hover:text-white transition"
+                    className="px-3 py-1.5 text-neutral-400 hover:text-white transition cursor-pointer"
                   >
                     +
                   </button>
@@ -338,12 +376,13 @@ export default function ProductDetailPage() {
               </div>
 
               <button
-                type="button"
-                onClick={() => handleCreateOrder()}
+                type="submit"
                 disabled={submitting}
                 className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-neutral-700 disabled:cursor-not-allowed text-black font-bold text-sm rounded-xl transition shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 cursor-pointer"
               >
-                {submitting ? 'Procesando pedido...' : `Realizar Pedido • $${(product.price * quantity).toLocaleString('es-CL')} CLP`}
+                {submitting
+                  ? 'Procesando pedido...'
+                  : `Realizar Pedido • $${(product.price * quantity).toLocaleString('es-CL')} CLP`}
               </button>
             </div>
 

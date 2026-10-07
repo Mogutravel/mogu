@@ -17,13 +17,13 @@ export const metadata: Metadata = {
   description: "Tarjetas NFC para que tus clientes te dejen reseñas y lleguen a tu WhatsApp, Instagram y carta.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col bg-[#0A0A0C] text-neutral-100">{children}</body>
     </html>
   );
 }

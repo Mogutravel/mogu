@@ -1,90 +1,237 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { Button, Input } from "@/components/ui";
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
-export default function Login() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+export default function LoginPage() {
+  const router = useRouter()
+  const [isRegistering, setIsRegistering] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
-  async function entrar() {
-    setLoading(true);
-    setError("");
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) {
-      setError("Correo o contraseña incorrectos");
-      setLoading(false);
-      return;
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setErrorMessage('')
+
+    try {
+      if (isRegistering) {
+        // 1. REGISTRO EN SUPABASE AUTH
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: fullName },
+          },
+        })
+
+        if (signUpError) throw signUpError
+
+        let user = signUpData.user
+
+        if (user) {
+          if (!signUpData.session) {
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email,
+              password,
+            })
+            if (signInError) throw signInError
+            user = signInData.user
+          }
+
+          // 2. BUSCAR O ESPERAR EL PERFIL GENERADO POR EL TRIGGER
+          let profile = null
+          let attempts = 0
+
+          while (!profile && attempts < 5) {
+            attempts++
+            const { data } = await supabase
+              .from('profiles')
+              .select('slug')
+              .eq('user_id', user.id)
+              .maybeSingle()
+
+            if (data) {
+              profile = data
+              break
+            }
+            await new Promise((resolve) => setTimeout(resolve, 500))
+          }
+
+          if (profile) {
+            window.location.href = `/admin/${profile.slug}`
+          } else {
+            setErrorMessage('Cuenta creada con éxito. Por favor inicia sesión para ingresar.')
+            setIsRegistering(false)
+          }
+        }
+      } else {
+        // INICIO DE SESIÓN DIRECTO
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+
+        if (signInError) throw signInError
+
+        if (signInData.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('slug')
+            .eq('user_id', signInData.user.id)
+            .maybeSingle()
+
+          if (profile) {
+            window.location.href = `/admin/${profile.slug}`
+          } else {
+            setErrorMessage('No se encontró un perfil asociado a esta cuenta.')
+          }
+        }
+      }
+    } catch (error: any) {
+      if (error.message?.includes('Invalid login credentials')) {
+        setErrorMessage('Credenciales inválidas. Verifica tu correo y contraseña.')
+      } else {
+        setErrorMessage(error.message || 'Ocurrió un error al procesar la solicitud.')
+      }
+    } finally {
+      setLoading(false)
     }
-    router.push("/panel");
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-mogu-cream px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-mogu-pink bg-white p-6 shadow-sm">
-        <a href="/" className="mb-4 block text-center">
-          <img
-            src="/mogu-logo.png"
-            alt="Mogu"
-            className="mx-auto h-24 w-auto"
-          />
-        </a>
+    <div className="min-h-screen bg-[#0A0A0C] text-white font-sans flex flex-col items-center justify-center p-4 relative overflow-hidden selection:bg-emerald-500/30">
+      
+      {/* GLOW DE FONDO */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-emerald-500/10 blur-[140px] rounded-full pointer-events-none" />
 
-        <h1 className="mb-1 text-center text-lg font-semibold text-mogu-wine">
-          Ingresa a tu panel
-        </h1>
-        <p className="mb-6 text-center text-sm text-mogu-wine">
-          Administra tu tarjeta NFC y tus enlaces
-        </p>
-
-        <div className="flex flex-col gap-3">
-          <Input
-            type="email"
-            name="email"
-            label="Correo"
-            placeholder="tu@correo.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-          />
-          <Input
-            type="password"
-            name="password"
-            label="Contraseña"
-            placeholder="Tu contraseña"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && entrar()}
-            autoComplete="current-password"
-            error={error || undefined}
-          />
-
-          <Button
-            onClick={entrar}
-            disabled={loading}
-            fullWidth
-            size="lg"
-            className="mt-1"
-          >
-            {loading ? "Entrando..." : "Entrar"}
-          </Button>
+      <div className="relative z-10 w-full max-w-sm bg-neutral-900/50 backdrop-blur-2xl border border-neutral-800/80 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
+        
+        {/* LOGO / HEADER */}
+        <div className="text-center space-y-2">
+          <div className="inline-block font-black text-2xl tracking-wider text-white mb-1">MOGU</div>
+          <p className="text-xs text-neutral-400 font-medium">
+            Plataforma de Tarjetas NFC Inteligentes
+          </p>
         </div>
 
-        <a
-          href="/recuperar"
-          className="mt-5 block text-center text-sm text-mogu-gray-500 hover:text-mogu-red hover:underline"
-        >
-          ¿Olvidaste tu contraseña?
-        </a>
+        {/* SELECTOR DE PESTAÑAS (TABS) */}
+        <div className="grid grid-cols-2 p-1 bg-neutral-950/80 border border-neutral-800 rounded-2xl">
+          <button
+            type="button"
+            onClick={() => {
+              setIsRegistering(false)
+              setErrorMessage('')
+            }}
+            className={`py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
+              !isRegistering
+                ? 'bg-neutral-800 text-white shadow'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            Iniciar Sesión
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsRegistering(true)
+              setErrorMessage('')
+            }}
+            className={`py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
+              isRegistering
+                ? 'bg-emerald-500 text-black shadow'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            Crear Cuenta
+          </button>
+        </div>
+
+        {/* MENSAJE DE ERROR */}
+        {errorMessage && (
+          <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-2xl text-center leading-relaxed">
+            {errorMessage}
+          </div>
+        )}
+
+        {/* FORMULARIO UNIFICADO */}
+        <form onSubmit={handleAuth} className="space-y-4">
+          {isRegistering && (
+            <div className="space-y-1">
+              <label className="block text-[11px] font-medium text-neutral-400">Nombre Completo</label>
+              <input
+                type="text"
+                required
+                placeholder="Ej: Sofía Valenzuela"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full bg-neutral-900/80 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/80 transition"
+              />
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <label className="block text-[11px] font-medium text-neutral-400">Correo Electrónico</label>
+            <input
+              type="email"
+              required
+              placeholder="tu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-neutral-900/80 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/80 transition"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[11px] font-medium text-neutral-400">Contraseña</label>
+            <input
+              type="password"
+              required
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-neutral-900/80 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500/80 transition"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-3.5 font-extrabold text-xs uppercase tracking-wider rounded-2xl transition cursor-pointer mt-2 ${
+              isRegistering
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.25)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]'
+                : 'bg-white text-black hover:bg-neutral-200'
+            }`}
+          >
+            {loading ? 'Procesando...' : isRegistering ? 'Crear Cuenta MOGU' : 'Ingresar a mi Panel'}
+          </button>
+        </form>
+
+        {/* FOOTER / CAMBIO RÁPIDO */}
+        <div className="text-center pt-2 border-t border-neutral-800/80">
+          <button
+            type="button"
+            onClick={() => {
+              setIsRegistering(!isRegistering)
+              setErrorMessage('')
+            }}
+            className="text-[11px] text-neutral-400 hover:text-emerald-400 transition cursor-pointer"
+          >
+            {isRegistering
+              ? '¿Ya tienes una cuenta? Inicia sesión'
+              : '¿Compraste una tarjeta? Regístrate aquí'}
+          </button>
+        </div>
+
       </div>
-    </main>
-  );
+
+      <footer className="relative z-10 mt-8 text-[11px] text-neutral-500 font-medium">
+        © 2026 MOGU. Todos los derechos reservados.
+      </footer>
+    </div>
+  )
 }
