@@ -54,11 +54,20 @@ export default async function Home() {
 
       {/* CONTENIDO PRINCIPAL EN CAPA SUPERIOR (Z-10) */}
       <div className="relative z-10">
-        {/* 1. HEADER FLOTANTE / NAVBAR */}
+        {/* 1. HEADER FLOTANTE / NAVBAR CON BRANDING OPTIMIZADO */}
         <header className="sticky top-0 z-50 border-b border-neutral-800/80 bg-neutral-950/80 backdrop-blur-md">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-            <Link href="/" className="text-2xl font-black tracking-wider text-white">
-              MOGU<span className="text-emerald-500">.</span>
+            
+            {/* LOGOTIPO HORIZONTAL MOGU */}
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-500 to-cyan-400 p-0.5 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                <div className="w-full h-full bg-neutral-950 rounded-[6px] flex items-center justify-center">
+                  <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
+                </div>
+              </div>
+              <span className="text-xl font-black tracking-wider text-white">
+                MOGU<span className="text-emerald-500">.</span>
+              </span>
             </Link>
 
             <nav className="hidden items-center gap-8 text-sm font-medium text-neutral-300 md:flex">
@@ -105,7 +114,7 @@ export default async function Home() {
 
           <div className="mx-auto max-w-5xl text-center">
             <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-semibold text-emerald-400">
-              Nueva generación de tarjetas NFC
+              Nueva generación de tarjetas NFC en Chile
             </span>
 
             <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-white md:text-6xl lg:text-7xl">
@@ -113,7 +122,7 @@ export default async function Home() {
             </h1>
 
             <p className="mx-auto mt-6 max-w-2xl text-base text-neutral-400 md:text-lg">
-              Tarjetas inteligentes y soluciones sin contacto para profesionales y empresas en Chile. Conecta al instante sin aplicaciones.
+              Tarjetas inteligentes y soluciones sin contacto para profesionales y empresas en Chile. Pago único con soporte y perfil digital incluidos.
             </p>
 
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -183,11 +192,12 @@ export default async function Home() {
         <section id="productos" className="mx-auto max-w-7xl px-6 py-20">
           <div className="mb-12 flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight text-white md:text-4xl">
+              <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Transparencia y Calidad</span>
+              <h2 className="text-2xl font-bold tracking-tight text-white md:text-4xl mt-1">
                 Nuestra Colección
               </h2>
               <p className="mt-2 text-sm text-neutral-400">
-                Tarjetas diseñadas con tecnología contactless NFC y código QR dinámico integrado.
+                Tarjetas diseñadas con tecnología contactless NFC y código QR dinámico integrado. Pago único.
               </p>
             </div>
           </div>
@@ -235,6 +245,13 @@ export default async function Home() {
                     <div>
                       <span className="text-xs font-medium text-neutral-500">{producto.category}</span>
                       <h3 className="mt-1 text-lg font-bold text-white">{producto.name}</h3>
+                      <p className="mt-2 text-[11px] text-neutral-400 leading-relaxed">
+                        {producto.price === 14990 
+                          ? 'Incluye enlace directo a reseñas de Google. Pago único.' 
+                          : producto.price === 22990 
+                          ? 'Incluye tarjeta NFC física + perfil ilimitado + soporte prioritario (1 año).' 
+                          : 'Incluye tarjeta NFC + menús/catálogos integrados + analíticas + soporte preferencial (1 año).'}
+                      </p>
                     </div>
 
                     <div className="mt-6 flex items-center justify-between border-t border-neutral-800/80 pt-4">
@@ -270,7 +287,7 @@ export default async function Home() {
             <div className="text-center md:text-left">
               <span className="text-xl font-black text-white">MOGU.</span>
               <p className="mt-1 text-xs text-neutral-500">
-                © {new Date().getFullYear()} Mogu SpA. Todos los derechos reservados.
+                © {new Date().getFullYear()} Mogu SpA. Todos los derechos reservados. Cumplimiento Ley N° 19.496.
               </p>
             </div>
             <div className="flex gap-6 text-xs text-neutral-400">
