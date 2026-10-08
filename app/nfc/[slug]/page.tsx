@@ -69,7 +69,7 @@ export default function PublicProfilePage() {
     loadPublicData()
   }, [slug])
 
-  // Generar y descargar vCard optimizado para navegadores In-App (como Instagram)
+  // Generar y descargar vCard robusto compatible con Safari móvil y navegadores externos
   const handleDownloadVCard = () => {
     if (!profile) return
 
@@ -87,11 +87,11 @@ export default function PublicProfilePage() {
       .filter(Boolean)
       .join('\r\n')
 
-    // Usamos Data URI para evitar bloqueos del navegador interno de Instagram
-    const encodedUri = 'data:text/vcard;charset=utf-8,' + encodeURIComponent(vCardData)
+    const blob = new Blob([vCardData], { type: 'text/vcard;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
     
     const link = document.createElement('a')
-    link.href = encodedUri
+    link.href = url
     link.setAttribute('download', `${profile.full_name.replace(/\s+/g, '_')}_MOGU.vcf`)
     
     document.body.appendChild(link)
@@ -99,7 +99,8 @@ export default function PublicProfilePage() {
     
     setTimeout(() => {
       document.body.removeChild(link)
-    }, 200)
+      URL.revokeObjectURL(url)
+    }, 250)
 
     setSavedContact(true)
     setTimeout(() => setSavedContact(false), 3000)
