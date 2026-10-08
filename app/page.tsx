@@ -16,14 +16,13 @@ interface Product {
   gradient_color: string
 }
 
-// Función para obtener productos desde Supabase y excluir la suscripción digital del grid principal
 async function getProducts(): Promise<Product[]> {
   try {
     const { data, error } = await supabase
       .from('products')
       .select('*')
       .eq('is_active', true)
-      .neq('category', 'Software Cloud') // Excluye el software cloud del grid de tarjetas físicas
+      .neq('category', 'Software Cloud')
       .order('created_at', { ascending: true })
 
     if (error) {
@@ -38,7 +37,6 @@ async function getProducts(): Promise<Product[]> {
   }
 }
 
-// Función para dar formato de moneda chilena ($19.990)
 const formatPrice = (amount: number) => {
   return new Intl.NumberFormat('es-CL', {
     style: 'currency',
@@ -57,11 +55,11 @@ export default async function Home() {
 
       {/* CONTENIDO PRINCIPAL EN CAPA SUPERIOR (Z-10) */}
       <div className="relative z-10">
-        {/* 1. HEADER FLOTANTE / NAVBAR CON BRANDING OPTIMIZADO */}
+        
+        {/* 1. HEADER FLOTANTE / NAVBAR */}
         <header className="sticky top-0 z-50 border-b border-neutral-800/80 bg-neutral-950/80 backdrop-blur-md">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
             
-            {/* LOGOTIPO HORIZONTAL MOGU */}
             <Link href="/" className="flex items-center gap-2.5 group">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-500 to-cyan-400 p-0.5 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                 <div className="w-full h-full bg-neutral-950 rounded-[6px] flex items-center justify-center">
@@ -74,55 +72,38 @@ export default async function Home() {
             </Link>
 
             <nav className="hidden items-center gap-8 text-sm font-medium text-neutral-300 md:flex">
-              <Link href="#productos" className="transition hover:text-white">
-                Productos
-              </Link>
-              <Link href="#como-funciona" className="transition hover:text-white">
-                ¿Cómo funciona?
-              </Link>
-              <Link href="#faq" className="transition hover:text-white">
-                Preguntas Frecuentes
-              </Link>
+              <Link href="#productos" className="transition hover:text-white">Productos</Link>
+              <Link href="#como-funciona" className="transition hover:text-white">¿Cómo funciona?</Link>
+              <Link href="#faq" className="transition hover:text-white">Preguntas Frecuentes</Link>
             </nav>
 
             <div className="flex items-center gap-3">
               <button className="relative rounded-full border border-neutral-700 bg-neutral-900 px-4 py-2 text-xs font-semibold text-white transition hover:border-neutral-500 hover:bg-neutral-800">
                 Carrito
-                <span className="ml-2 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[10px] font-bold text-black">
-                  0
-                </span>
+                <span className="ml-2 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[10px] font-bold text-black">0</span>
               </button>
-
-              <Link
-                href="/login"
-                className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-semibold text-neutral-300 hover:text-white rounded-xl transition backdrop-blur-xl"
-              >
+              <Link href="/login" className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-semibold text-neutral-300 hover:text-white rounded-xl transition backdrop-blur-xl">
                 Iniciar Sesión
               </Link>
-
-              <Link
-                href="/login"
-                className="px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-400 text-black text-xs font-extrabold uppercase tracking-wider rounded-xl transition shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:shadow-[0_0_25px_rgba(16,185,129,0.4)]"
-              >
+              <Link href="/login" className="px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-400 text-black text-xs font-extrabold uppercase tracking-wider rounded-xl transition shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:shadow-[0_0_25px_rgba(16,185,129,0.4)]">
                 Crear Cuenta
               </Link>
             </div>
           </div>
         </header>
 
-        {/* 2. HERO SECTION CON MOCKUP INTERACTIVO */}
+        {/* 2. HERO SECTION CON PRUEBA SOCIAL TEMPRANA Y MOCKUP */}
         <section className="relative overflow-hidden px-6 py-16 md:py-24">
           <div className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[400px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-[120px]" />
 
           <div className="mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             
-            {/* Columna Izquierda: Copywriting y Conversión */}
             <div className="lg:col-span-7 text-center lg:text-left">
-              <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-semibold text-emerald-400">
+              <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-semibold text-emerald-400 mb-4">
                 Ecosistema Digital y Tarjetas NFC en Chile
               </span>
 
-              <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-white md:text-5xl lg:text-6xl leading-[1.1]">
+              <h1 className="text-4xl font-extrabold tracking-tight text-white md:text-5xl lg:text-6xl leading-[1.1]">
                 Tu identidad profesional y comercial en un solo <span className="text-emerald-400">tap</span>.
               </h1>
 
@@ -130,7 +111,20 @@ export default async function Home() {
                 Tarjetas inteligentes para tu negocio presencial y perfiles digitales profesionales optimizados para tus redes sociales. Todo integrado en una sola plataforma.
               </p>
 
-              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+              {/* MEJORA 1: PRUEBA SOCIAL TEMPRANA EN EL HERO */}
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4 border-t border-neutral-900">
+                <div className="flex -space-x-2 overflow-hidden">
+                  <div className="inline-block h-8 w-8 rounded-full ring-2 ring-neutral-950 bg-emerald-600 flex items-center justify-center text-[10px] font-bold text-white">Caf</div>
+                  <div className="inline-block h-8 w-8 rounded-full ring-2 ring-neutral-950 bg-teal-600 flex items-center justify-center text-[10px] font-bold text-white">Med</div>
+                  <div className="inline-block h-8 w-8 rounded-full ring-2 ring-neutral-950 bg-cyan-600 flex items-center justify-center text-[10px] font-bold text-white">Bar</div>
+                  <div className="inline-block h-8 w-8 rounded-full ring-2 ring-neutral-950 bg-neutral-700 flex items-center justify-center text-[10px] font-bold text-white">+500</div>
+                </div>
+                <div className="text-xs text-neutral-400 text-center sm:text-left">
+                  <span className="text-emerald-400 font-bold">⭐ 4.9/5 estrellas</span> valorado por más de 500 locales y profesionales en Chile.
+                </div>
+              </div>
+
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                 <Link
                   href="#productos"
                   className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 px-8 py-3.5 text-sm font-black text-black transition hover:opacity-90 shadow-[0_0_20px_rgba(16,185,129,0.3)] text-center"
@@ -146,7 +140,6 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* Columna Derecha: El Celular Interactivo */}
             <div className="lg:col-span-5 flex justify-center">
               <PhoneMockup />
             </div>
@@ -154,8 +147,23 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* MEJORA 4: FRANJA DE CONFIANZA / DÓNDE NOS USAN */}
+        <section className="border-y border-neutral-900 bg-neutral-950/40 py-8">
+          <div className="mx-auto max-w-7xl px-6 text-center">
+            <p className="text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-6">
+              Impulsando la reputación digital de comercios y profesionales en todo Chile
+            </p>
+            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 text-neutral-400 text-sm font-bold tracking-wide opacity-70">
+              <span className="hover:text-emerald-400 transition">☕ CAFETERÍAS & PASTELERÍAS</span>
+              <span className="hover:text-emerald-400 transition">🏥 CLÍNICAS & CENTROS MÉDICOS</span>
+              <span className="hover:text-emerald-400 transition">✂️ BARBERÍAS & SPAS</span>
+              <span className="hover:text-emerald-400 transition">⚖️ ABOGADOS &CONSULTORES</span>
+            </div>
+          </div>
+        </section>
+
         {/* 3. SECCIÓN: ¿CÓMO FUNCIONA? */}
-        <section id="como-funciona" className="mx-auto max-w-7xl px-6 py-20 border-t border-b border-neutral-900/80 bg-neutral-950/60 backdrop-blur-sm">
+        <section id="como-funciona" className="mx-auto max-w-7xl px-6 py-20 bg-neutral-950/60 backdrop-blur-sm">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Tecnología Contactless</span>
             <h2 className="text-3xl md:text-5xl font-black text-white mt-3">¿Cómo funciona Mogu?</h2>
@@ -166,9 +174,7 @@ export default async function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center text-center p-8 rounded-2xl border border-neutral-800/80 bg-neutral-900/40 backdrop-blur-sm">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg mb-6">
-                01
-              </div>
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg mb-6">01</div>
               <h3 className="text-lg font-bold text-white mb-2">Haz TAP o usa tu Link</h3>
               <p className="text-xs md:text-sm text-neutral-400 leading-relaxed">
                 Acerca tu tarjeta física con chip NFC al celular de tu cliente o comparte tu enlace digital personalizado en tu biografía.
@@ -176,9 +182,7 @@ export default async function Home() {
             </div>
 
             <div className="flex flex-col items-center text-center p-8 rounded-2xl border border-neutral-800/80 bg-neutral-900/40 backdrop-blur-sm">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg mb-6">
-                02
-              </div>
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg mb-6">02</div>
               <h3 className="text-lg font-bold text-white mb-2">Abre tu Perfil y Menú</h3>
               <p className="text-xs md:text-sm text-neutral-400 leading-relaxed">
                 Se despliega de inmediato tu página digital con botones de contacto, redes sociales, catálogos o cartas interactivas.
@@ -186,9 +190,7 @@ export default async function Home() {
             </div>
 
             <div className="flex flex-col items-center text-center p-8 rounded-2xl border border-neutral-800/80 bg-neutral-900/40 backdrop-blur-sm">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg mb-6">
-                03
-              </div>
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg mb-6">03</div>
               <h3 className="text-lg font-bold text-white mb-2">Conecta y Vende Más</h3>
               <p className="text-xs md:text-sm text-neutral-400 leading-relaxed">
                 Tus clientes guardan tus datos en su agenda con un solo clic y tú actualizas precios o información en tiempo real.
@@ -197,7 +199,7 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 4. SECCIÓN DE TARJETAS FÍSICAS (SUPABASE + 3D CARD) */}
+        {/* 4. SECCIÓN DE TARJETAS FÍSICAS (CON MEJORAS 2, 3 y 5) */}
         <section id="productos" className="mx-auto max-w-7xl px-6 py-20">
           <div className="mb-12 text-center max-w-2xl mx-auto">
             <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Colección Física</span>
@@ -209,12 +211,9 @@ export default async function Home() {
             </p>
           </div>
 
-          {/* GRID DE PRODUCTOS FÍSICOS */}
           {productos.length === 0 ? (
             <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-12 text-center">
-              <p className="text-neutral-400">
-                Cargando productos de Supabase o no hay registros disponibles.
-              </p>
+              <p className="text-neutral-400">Cargando productos de Supabase o no hay registros disponibles.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
@@ -226,16 +225,16 @@ export default async function Home() {
                     key={producto.id}
                     className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 bg-neutral-900/60 backdrop-blur-sm ${
                       isPopular
-                        ? 'border-2 border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.15)] bg-neutral-900/90'
+                        ? 'border-2 border-emerald-500 shadow-[0_0_35px_rgba(16,185,129,0.2)] bg-neutral-900/90 scale-[1.02]'
                         : 'border border-neutral-800 hover:border-neutral-700'
                     }`}
                   >
                     <div>
-                      {/* VISOR 3D INTERACTIVO DE LA TARJETA */}
+                      {/* MEJORA 5: VISOR 3D CON MAYOR PROTAGONISMO Y SOMBRA DE CONTACTO */}
                       <Card3D 
                         imageSrc="/tarjeta-google.png" 
                         altText={producto.name}
-                        badgeText={isPopular ? "Más Popular ⭐" : producto.badge}
+                        badgeText={isPopular ? "⭐ La más elegida por locales" : producto.badge}
                       />
 
                       <span className="text-xs font-semibold text-neutral-500 block mb-1">
@@ -243,58 +242,58 @@ export default async function Home() {
                       </span>
                       <h3 className="text-lg font-bold text-white mb-4">{producto.name}</h3>
 
-                      {/* LISTA DE BENEFICIOS CON CHECKS */}
-                      <ul className="space-y-2.5 mb-8 text-xs text-neutral-300">
+                      {/* MEJORA 3: BENEFICIOS CON ICONOS MINIMALISTAS EN VEZ DE CHECKS PLANOS */}
+                      <ul className="space-y-3 mb-8 text-xs text-neutral-300">
                         {producto.price === 14990 ? (
                           <>
-                            <li className="flex items-start gap-2">
-                              <span className="text-emerald-400 font-bold">✓</span>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">⚡</span>
                               <span>Enlace directo a reseñas 5 estrellas de Google.</span>
                             </li>
-                            <li className="flex items-start gap-2">
-                              <span className="text-emerald-400 font-bold">✓</span>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">📍</span>
                               <span>Ideal para mesas de pastelerías, cafeterías y locales.</span>
                             </li>
-                            <li className="flex items-start gap-2">
-                              <span className="text-emerald-400 font-bold">✓</span>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">🛡️</span>
                               <span>Incluye 1 año de plataforma digital activa.</span>
                             </li>
                           </>
                         ) : producto.price === 22990 ? (
                           <>
-                            <li className="flex items-start gap-2">
-                              <span className="text-emerald-400 font-bold">✓</span>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">💎</span>
                               <span>Tarjeta NFC física de alta durabilidad.</span>
                             </li>
-                            <li className="flex items-start gap-2">
-                              <span className="text-emerald-400 font-bold">✓</span>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">🌐</span>
                               <span>Perfil digital ilimitado + menú o carta interactiva.</span>
                             </li>
-                            <li className="flex items-start gap-2">
-                              <span className="text-emerald-400 font-bold">✓</span>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">⚡</span>
                               <span>Actualiza tus precios y productos en tiempo real.</span>
                             </li>
-                            <li className="flex items-start gap-2">
-                              <span className="text-emerald-400 font-bold">✓</span>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">⭐</span>
                               <span>Soporte prioritario incluido por 1 año.</span>
                             </li>
                           </>
                         ) : (
                           <>
-                            <li className="flex items-start gap-2">
-                              <span className="text-emerald-400 font-bold">✓</span>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">🚀</span>
                               <span>Ecosistema Pro para marcas consolidadas.</span>
                             </li>
-                            <li className="flex items-start gap-2">
-                              <span className="text-emerald-400 font-bold">✓</span>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">📊</span>
                               <span>Catálogo interactivo con analíticas detalladas.</span>
                             </li>
-                            <li className="flex items-start gap-2">
-                              <span className="text-emerald-400 font-bold">✓</span>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">✨</span>
                               <span>Diseño y acabados premium exclusivos.</span>
                             </li>
-                            <li className="flex items-start gap-2">
-                              <span className="text-emerald-400 font-bold">✓</span>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">🛡️</span>
                               <span>Soporte preferencial dedicado (1 año).</span>
                             </li>
                           </>
@@ -319,7 +318,7 @@ export default async function Home() {
                         href={`/producto/${producto.id}`}
                         className={`rounded-xl px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider transition shadow-lg ${
                           isPopular
-                            ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-black hover:opacity-90 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                            ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-black hover:opacity-90 shadow-[0_0_20px_rgba(16,185,129,0.4)]'
                             : 'bg-white text-black hover:bg-neutral-200'
                         }`}
                       >
@@ -332,7 +331,7 @@ export default async function Home() {
             </div>
           )}
 
-          {/* BANNER DE SUSCRIPCIÓN DIGITAL (MENSUAL Y ANUAL) */}
+          {/* BANNER DE SUSCRIPCIÓN DIGITAL */}
           <div className="mt-16 p-8 rounded-3xl border border-emerald-500/30 bg-gradient-to-r from-neutral-900/90 via-neutral-900/50 to-emerald-950/30 backdrop-blur-md shadow-2xl space-y-8">
             <div className="text-center md:text-left">
               <span className="inline-block px-3 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold uppercase tracking-wider rounded-full mb-2">
@@ -345,7 +344,6 @@ export default async function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              {/* OPCIÓN MENSUAL */}
               <div className="p-6 rounded-2xl border border-neutral-800 bg-neutral-950/60 flex flex-col justify-between gap-4">
                 <div>
                   <span className="text-xs font-semibold text-neutral-400">Plan Flexible</span>
@@ -360,7 +358,6 @@ export default async function Home() {
                 </Link>
               </div>
 
-              {/* OPCIÓN ANUAL (CON DESTACADO DE AHORRO) */}
               <div className="p-6 rounded-2xl border border-emerald-500/50 bg-emerald-950/20 flex flex-col justify-between gap-4 relative overflow-hidden">
                 <div className="absolute right-3 top-3">
                   <span className="bg-emerald-500 text-black text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-full">
@@ -383,7 +380,7 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 5. SECCIÓN DE PREGUNTAS FRECUENTES (FAQ) - ELIMINA FRICCIÓN CRO */}
+        {/* 5. SECCIÓN DE PREGUNTAS FRECUENTES (FAQ) */}
         <section id="faq" className="mx-auto max-w-4xl px-6 py-20 border-t border-neutral-900">
           <div className="text-center mb-12">
             <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Resolviendo Dudas</span>

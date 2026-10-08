@@ -158,7 +158,6 @@ export default function AdvancedClientDashboard() {
       const fileName = `${profile.id}-${Math.random()}.${fileExt}`
       const filePath = `${fileName}`
 
-      // 1. Subir archivo al bucket 'avatars' (Asegúrate de crear un bucket público llamado 'avatars' en Supabase)
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true })
@@ -167,12 +166,10 @@ export default function AdvancedClientDashboard() {
         throw uploadError
       }
 
-      // 2. Obtener URL pública permanente
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath)
 
-      // 3. Actualizar estado local
       setProfile({ ...profile, avatar_url: publicUrl })
       setMessage('✨ ¡Imagen subida con éxito! Haz clic en "Guardar Cambios Visuales" para fijarla.')
       setTimeout(() => setMessage(''), 4000)
@@ -271,10 +268,9 @@ export default function AdvancedClientDashboard() {
       {/* CONTENIDO CON GRID DE EDICIÓN Y PREVISUALIZACIÓN */}
       <main className="max-w-6xl mx-auto px-6 pt-10 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* COLUMNA IZQUIERDA: CONTROLES DE EDICIÓN (7 COLUMNAS) */}
+        {/* COLUMNA IZQUIERDA: CONTROLES DE EDICIÓN */}
         <div className="lg:col-span-7 space-y-8">
           
-          {/* BANNER DE BIENVENIDA / PRIMER ACCESO (CRO & UX) */}
           <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-500/20 backdrop-blur-xl shadow-2xl flex items-center justify-between">
             <div className="space-y-1">
               <span className="inline-block px-3 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold uppercase tracking-wider rounded-full mb-1">
@@ -302,7 +298,6 @@ export default function AdvancedClientDashboard() {
             {profile && (
               <form onSubmit={handleSaveProfile} className="space-y-6">
                 
-                {/* SUBIDA DE LOGO / AVATAR */}
                 <div>
                   <label className="block text-xs font-semibold text-neutral-300 mb-2">Logotipo / Foto de Perfil</label>
                   <div className="flex items-center gap-4">
@@ -320,7 +315,6 @@ export default function AdvancedClientDashboard() {
                   </div>
                 </div>
 
-                {/* SELECTOR DE COLOR DE TEMA */}
                 <div>
                   <label className="block text-xs font-semibold text-neutral-300 mb-2">Color de Identidad (Tema Neón)</label>
                   <div className="grid grid-cols-5 gap-3">
@@ -339,7 +333,6 @@ export default function AdvancedClientDashboard() {
                   </div>
                 </div>
 
-                {/* CAMPOS DE TEXTO */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-neutral-400 mb-1">Nombre del Negocio</label>
@@ -394,7 +387,6 @@ export default function AdvancedClientDashboard() {
             )}
           </div>
 
-          {/* GESTOR DE ENLACES CON EMOJIS */}
           <div className="p-8 rounded-3xl bg-neutral-900/40 border border-neutral-800 backdrop-blur-xl shadow-2xl">
             <h2 className="text-lg font-bold text-white mb-2">Canales y Enlaces Interactivos</h2>
             <p className="text-xs text-neutral-400 mb-6">Elige el emoji representativo para cada botón de tu negocio.</p>
@@ -461,7 +453,6 @@ export default function AdvancedClientDashboard() {
             </div>
           </div>
 
-          {/* SECCIÓN DE CAMBIO DE CONTRASEÑA */}
           <div className="p-8 rounded-3xl bg-neutral-900/40 border border-neutral-800 backdrop-blur-xl shadow-2xl">
             <h2 className="text-lg font-bold text-white mb-2">Seguridad de la Cuenta 🔒</h2>
             <p className="text-xs text-neutral-400 mb-6">Reemplaza tu contraseña temporal por una definitiva y segura.</p>
@@ -509,7 +500,7 @@ export default function AdvancedClientDashboard() {
 
         </div>
 
-        {/* COLUMNA DERECHA: PREVISUALIZADOR EN VIVO ESTILO SMARTPHONE (5 COLUMNAS) */}
+        {/* COLUMNA DERECHA: PREVISUALIZADOR EN VIVO */}
         <div className="lg:col-span-5 flex flex-col items-center">
           <div className="sticky top-24 w-full max-w-xs bg-neutral-950 border-4 border-neutral-800 rounded-[40px] p-4 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden">
             
@@ -524,13 +515,19 @@ export default function AdvancedClientDashboard() {
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="Logo" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-2xl">🏢</span>
+                    <span className="text-xl">🏢</span>
                   )}
                 </div>
 
                 <div>
                   <h2 className="text-lg font-black text-white">{profile?.full_name || 'Tu Negocio'}</h2>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 mt-0.5">{profile?.title || 'Categoría PyME'}</p>
+                  {/* Categoría con color dinámico en tiempo real */}
+                  <p 
+                    className="text-[10px] font-bold uppercase tracking-wider mt-0.5"
+                    style={{ color: activeTheme.hex }}
+                  >
+                    {profile?.title || 'Categoría PyME'}
+                  </p>
                   <p className="text-[10px] text-neutral-400 mt-1 max-w-[200px] leading-snug">{profile?.bio || 'Descripción del negocio...'}</p>
                 </div>
 

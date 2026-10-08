@@ -43,14 +43,29 @@ export default async function ProfilePage({ params }: PageProps) {
     );
   }
 
+  // Color de acento escogido por el cliente en Supabase (si no tiene, por defecto usa esmeralda #10b981)
+  const brandColor = profile.accent_color || profile.theme_color || '#10b981';
+
   // Renderizado normal del perfil activo
   return (
     <div className="min-h-screen bg-[#0A0A0C] text-white flex flex-col items-center p-6">
       <div className="max-w-md w-full mx-auto space-y-6 pt-10">
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-black text-white">{profile.name || slug}</h1>
-          <p className="text-xs text-neutral-400">Perfil digital verificado MOGU</p>
+          
+          {/* Texto dinámico que cambia al color escogido por el cliente */}
+          <p 
+            className="text-xs font-semibold tracking-wider uppercase mt-1"
+            style={{ color: brandColor }}
+          >
+            TARJETA MOGU ACTIVE
+          </p>
         </div>
+
+        <p className="text-xs text-neutral-400 text-center">
+          Comparte tu identidad digital con un solo Tap
+        </p>
+
         {/* Aquí puedes desplegar el resto de los enlaces o menús del perfil */}
       </div>
     </div>
