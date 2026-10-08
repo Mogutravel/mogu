@@ -14,13 +14,14 @@ interface Product {
   gradient_color: string
 }
 
-// Función para obtener productos desde la base de datos de Supabase
+// Función para obtener productos desde Supabase y excluir la suscripción digital del grid principal
 async function getProducts(): Promise<Product[]> {
   try {
     const { data, error } = await supabase
       .from('products')
       .select('*')
       .eq('is_active', true)
+      .neq('category', 'Software Cloud') // Excluye el software cloud del grid de tarjetas físicas
       .order('created_at', { ascending: true })
 
     if (error) {
@@ -77,8 +78,8 @@ export default async function Home() {
               <Link href="#como-funciona" className="transition hover:text-white">
                 ¿Cómo funciona?
               </Link>
-              <Link href="#contacto" className="transition hover:text-white">
-                Contacto
+              <Link href="#faq" className="transition hover:text-white">
+                Preguntas Frecuentes
               </Link>
             </nav>
 
@@ -90,7 +91,6 @@ export default async function Home() {
                 </span>
               </button>
 
-              {/* BOTONES DE AUTENTICACIÓN EN LA ESQUINA SUPERIOR DERECHA */}
               <Link
                 href="/login"
                 className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-semibold text-neutral-300 hover:text-white rounded-xl transition backdrop-blur-xl"
@@ -114,15 +114,15 @@ export default async function Home() {
 
           <div className="mx-auto max-w-5xl text-center">
             <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-semibold text-emerald-400">
-              Nueva generación de tarjetas NFC en Chile
+              Ecosistema Digital y Tarjetas NFC en Chile
             </span>
 
             <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-white md:text-6xl lg:text-7xl">
-              Comparte tu identidad digital con un solo <span className="text-emerald-400">tap</span>.
+              Tu identidad profesional y comercial en un solo <span className="text-emerald-400">tap</span>.
             </h1>
 
             <p className="mx-auto mt-6 max-w-2xl text-base text-neutral-400 md:text-lg">
-              Tarjetas inteligentes y soluciones sin contacto para profesionales y empresas en Chile. Pago único con soporte y perfil digital incluidos.
+              Tarjetas inteligentes para tu negocio presencial y perfiles digitales profesionales optimizados para tus redes sociales. Todo integrado en una sola plataforma.
             </p>
 
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -130,7 +130,7 @@ export default async function Home() {
                 href="#productos"
                 className="w-full rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-black transition hover:bg-neutral-200 sm:w-auto"
               >
-                Ver Tarjetas
+                Ver Opciones y Planes
               </Link>
               <Link
                 href="#como-funciona"
@@ -148,61 +148,56 @@ export default async function Home() {
             <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Tecnología Contactless</span>
             <h2 className="text-3xl md:text-5xl font-black text-white mt-3">¿Cómo funciona Mogu?</h2>
             <p className="text-neutral-400 text-sm md:text-base mt-4">
-              Sin aplicaciones, sin fricción. Una experiencia rápida para compartir tus datos en segundos.
+              Sin aplicaciones, sin fricción. Comparte tu menú, redes y contactos de forma instantánea.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Paso 1 */}
             <div className="flex flex-col items-center text-center p-8 rounded-2xl border border-neutral-800/80 bg-neutral-900/40 backdrop-blur-sm">
               <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg mb-6">
                 01
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">Haz TAP o escanea</h3>
+              <h3 className="text-lg font-bold text-white mb-2">Haz TAP o usa tu Link</h3>
               <p className="text-xs md:text-sm text-neutral-400 leading-relaxed">
-                Acerca tu tarjeta Mogu a cualquier smartphone compatible con NFC o permite que escaneen el código QR dinámico.
+                Acerca tu tarjeta física con chip NFC al celular de tu cliente o comparte tu enlace digital personalizado en tu biografía.
               </p>
             </div>
 
-            {/* Paso 2 */}
             <div className="flex flex-col items-center text-center p-8 rounded-2xl border border-neutral-800/80 bg-neutral-900/40 backdrop-blur-sm">
               <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg mb-6">
                 02
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">Abre tu Perfil Digital</h3>
+              <h3 className="text-lg font-bold text-white mb-2">Abre tu Perfil y Menú</h3>
               <p className="text-xs md:text-sm text-neutral-400 leading-relaxed">
-                Se desplegará automáticamente tu página con links, redes, PDF, datos bancarios o catálogo sin instalar nada.
+                Se despliega de inmediato tu página digital con botones de contacto, redes sociales, catálogos o cartas interactivas.
               </p>
             </div>
 
-            {/* Paso 3 */}
             <div className="flex flex-col items-center text-center p-8 rounded-2xl border border-neutral-800/80 bg-neutral-900/40 backdrop-blur-sm">
               <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg mb-6">
                 03
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">Conecta al Instante</h3>
+              <h3 className="text-lg font-bold text-white mb-2">Conecta y Vende Más</h3>
               <p className="text-xs md:text-sm text-neutral-400 leading-relaxed">
-                Tu cliente o prospecto guarda tu contacto en su agenda con un solo clic. Actualiza tus datos cuando quieras en tiempo real.
+                Tus clientes guardan tus datos en su agenda con un solo clic y tú actualizas precios o información en tiempo real.
               </p>
             </div>
           </div>
         </section>
 
-        {/* 4. SECCIÓN DE PRODUCTOS (SUPABASE) */}
+        {/* 4. SECCIÓN DE TARJETAS FÍSICAS (SUPABASE + CRO) */}
         <section id="productos" className="mx-auto max-w-7xl px-6 py-20">
-          <div className="mb-12 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div>
-              <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Transparencia y Calidad</span>
-              <h2 className="text-2xl font-bold tracking-tight text-white md:text-4xl mt-1">
-                Nuestra Colección
-              </h2>
-              <p className="mt-2 text-sm text-neutral-400">
-                Tarjetas diseñadas con tecnología contactless NFC y código QR dinámico integrado. Pago único.
-              </p>
-            </div>
+          <div className="mb-12 text-center max-w-2xl mx-auto">
+            <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Colección Física</span>
+            <h2 className="text-3xl font-bold tracking-tight text-white md:text-4xl mt-1">
+              Tarjetas NFC con 1 Año Incluido
+            </h2>
+            <p className="mt-2 text-sm text-neutral-400">
+              Diseñadas para locales, profesionales y PyMEs con tecnología contactless y código QR.
+            </p>
           </div>
 
-          {/* GRID DE PRODUCTOS */}
+          {/* GRID DE PRODUCTOS FÍSICOS */}
           {productos.length === 0 ? (
             <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-12 text-center">
               <p className="text-neutral-400">
@@ -211,77 +206,226 @@ export default async function Home() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {productos.map((producto) => (
-                <div
-                  key={producto.id}
-                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-neutral-700 hover:bg-neutral-900"
-                >
-                  {producto.badge && (
-                    <div className="absolute right-4 top-4 z-10">
-                      <span className="rounded-full bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 text-[10px] font-bold text-emerald-300">
-                        {producto.badge}
-                      </span>
-                    </div>
-                  )}
+              {productos.map((producto) => {
+                const isPopular = producto.price === 22990 || producto.badge?.toLowerCase().includes('popular')
 
-                  {/* MOCKUP TARJETA */}
+                return (
                   <div
-                    className={`relative flex h-52 w-full items-center justify-center rounded-xl bg-gradient-to-br ${producto.gradient_color || 'from-neutral-800 to-neutral-900'} p-6 shadow-inner transition group-hover:scale-[1.02]`}
+                    key={producto.id}
+                    className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 bg-neutral-900/60 backdrop-blur-sm ${
+                      isPopular
+                        ? 'border-2 border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.15)] bg-neutral-900/90'
+                        : 'border border-neutral-800 hover:border-neutral-700'
+                    }`}
                   >
-                    <div className="flex h-28 w-44 flex-col justify-between rounded-lg border border-white/20 bg-black/40 p-3 shadow-2xl backdrop-blur-sm">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-black tracking-widest text-white/80">MOGU</span>
-                        <div className="h-3 w-4 rounded-xs bg-amber-400/80" />
+                    {isPopular ? (
+                      <div className="absolute right-4 top-4 z-10">
+                        <span className="rounded-full bg-emerald-500 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-black shadow-md">
+                          Más Popular ⭐
+                        </span>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-[9px] font-medium text-white/70">Nombre Apellido</p>
-                        <p className="text-[7px] text-emerald-400">Tap to connect</p>
+                    ) : producto.badge ? (
+                      <div className="absolute right-4 top-4 z-10">
+                        <span className="rounded-full bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 text-[10px] font-bold text-emerald-300">
+                          {producto.badge}
+                        </span>
                       </div>
-                    </div>
-                  </div>
+                    ) : null}
 
-                  {/* DETALLES DEL PRODUCTO */}
-                  <div className="mt-5 flex flex-1 flex-col justify-between">
                     <div>
-                      <span className="text-xs font-medium text-neutral-500">{producto.category}</span>
-                      <h3 className="mt-1 text-lg font-bold text-white">{producto.name}</h3>
-                      <p className="mt-2 text-[11px] text-neutral-400 leading-relaxed">
-                        {producto.price === 14990 
-                          ? 'Incluye enlace directo a reseñas de Google. Pago único.' 
-                          : producto.price === 22990 
-                          ? 'Incluye tarjeta NFC física + perfil ilimitado + soporte prioritario (1 año).' 
-                          : 'Incluye tarjeta NFC + menús/catálogos integrados + analíticas + soporte preferencial (1 año).'}
-                      </p>
+                      {/* MOCKUP TARJETA */}
+                      <div
+                        className={`relative flex h-48 w-full items-center justify-center rounded-xl bg-gradient-to-br ${producto.gradient_color || 'from-neutral-800 to-neutral-900'} p-6 shadow-inner transition group-hover:scale-[1.02] mb-6`}
+                      >
+                        <div className="flex h-24 w-40 flex-col justify-between rounded-lg border border-white/20 bg-black/40 p-3 shadow-2xl backdrop-blur-sm">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-black tracking-widest text-white/80">MOGU</span>
+                            <div className="h-3 w-4 rounded-xs bg-amber-400/80" />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[9px] font-medium text-white/70">Tu Negocio</p>
+                            <p className="text-[7px] text-emerald-400">Tap to connect</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <span className="text-xs font-semibold text-neutral-500 block mb-1">
+                        {producto.category}
+                      </span>
+                      <h3 className="text-lg font-bold text-white mb-4">{producto.name}</h3>
+
+                      {/* LISTA DE BENEFICIOS CON CHECKS */}
+                      <ul className="space-y-2.5 mb-8 text-xs text-neutral-300">
+                        {producto.price === 14990 ? (
+                          <>
+                            <li className="flex items-start gap-2">
+                              <span className="text-emerald-400 font-bold">✓</span>
+                              <span>Enlace directo a reseñas 5 estrellas de Google.</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-emerald-400 font-bold">✓</span>
+                              <span>Ideal para mesas de pastelerías, cafeterías y locales.</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-emerald-400 font-bold">✓</span>
+                              <span>Incluye 1 año de plataforma digital activa.</span>
+                            </li>
+                          </>
+                        ) : producto.price === 22990 ? (
+                          <>
+                            <li className="flex items-start gap-2">
+                              <span className="text-emerald-400 font-bold">✓</span>
+                              <span>Tarjeta NFC física de alta durabilidad.</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-emerald-400 font-bold">✓</span>
+                              <span>Perfil digital ilimitado + menú o carta interactiva.</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-emerald-400 font-bold">✓</span>
+                              <span>Actualiza tus precios y productos en tiempo real.</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-emerald-400 font-bold">✓</span>
+                              <span>Soporte prioritario incluido por 1 año.</span>
+                            </li>
+                          </>
+                        ) : (
+                          <>
+                            <li className="flex items-start gap-2">
+                              <span className="text-emerald-400 font-bold">✓</span>
+                              <span>Ecosistema Pro para marcas consolidadas.</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-emerald-400 font-bold">✓</span>
+                              <span>Catálogo interactivo con analíticas detalladas.</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-emerald-400 font-bold">✓</span>
+                              <span>Diseño y acabados premium exclusivos.</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-emerald-400 font-bold">✓</span>
+                              <span>Soporte preferencial dedicado (1 año).</span>
+                            </li>
+                          </>
+                        )}
+                      </ul>
                     </div>
 
-                    <div className="mt-6 flex items-center justify-between border-t border-neutral-800/80 pt-4">
+                    <div className="flex items-center justify-between border-t border-neutral-800/80 pt-5 mt-auto">
                       <div>
                         {producto.original_price && (
-                          <span className="text-xs text-neutral-500 line-through mr-2">
+                          <span className="text-xs text-neutral-500 line-through block">
                             {formatPrice(producto.original_price)}
                           </span>
                         )}
+                        <span className="text-xs text-neutral-400 block">Pago único (1 año incl.)</span>
                         <span className="text-lg font-bold text-emerald-400">
                           {formatPrice(producto.price)}
                         </span>
                       </div>
 
-                      {/* ENLACE AL PERSONALIZADOR DINÁMICO */}
                       <Link
                         href={`/producto/${producto.id}`}
-                        className="rounded-lg bg-white px-4 py-2 text-xs font-bold text-black transition hover:bg-emerald-400 hover:text-black"
+                        className={`rounded-xl px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider transition shadow-lg ${
+                          isPopular
+                            ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-black hover:opacity-90 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                            : 'bg-white text-black hover:bg-neutral-200'
+                        }`}
                       >
                         Comprar
                       </Link>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
+
+          {/* BANNER DE SUSCRIPCIÓN DIGITAL (MENSUAL Y ANUAL) */}
+          <div className="mt-16 p-8 rounded-3xl border border-emerald-500/30 bg-gradient-to-r from-neutral-900/90 via-neutral-900/50 to-emerald-950/30 backdrop-blur-md shadow-2xl space-y-8">
+            <div className="text-center md:text-left">
+              <span className="inline-block px-3 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold uppercase tracking-wider rounded-full mb-2">
+                Suscripción Digital ☁️
+              </span>
+              <h3 className="text-2xl font-black text-white">¿Solo necesitas tu perfil digital para redes sociales?</h3>
+              <p className="text-xs text-neutral-400 max-w-2xl leading-relaxed mt-1">
+                Crea tu página web personalizada en <strong className="text-white">mogu.cl/tu-negocio</strong> con enlaces ilimitados y menús interactivos, sin necesidad de comprar una tarjeta física. Elige el plan que mejor se adapte a ti.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              {/* OPCIÓN MENSUAL */}
+              <div className="p-6 rounded-2xl border border-neutral-800 bg-neutral-950/60 flex flex-col justify-between gap-4">
+                <div>
+                  <span className="text-xs font-semibold text-neutral-400">Plan Flexible</span>
+                  <h4 className="text-base font-bold text-white">Suscripción Mensual</h4>
+                  <p className="text-2xl font-black text-emerald-400 mt-2">$3.990 <span className="text-xs font-normal text-neutral-400">/ mes</span></p>
+                </div>
+                <Link
+                  href="/producto/a29bacd6-9f4e-4a05-8bcb-66d30e3432fb"
+                  className="w-full py-3 bg-neutral-800 hover:bg-neutral-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition text-center border border-neutral-700 shadow-lg"
+                >
+                  Elegir Mensual 🚀
+                </Link>
+              </div>
+
+              {/* OPCIÓN ANUAL (CON DESTACADO DE AHORRO) */}
+              <div className="p-6 rounded-2xl border border-emerald-500/50 bg-emerald-950/20 flex flex-col justify-between gap-4 relative overflow-hidden">
+                <div className="absolute right-3 top-3">
+                  <span className="bg-emerald-500 text-black text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-full">
+                    Ahorra 45% 🔥
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs font-semibold text-emerald-400">Plan Profesional</span>
+                  <h4 className="text-base font-bold text-white">Suscripción Anual</h4>
+                  <p className="text-2xl font-black text-emerald-400 mt-2">$24.990 <span className="text-xs font-normal text-neutral-400">/ año</span></p>
+                </div>
+                <Link
+                  href="/producto/d388c6e8-eb45-4c9e-a822-9277dd60cf88"
+                  className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl transition text-center shadow-lg hover:opacity-90"
+                >
+                  Elegir Anual 🚀
+                </Link>
+              </div>
+            </div>
+          </div>
         </section>
 
-        {/* 5. FOOTER */}
+        {/* 5. SECCIÓN DE PREGUNTAS FRECUENTES (FAQ) - ELIMINA FRICCIÓN CRO */}
+        <section id="faq" className="mx-auto max-w-4xl px-6 py-20 border-t border-neutral-900">
+          <div className="text-center mb-12">
+            <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Resolviendo Dudas</span>
+            <h2 className="text-2xl md:text-3xl font-black text-white mt-1">Preguntas Frecuentes</h2>
+          </div>
+
+          <div className="space-y-4">
+            <div className="p-6 rounded-2xl border border-neutral-800 bg-neutral-950">
+              <h3 className="text-sm font-bold text-white mb-1">¿Qué incluye la compra de una tarjeta física?</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Adquieres tu tarjeta plástica o metálica de alta calidad con tecnología NFC y código QR, junto con 1 año completo de acceso a tu perfil digital, menús y analíticas sin cobros adicionales.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl border border-neutral-800 bg-neutral-950">
+              <h3 className="text-sm font-bold text-white mb-1">¿Cómo actualizo mi menú o mis enlaces?</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Ingresas a tu panel de control privado en Mogu con tu cuenta, y cualquier cambio en tus precios, productos o redes se actualiza de manera instantánea en tiempo real.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl border border-neutral-800 bg-neutral-950">
+              <h3 className="text-sm font-bold text-white mb-1">¿Qué pasa al cumplirse el periodo de servicio?</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Se te enviará una invitación para renovar tu membresía de forma sencilla para mantener tus enlaces y códigos activos, sin perder tu dirección web personalizada.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* 6. FOOTER */}
         <footer id="contacto" className="border-t border-neutral-800 bg-neutral-950 py-12">
           <div className="mx-auto max-w-7xl px-6 flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="text-center md:text-left">
