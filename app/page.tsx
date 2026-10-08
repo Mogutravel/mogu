@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import NetworkBackground from '@/components/NetworkBackground'
 import PhoneMockup from '@/components/PhoneMockup'
+import Card3D from '@/components/Card3D'
 
 export const revalidate = 0 // Para asegurar que siempre cargue datos actualizados de Supabase
 
@@ -196,12 +197,12 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 4. SECCIÓN DE TARJETAS FÍSICAS (SUPABASE + CRO) */}
+        {/* 4. SECCIÓN DE TARJETAS FÍSICAS (SUPABASE + 3D CARD) */}
         <section id="productos" className="mx-auto max-w-7xl px-6 py-20">
           <div className="mb-12 text-center max-w-2xl mx-auto">
             <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Colección Física</span>
             <h2 className="text-3xl font-bold tracking-tight text-white md:text-4xl mt-1">
-              Tarjetas NFC con 1 Año Incluido
+              Tarjetas NFC
             </h2>
             <p className="mt-2 text-sm text-neutral-400">
               Diseñadas para locales, profesionales y PyMEs con tecnología contactless y código QR.
@@ -229,36 +230,13 @@ export default async function Home() {
                         : 'border border-neutral-800 hover:border-neutral-700'
                     }`}
                   >
-                    {isPopular ? (
-                      <div className="absolute right-4 top-4 z-10">
-                        <span className="rounded-full bg-emerald-500 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-black shadow-md">
-                          Más Popular ⭐
-                        </span>
-                      </div>
-                    ) : producto.badge ? (
-                      <div className="absolute right-4 top-4 z-10">
-                        <span className="rounded-full bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 text-[10px] font-bold text-emerald-300">
-                          {producto.badge}
-                        </span>
-                      </div>
-                    ) : null}
-
                     <div>
-                      {/* MOCKUP TARJETA */}
-                      <div
-                        className={`relative flex h-48 w-full items-center justify-center rounded-xl bg-gradient-to-br ${producto.gradient_color || 'from-neutral-800 to-neutral-900'} p-6 shadow-inner transition group-hover:scale-[1.02] mb-6`}
-                      >
-                        <div className="flex h-24 w-40 flex-col justify-between rounded-lg border border-white/20 bg-black/40 p-3 shadow-2xl backdrop-blur-sm">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-black tracking-widest text-white/80">MOGU</span>
-                            <div className="h-3 w-4 rounded-xs bg-amber-400/80" />
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-[9px] font-medium text-white/70">Tu Negocio</p>
-                            <p className="text-[7px] text-emerald-400">Tap to connect</p>
-                          </div>
-                        </div>
-                      </div>
+                      {/* VISOR 3D INTERACTIVO DE LA TARJETA */}
+                      <Card3D 
+                        imageSrc="/tarjeta-google.png" 
+                        altText={producto.name}
+                        badgeText={isPopular ? "Más Popular ⭐" : producto.badge}
+                      />
 
                       <span className="text-xs font-semibold text-neutral-500 block mb-1">
                         {producto.category}
