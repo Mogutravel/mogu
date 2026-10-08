@@ -60,11 +60,13 @@ export default async function Home() {
         <header className="sticky top-0 z-50 border-b border-neutral-800/80 bg-neutral-950/80 backdrop-blur-md">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
             
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-500 to-cyan-400 p-0.5 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                <div className="w-full h-full bg-neutral-950 rounded-[6px] flex items-center justify-center">
-                  <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
-                </div>
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="w-10 h-10 rounded-xl overflow-hidden bg-neutral-900 border border-neutral-800 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.2)] group-hover:border-emerald-500/50 transition">
+                <img 
+                  src="/logo-mogu.png" 
+                  alt="Mogu Logo" 
+                  className="w-full h-full object-cover" 
+                />
               </div>
               <span className="text-xl font-black tracking-wider text-white">
                 MOGU<span className="text-emerald-500">.</span>
@@ -92,7 +94,7 @@ export default async function Home() {
           </div>
         </header>
 
-        {/* 2. HERO SECTION CON PRUEBA SOCIAL TEMPRANA Y MOCKUP */}
+        {/* 2. HERO SECTION */}
         <section className="relative overflow-hidden px-6 py-16 md:py-24">
           <div className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[400px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-[120px]" />
 
@@ -110,19 +112,6 @@ export default async function Home() {
               <p className="mt-6 text-base text-neutral-400 md:text-lg max-w-xl mx-auto lg:mx-0">
                 Tarjetas inteligentes para tu negocio presencial y perfiles digitales profesionales optimizados para tus redes sociales. Todo integrado en una sola plataforma.
               </p>
-
-              {/* MEJORA 1: PRUEBA SOCIAL TEMPRANA EN EL HERO */}
-              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4 border-t border-neutral-900">
-                <div className="flex -space-x-2 overflow-hidden">
-                  <div className="inline-block h-8 w-8 rounded-full ring-2 ring-neutral-950 bg-emerald-600 flex items-center justify-center text-[10px] font-bold text-white">Caf</div>
-                  <div className="inline-block h-8 w-8 rounded-full ring-2 ring-neutral-950 bg-teal-600 flex items-center justify-center text-[10px] font-bold text-white">Med</div>
-                  <div className="inline-block h-8 w-8 rounded-full ring-2 ring-neutral-950 bg-cyan-600 flex items-center justify-center text-[10px] font-bold text-white">Bar</div>
-                  <div className="inline-block h-8 w-8 rounded-full ring-2 ring-neutral-950 bg-neutral-700 flex items-center justify-center text-[10px] font-bold text-white">+500</div>
-                </div>
-                <div className="text-xs text-neutral-400 text-center sm:text-left">
-                  <span className="text-emerald-400 font-bold">⭐ 4.9/5 estrellas</span> valorado por más de 500 locales y profesionales en Chile.
-                </div>
-              </div>
 
               <div className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                 <Link
@@ -147,23 +136,8 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* MEJORA 4: FRANJA DE CONFIANZA / DÓNDE NOS USAN */}
-        <section className="border-y border-neutral-900 bg-neutral-950/40 py-8">
-          <div className="mx-auto max-w-7xl px-6 text-center">
-            <p className="text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-6">
-              Impulsando la reputación digital de comercios y profesionales en todo Chile
-            </p>
-            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 text-neutral-400 text-sm font-bold tracking-wide opacity-70">
-              <span className="hover:text-emerald-400 transition">☕ CAFETERÍAS & PASTELERÍAS</span>
-              <span className="hover:text-emerald-400 transition">🏥 CLÍNICAS & CENTROS MÉDICOS</span>
-              <span className="hover:text-emerald-400 transition">✂️ BARBERÍAS & SPAS</span>
-              <span className="hover:text-emerald-400 transition">⚖️ ABOGADOS &CONSULTORES</span>
-            </div>
-          </div>
-        </section>
-
         {/* 3. SECCIÓN: ¿CÓMO FUNCIONA? */}
-        <section id="como-funciona" className="mx-auto max-w-7xl px-6 py-20 bg-neutral-950/60 backdrop-blur-sm">
+        <section id="como-funciona" className="mx-auto max-w-7xl px-6 py-20 bg-neutral-950/60 backdrop-blur-sm border-t border-neutral-900">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Tecnología Contactless</span>
             <h2 className="text-3xl md:text-5xl font-black text-white mt-3">¿Cómo funciona Mogu?</h2>
@@ -199,8 +173,8 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 4. SECCIÓN DE TARJETAS FÍSICAS (CON MEJORAS 2, 3 y 5) */}
-        <section id="productos" className="mx-auto max-w-7xl px-6 py-20">
+        {/* 4. SECCIÓN DE TARJETAS FÍSICAS */}
+        <section id="productos" className="mx-auto max-w-7xl px-6 py-20 border-t border-neutral-900">
           <div className="mb-12 text-center max-w-2xl mx-auto">
             <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Colección Física</span>
             <h2 className="text-3xl font-bold tracking-tight text-white md:text-4xl mt-1">
@@ -230,11 +204,10 @@ export default async function Home() {
                     }`}
                   >
                     <div>
-                      {/* MEJORA 5: VISOR 3D CON MAYOR PROTAGONISMO Y SOMBRA DE CONTACTO */}
                       <Card3D 
                         imageSrc="/tarjeta-google.png" 
                         altText={producto.name}
-                        badgeText={isPopular ? "⭐ La más elegida por locales" : producto.badge}
+                        badgeText={isPopular ? "⭐ Destacado" : producto.badge}
                       />
 
                       <span className="text-xs font-semibold text-neutral-500 block mb-1">
@@ -242,7 +215,6 @@ export default async function Home() {
                       </span>
                       <h3 className="text-lg font-bold text-white mb-4">{producto.name}</h3>
 
-                      {/* MEJORA 3: BENEFICIOS CON ICONOS MINIMALISTAS EN VEZ DE CHECKS PLANOS */}
                       <ul className="space-y-3 mb-8 text-xs text-neutral-300">
                         {producto.price === 14990 ? (
                           <>
@@ -252,7 +224,7 @@ export default async function Home() {
                             </li>
                             <li className="flex items-center gap-2.5">
                               <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">📍</span>
-                              <span>Ideal para mesas de pastelerías, cafeterías y locales.</span>
+                              <span>Ideal para mesas de negocios y locales.</span>
                             </li>
                             <li className="flex items-center gap-2.5">
                               <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">🛡️</span>
