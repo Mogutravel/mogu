@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import NetworkBackground from '@/components/NetworkBackground'
+import PhoneMockup from '@/components/PhoneMockup'
 
 export const revalidate = 0 // Para asegurar que siempre cargue datos actualizados de Supabase
 
@@ -108,37 +109,47 @@ export default async function Home() {
           </div>
         </header>
 
-        {/* 2. HERO SECTION */}
-        <section className="relative overflow-hidden px-6 py-20 md:py-32">
+        {/* 2. HERO SECTION CON MOCKUP INTERACTIVO */}
+        <section className="relative overflow-hidden px-6 py-16 md:py-24">
           <div className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[400px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-[120px]" />
 
-          <div className="mx-auto max-w-5xl text-center">
-            <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-semibold text-emerald-400">
-              Ecosistema Digital y Tarjetas NFC en Chile
-            </span>
+          <div className="mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            
+            {/* Columna Izquierda: Copywriting y Conversión */}
+            <div className="lg:col-span-7 text-center lg:text-left">
+              <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-semibold text-emerald-400">
+                Ecosistema Digital y Tarjetas NFC en Chile
+              </span>
 
-            <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-white md:text-6xl lg:text-7xl">
-              Tu identidad profesional y comercial en un solo <span className="text-emerald-400">tap</span>.
-            </h1>
+              <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-white md:text-5xl lg:text-6xl leading-[1.1]">
+                Tu identidad profesional y comercial en un solo <span className="text-emerald-400">tap</span>.
+              </h1>
 
-            <p className="mx-auto mt-6 max-w-2xl text-base text-neutral-400 md:text-lg">
-              Tarjetas inteligentes para tu negocio presencial y perfiles digitales profesionales optimizados para tus redes sociales. Todo integrado en una sola plataforma.
-            </p>
+              <p className="mt-6 text-base text-neutral-400 md:text-lg max-w-xl mx-auto lg:mx-0">
+                Tarjetas inteligentes para tu negocio presencial y perfiles digitales profesionales optimizados para tus redes sociales. Todo integrado en una sola plataforma.
+              </p>
 
-            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link
-                href="#productos"
-                className="w-full rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-black transition hover:bg-neutral-200 sm:w-auto"
-              >
-                Ver Opciones y Planes
-              </Link>
-              <Link
-                href="#como-funciona"
-                className="w-full rounded-xl border border-neutral-800 bg-neutral-900 px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-neutral-800 sm:w-auto"
-              >
-                Conocer más
-              </Link>
+              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                <Link
+                  href="#productos"
+                  className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 px-8 py-3.5 text-sm font-black text-black transition hover:opacity-90 shadow-[0_0_20px_rgba(16,185,129,0.3)] text-center"
+                >
+                  Ver Opciones y Planes 🚀
+                </Link>
+                <Link
+                  href="#como-funciona"
+                  className="w-full sm:w-auto rounded-xl border border-neutral-800 bg-neutral-900 px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-neutral-800 text-center"
+                >
+                  Conocer más
+                </Link>
+              </div>
             </div>
+
+            {/* Columna Derecha: El Celular Interactivo */}
+            <div className="lg:col-span-5 flex justify-center">
+              <PhoneMockup />
+            </div>
+
           </div>
         </section>
 
