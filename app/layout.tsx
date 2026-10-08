@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mogu | Tarjetas NFC para negocios",
-  description: "Tarjetas NFC para que tus clientes te dejen reseñas y lleguen a tu WhatsApp, Instagram y carta.",
+  title: "Mogu | Perfiles Digitales y Tarjetas NFC para Negocios",
+  description: "Crea tu perfil digital inteligente. Tarjetas y stickers NFC para potenciar tus reseñas en Google, WhatsApp y menús o catálogos en un solo tap.",
   icons: {
     icon: [
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
