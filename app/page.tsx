@@ -270,13 +270,13 @@ export default async function Home() {
             <div className="text-center md:text-left">
               <span className="text-xl font-black text-white">MOGU.</span>
               <p className="mt-1 text-xs text-neutral-500">
-                © {new Date().getFullYear()} Mogu Chile. Todos los derechos reservados.
+                © {new Date().getFullYear()} Mogu SpA. Todos los derechos reservados.
               </p>
             </div>
             <div className="flex gap-6 text-xs text-neutral-400">
-              <Link href="#" className="hover:text-white">Términos</Link>
-              <Link href="#" className="hover:text-white">Privacidad</Link>
-              <Link href="#" className="hover:text-white">Soporte</Link>
+              <Link href="/terminos" className="hover:text-emerald-400 transition">Términos</Link>
+              <Link href="/privacidad" className="hover:text-emerald-400 transition">Privacidad</Link>
+              <Link href="/soporte" className="hover:text-emerald-400 transition">Soporte</Link>
             </div>
           </div>
         </footer>
