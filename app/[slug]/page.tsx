@@ -1,21 +1,58 @@
-// Ejemplo de lógica de validación de estado en la carga del perfil
-const now = new Date();
-const expirationDate = profile.expires_at ? new Date(profile.expires_at) : null;
+import { supabase } from '@/lib/supabase';
+import { notFound } from 'next/navigation';
 
-// Si la suscripción expiró y el perfil no es activo
-if (expirationDate && now > expirationDate && profile.subscription_status === 'expired') {
+interface PageProps {
+  params: Promise<{
+    slug: string;
+  }>;
+}
+
+export default async function ProfilePage({ params }: PageProps) {
+  const { slug } = await params;
+
+  // Consultar perfil en Supabase usando el slug
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('slug', slug)
+    .single();
+
+  if (error || !profile) {
+    notFound();
+  }
+
+  // Validación de estado de la suscripción
+  const now = new Date();
+  const expirationDate = profile.expires_at ? new Date(profile.expires_at) : null;
+
+  // Si la suscripción expiró
+  if (expirationDate && now > expirationDate && profile.subscription_status === 'expired') {
+    return (
+      <div className="min-h-screen bg-[#0A0A0C] text-white flex flex-col items-center justify-center p-6 text-center">
+        <h1 className="text-xl font-extrabold text-white mb-2">Este perfil MOGU ha expirado</h1>
+        <p className="text-xs text-neutral-400 mb-6 max-w-xs leading-relaxed">
+          El período de activación de este enlace digital ha concluido. El propietario debe renovar su membresía para reactivar su menú y enlaces.
+        </p>
+        <a
+          href="/renovar"
+          className="px-6 py-3 bg-emerald-500 text-black text-xs font-extrabold uppercase tracking-wider rounded-2xl transition-all"
+        >
+          Renovar Membresía MOGU 🚀
+        </a>
+      </div>
+    );
+  }
+
+  // Renderizado normal del perfil activo
   return (
-    <div className="min-h-screen bg-[#0A0A0C] text-white flex flex-col items-center justify-center p-6 text-center">
-      <h1 className="text-xl font-extrabold text-white mb-2">Este perfil MOGU ha expirado</h1>
-      <p className="text-xs text-neutral-400 mb-6 max-w-xs leading-relaxed">
-        El período de activación de este enlace digital ha concluido. El propietario debe renovar su membresía para reactivar su menú y enlaces.
-      </p>
-      <a
-        href="/renovar"
-        className="px-6 py-3 bg-emerald-500 text-black text-xs font-extrabold uppercase tracking-wider rounded-2xl transition-all"
-      >
-        Renovar Membresía MOGU 🚀
-      </a>
+    <div className="min-h-screen bg-[#0A0A0C] text-white flex flex-col items-center p-6">
+      <div className="max-w-md w-full mx-auto space-y-6 pt-10">
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-black text-white">{profile.name || slug}</h1>
+          <p className="text-xs text-neutral-400">Perfil digital verificado MOGU</p>
+        </div>
+        {/* Aquí puedes desplegar el resto de los enlaces o menús del perfil */}
+      </div>
     </div>
   );
 }
