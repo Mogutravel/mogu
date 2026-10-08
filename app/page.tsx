@@ -384,7 +384,7 @@ export default async function Home() {
                   <p className="text-2xl font-black text-emerald-400 mt-2">$24.990 <span className="text-xs font-normal text-neutral-400">/ año</span></p>
                 </div>
                 <Link
-                  href="/producto/d388c6e8-eb45-4c9e-a822-9277dd60cf88"
+                  href="/producto/bc4dd526-5de4-4ee1-8ef8-3caab7a46608"
                   className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl transition text-center shadow-lg hover:opacity-90"
                 >
                   Elegir Anual 🚀

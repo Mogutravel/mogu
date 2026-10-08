@@ -157,7 +157,7 @@ export default function ProductDetailPage() {
           <div className="space-y-2">
             <h1 className="text-lg font-extrabold text-white">¡Pedido y cuenta creados con éxito!</h1>
             <p className="text-xs text-neutral-400 leading-relaxed">
-              Hemos registrado tu orden por transferencia. Para que personalices tu tarjeta de inmediato, <strong className="text-white">ya hemos creado y activado tu cuenta de acceso</strong>.
+              Hemos registrado tu orden por transferencia. Para que personalices tu perfil de inmediato, <strong className="text-white">ya hemos creado y activado tu cuenta de acceso</strong>.
             </p>
           </div>
 
@@ -181,7 +181,7 @@ export default function ProductDetailPage() {
             onClick={() => router.push(`/admin/${successData.slug}`)}
             className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.25)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition cursor-pointer"
           >
-            Ir a configurar mi tarjeta digital ↗
+            Ir a configurar mi perfil digital ↗
           </button>
         </div>
       </div>
@@ -205,42 +205,78 @@ export default function ProductDetailPage() {
       <main className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
           
-          {/* VISTA PREVIA INTERACTIVA DE LA TARJETA */}
+          {/* VISTA PREVIA CONDICIONAL (TARJETA FÍSICA VS SOFTWARE CLOUD) */}
           <div className="flex flex-col items-center justify-center sticky top-28">
-            <div className="w-full max-w-md aspect-[1.586/1] rounded-2xl p-8 flex flex-col justify-between shadow-2xl relative overflow-hidden bg-gradient-to-br from-neutral-900 via-neutral-950 to-black border border-neutral-800 group transition-all duration-300 hover:border-neutral-700">
-              
-              <div className="absolute -right-20 -top-20 w-56 h-56 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+            {product.category === 'Software Cloud' ? (
+              /* VISTA PREVIA PARA SUSCRIPCIÓN DIGITAL */
+              <div className="w-full max-w-md p-8 rounded-3xl bg-gradient-to-br from-neutral-900 via-neutral-950 to-emerald-950/40 border border-emerald-500/30 shadow-2xl relative overflow-hidden space-y-6">
+                <div className="absolute -right-16 -top-16 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+                
+                <div className="flex justify-between items-center">
+                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold uppercase tracking-wider rounded-full">
+                    Suscripción Cloud ☁️
+                  </span>
+                  <span className="text-xs font-mono text-neutral-400">MOGU PRO</span>
+                </div>
 
-              <div className="flex justify-between items-start z-10">
-                <span className="font-bold text-xl tracking-widest text-white">MOGU</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-6 bg-amber-500/20 border border-amber-500/40 rounded flex items-center justify-center">
-                    <div className="w-4 h-3 border border-amber-500/60 rounded-sm" />
+                <div className="space-y-2">
+                  <h2 className="text-xl font-black text-white">{product.name}</h2>
+                  <p className="text-xs text-neutral-400 leading-relaxed">
+                    Acceso completo e inmediato a tu perfil digital personalizado, enlaces ilimitados y cartas o menús interactivos en <strong className="text-white">mogu.cl/tu-negocio</strong>.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-black/60 border border-neutral-800 space-y-2 text-xs">
+                  <div className="flex justify-between text-neutral-300">
+                    <span className="text-neutral-500">Activación:</span>
+                    <span className="text-emerald-400 font-bold">Inmediata ⚡</span>
                   </div>
-                  <span className="text-[10px] text-neutral-500 font-mono tracking-wider">NFC</span>
+                  <div className="flex justify-between text-neutral-300">
+                    <span className="text-neutral-500">Soporte:</span>
+                    <span>Incluido 24/7</span>
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-neutral-500 text-center tracking-wider uppercase">
+                  Sin envíos físicos • Todo digital
                 </div>
               </div>
+            ) : (
+              /* VISTA PREVIA PARA TARJETA FÍSICA */
+              <div className="w-full max-w-md aspect-[1.586/1] rounded-2xl p-8 flex flex-col justify-between shadow-2xl relative overflow-hidden bg-gradient-to-br from-neutral-900 via-neutral-950 to-black border border-neutral-800 group transition-all duration-300 hover:border-neutral-700">
+                <div className="absolute -right-20 -top-20 w-56 h-56 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-              <div className="z-10 space-y-0.5">
-                <p className="text-xl font-semibold tracking-wide text-white">
-                  {cardName || 'Tu Nombre'}
-                </p>
-                <p className="text-sm text-neutral-400 font-light">
-                  {cardTitle || 'Tu Cargo / Empresa'}
-                </p>
-                <p className="text-xs text-emerald-400 font-light pt-1">
-                  {phone || 'Tu Teléfono'}
-                </p>
-                <p className="text-xs text-neutral-400 font-light">
-                  {email || 'Tu Correo Electrónico'}
-                </p>
-              </div>
+                <div className="flex justify-between items-start z-10">
+                  <span className="font-bold text-xl tracking-widest text-white">MOGU</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-6 bg-amber-500/20 border border-amber-500/40 rounded flex items-center justify-center">
+                      <div className="w-4 h-3 border border-amber-500/60 rounded-sm" />
+                    </div>
+                    <span className="text-[10px] text-neutral-500 font-mono tracking-wider">NFC</span>
+                  </div>
+                </div>
 
-              <div className="flex justify-between items-end z-10 text-[10px] text-neutral-500 tracking-wider">
-                <span>mogu.cl/{cardName ? cardName.toLowerCase().replace(/[^a-z0-9]/g, '') : 'tu-link'}</span>
-                <span>TAP TO CONNECT</span>
+                <div className="z-10 space-y-0.5">
+                  <p className="text-xl font-semibold tracking-wide text-white">
+                    {cardName || 'Tu Nombre'}
+                  </p>
+                  <p className="text-sm text-neutral-400 font-light">
+                    {cardTitle || 'Tu Cargo / Empresa'}
+                  </p>
+                  <p className="text-xs text-emerald-400 font-light pt-1">
+                    {phone || 'Tu Teléfono'}
+                  </p>
+                  <p className="text-xs text-neutral-400 font-light">
+                    {email || 'Tu Correo Electrónico'}
+                  </p>
+                </div>
+
+                <div className="flex justify-between items-end z-10 text-[10px] text-neutral-500 tracking-wider">
+                  <span>mogu.cl/{cardName ? cardName.toLowerCase().replace(/[^a-z0-9]/g, '') : 'tu-link'}</span>
+                  <span>TAP TO CONNECT</span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* FORMULARIO DE PERSONALIZACIÓN Y COMPRA */}
@@ -259,28 +295,28 @@ export default function ProductDetailPage() {
               <form onSubmit={handleInitialSubmit} className="space-y-6">
                 {/* Campos de Datos Cliente */}
                 <div className="space-y-4">
-                  <h2 className="text-sm font-semibold text-neutral-300 tracking-wide uppercase">Datos cliente y tarjeta</h2>
+                  <h2 className="text-sm font-semibold text-neutral-300 tracking-wide uppercase">Datos para tu cuenta y perfil</h2>
                   
                   <div>
-                    <label className="block text-xs text-neutral-400 mb-1">Nombre Completo *</label>
+                    <label className="block text-xs text-neutral-400 mb-1">Nombre Completo / Nombre de tu Negocio *</label>
                     <input
                       type="text"
                       required
                       value={cardName}
                       onChange={(e) => setCardName(e.target.value)}
-                      placeholder="Ej: Ignacia González"
+                      placeholder="Ej: Ignacia González o Cafetería Mogu"
                       className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
                       maxLength={30}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs text-neutral-400 mb-1">Cargo / Empresa</label>
+                    <label className="block text-xs text-neutral-400 mb-1">Cargo / Slogan o Breve Descripción</label>
                     <input
                       type="text"
                       value={cardTitle}
                       onChange={(e) => setCardTitle(e.target.value)}
-                      placeholder="Ej: Founder & CEO"
+                      placeholder="Ej: Founder & CEO o Especialidad en Café de Grano"
                       className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
                       maxLength={35}
                     />
@@ -310,16 +346,18 @@ export default function ProductDetailPage() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs text-neutral-400 mb-1">Dirección de envío (Opcional)</label>
-                    <input
-                      type="text"
-                      value={shippingAddress}
-                      onChange={(e) => setShippingAddress(e.target.value)}
-                      placeholder="Ej: Av. Providencia 1234, Depto 501, Santiago"
-                      className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
-                    />
-                  </div>
+                  {product.category !== 'Software Cloud' && (
+                    <div>
+                      <label className="block text-xs text-neutral-400 mb-1">Dirección de envío para la tarjeta física</label>
+                      <input
+                        type="text"
+                        value={shippingAddress}
+                        onChange={(e) => setShippingAddress(e.target.value)}
+                        placeholder="Ej: Av. Providencia 1234, Depto 501, Santiago"
+                        className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Método de Pago Fijo (Solo Transferencia) */}
@@ -334,33 +372,32 @@ export default function ProductDetailPage() {
                       Activación inmediata ⚡
                     </span>
                   </div>
-                  <p className="text-[11px] text-neutral-400 italic">
-                    Por el momento, todas nuestras operaciones y activaciones instantáneas se procesan exclusivamente mediante transferencia bancaria.
-                  </p>
                 </div>
 
                 {/* Cantidad y Botón de Confirmación */}
                 <div className="pt-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-neutral-300">Cantidad</span>
-                    <div className="flex items-center border border-neutral-800 rounded-lg bg-neutral-900">
-                      <button
-                        type="button"
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        className="px-3 py-1.5 text-neutral-400 hover:text-white transition cursor-pointer"
-                      >
-                        -
-                      </button>
-                      <span className="px-4 text-sm font-semibold">{quantity}</span>
-                      <button
-                        type="button"
-                        onClick={() => setQuantity(quantity + 1)}
-                        className="px-3 py-1.5 text-neutral-400 hover:text-white transition cursor-pointer"
-                      >
-                        +
-                      </button>
+                  {product.category !== 'Software Cloud' && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-neutral-300">Cantidad</span>
+                      <div className="flex items-center border border-neutral-800 rounded-lg bg-neutral-900">
+                        <button
+                          type="button"
+                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                          className="px-3 py-1.5 text-neutral-400 hover:text-white transition cursor-pointer"
+                        >
+                          -
+                        </button>
+                        <span className="px-4 text-sm font-semibold">{quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => setQuantity(quantity + 1)}
+                          className="px-3 py-1.5 text-neutral-400 hover:text-white transition cursor-pointer"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <button
                     type="submit"
@@ -396,7 +433,7 @@ export default function ProductDetailPage() {
                 </div>
 
                 <p className="text-[11px] text-neutral-400 leading-relaxed bg-emerald-500/5 border border-emerald-500/20 p-3.5 rounded-2xl">
-                  💡 Al hacer clic en <strong className="text-white">"Ya transferí / Configurar mi tarjeta"</strong>, crearemos tu cuenta al instante para que comiences a personalizar tu diseño mientras validamos tu comprobante.
+                  💡 Al hacer clic en <strong className="text-white">"Ya transferí / Configurar mi perfil"</strong>, crearemos tu cuenta al instante para que comiences a personalizar tu diseño mientras validamos tu comprobante.
                 </p>
 
                 <div className="flex gap-3 pt-2">
