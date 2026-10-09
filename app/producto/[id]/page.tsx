@@ -11,7 +11,7 @@ interface Product {
   name: string
   category: string
   price: number
-  image_url: string
+  image_url?: string
 }
 
 export default function ProductDetailPage() {
@@ -38,25 +38,49 @@ export default function ProductDetailPage() {
   const [successData, setSuccessData] = useState<{ slug: string; email: string; tempPassword: string } | null>(null)
 
   useEffect(() => {
-    async function fetchProduct() {
+    async function fetchProductOrPlan() {
       if (!productId) return
       setLoading(true)
 
-      const { data, error } = await supabase
+      let foundData: Product | null = null
+
+      // 1. Buscar primero en la tabla 'products' (tarjetas físicas) usando .maybeSingle() para evitar errores en consola
+      const { data: productData } = await supabase
         .from('products')
         .select('*')
         .eq('id', productId)
-        .single()
+        .maybeSingle()
 
-      if (error) {
-        console.error('Error al cargar el producto:', error)
+      if (productData) {
+        foundData = productData
       } else {
-        setProduct(data)
+        // 2. Si no está en products, buscar en la tabla 'plans' (suscripciones Cloud)
+        const { data: planData } = await supabase
+          .from('plans')
+          .select('*')
+          .eq('id', productId)
+          .maybeSingle()
+
+        if (planData) {
+          foundData = {
+            id: planData.id,
+            name: planData.name,
+            category: 'Software Cloud',
+            price: planData.price,
+          }
+        }
       }
+
+      if (foundData) {
+        setProduct(foundData)
+      } else {
+        console.error('El ID proporcionado no coincide con ningún producto ni plan activo.')
+      }
+      
       setLoading(false)
     }
 
-    fetchProduct()
+    fetchProductOrPlan()
   }, [productId])
 
   const handleInitialSubmit = (e: React.FormEvent) => {
@@ -124,7 +148,7 @@ export default function ProductDetailPage() {
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="animate-pulse text-center">
           <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-neutral-400">Cargando producto...</p>
+          <p className="text-neutral-400">Cargando producto o plan...</p>
         </div>
       </div>
     )
@@ -133,7 +157,7 @@ export default function ProductDetailPage() {
   if (!product) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
-        <h1 className="text-2xl font-bold mb-4">Producto no encontrado</h1>
+        <h1 className="text-2xl font-bold mb-4">Producto o Plan no encontrado</h1>
         <Link
           href="/"
           className="px-6 py-2 bg-emerald-500 text-black font-semibold rounded-full hover:bg-emerald-400 transition"

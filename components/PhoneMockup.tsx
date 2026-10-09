@@ -16,7 +16,7 @@ export default function PhoneMockup() {
   return (
     <div className="relative mx-auto w-full max-w-[320px]">
       
-      {/* Insignia Flotante Interactiva (Opción A) */}
+      {/* Insignia Flotante Interactiva */}
       <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap">
         <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-950/90 px-3 py-1 text-[11px] font-bold text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.3)] backdrop-blur-md animate-bounce">
           <span>👆</span>
@@ -35,7 +35,7 @@ export default function PhoneMockup() {
           <div className="relative mb-3">
             <div className="relative h-20 w-20 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-400 p-0.5 shadow-[0_0_20px_rgba(16,185,129,0.4)] flex items-center justify-center">
               <div className="h-full w-full rounded-full bg-neutral-900 flex items-center justify-center overflow-hidden">
-                <div className="text-2xl">🍄</div>
+                <span className="text-2xl">🍄</span>
               </div>
             </div>
             <div className="absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-neutral-950 bg-emerald-400 animate-pulse" />
@@ -59,6 +59,23 @@ export default function PhoneMockup() {
 
           {/* Lista de enlaces interactivos */}
           <div className="mt-6 w-full space-y-3">
+            
+            {/* ENLACE DIRECTO AL MENÚ DE MOGU (CON EMOJI DE HAMBURGUESA) */}
+            <a
+              href="https://mogu.cl/menu/mogu"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex w-full items-center justify-between rounded-2xl border border-emerald-500/40 bg-emerald-950/20 px-4 py-3 text-xs font-semibold text-emerald-300 backdrop-blur-sm transition-all hover:border-emerald-400 hover:bg-emerald-950/40 active:scale-98 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 transition">
+                  <span className="text-xs">🍔</span>
+                </div>
+                <span className="font-bold">Ver Menú Demostración</span>
+              </div>
+              <span className="text-emerald-400 transition group-hover:translate-x-1">↗</span>
+            </a>
+
             {/* Instagram */}
             <a
               href="https://www.instagram.com/mogu_cl"
@@ -94,7 +111,7 @@ export default function PhoneMockup() {
             {/* Website (Abre vista interna) */}
             <button
               onClick={() => setActiveModal('website')}
-              className="group flex w-full items-center justify-between rounded-2xl border border-neutral-800 bg-neutral-900/60 px-4 py-3 text-xs font-semibold text-neutral-200 backdrop-blur-sm transition-all hover:border-emerald-500/50 hover:bg-neutral-900 active:scale-98 cursor-pointer w-full text-left"
+              className="group flex w-full items-center justify-between rounded-2xl border border-neutral-800 bg-neutral-900/60 px-4 py-3 text-xs font-semibold text-neutral-200 backdrop-blur-sm transition-all hover:border-emerald-500/50 hover:bg-neutral-900 active:scale-98 cursor-pointer text-left"
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-neutral-800 text-neutral-300 group-hover:text-emerald-400 transition">
@@ -129,12 +146,12 @@ export default function PhoneMockup() {
           </button>
         </div>
 
-        {/* Modal de Catálogo */}
+        {/* Modal de Catálogo Actualizado con los Planes Cloud */}
         {activeModal === 'catalog' && (
           <div className="absolute inset-0 z-30 rounded-[37px] bg-neutral-950/95 p-4 flex flex-col justify-between backdrop-blur-xl overflow-y-auto animate-fade-in m-4">
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-neutral-800 mb-4">
-                <span className="text-xs font-extrabold text-emerald-400 uppercase tracking-wider">Catálogo Mogu</span>
+                <span className="text-xs font-extrabold text-emerald-400 uppercase tracking-wider">Planes Cloud Mogu</span>
                 <button 
                   onClick={() => setActiveModal('none')}
                   className="h-6 w-6 rounded-full bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white flex items-center justify-center text-xs cursor-pointer"
@@ -143,40 +160,62 @@ export default function PhoneMockup() {
                 </button>
               </div>
 
-              <div className="space-y-4">
-                <div className="p-3.5 rounded-2xl border border-emerald-500/50 bg-emerald-950/20 flex flex-col justify-between gap-2.5">
-                  <div>
-                    <span className="text-[10px] font-bold text-emerald-400">Más Popular ⭐</span>
-                    <h4 className="text-xs font-bold text-white">Tarjeta Smart Business</h4>
-                    <p className="text-base font-black text-emerald-400 mt-1">$22.990 <span className="text-[9px] font-normal text-neutral-400">/ pago único</span></p>
+              <div className="space-y-3 pb-2">
+                
+                {/* Plan Basic Mensual */}
+                <div className="p-3 rounded-2xl border border-neutral-800 bg-neutral-900/60 flex flex-col justify-between gap-1.5">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-[9px] font-bold text-neutral-400 uppercase">Básico</span>
+                      <h4 className="text-xs font-bold text-white">Plan Basic Mensual</h4>
+                    </div>
+                    <span className="text-xs font-black text-emerald-400">$4.990 <span className="text-[9px] font-normal text-neutral-400">/mes</span></span>
                   </div>
-                  <a
-                    href="/producto/bc4dd526-5de4-4ee1-8ef8-3caab7a46608"
-                    className="w-full py-2 bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-[10px] uppercase tracking-wider rounded-xl transition text-center shadow-md hover:opacity-90 block"
-                  >
-                    Ver Opciones y Planes 🚀
-                  </a>
+                  <p className="text-[10px] text-neutral-400">Perfil digital completo (sin catálogo ni menú).</p>
                 </div>
 
-                <div className="p-3.5 rounded-2xl border border-neutral-800 bg-neutral-900/60 flex flex-col justify-between gap-2.5">
-                  <div>
-                    <span className="text-[10px] font-semibold text-neutral-400">Plan Profesional</span>
-                    <h4 className="text-xs font-bold text-white">Suscripción Anual</h4>
-                    <p className="text-base font-black text-emerald-400 mt-1">$24.990 <span className="text-[9px] font-normal text-neutral-400">/ año</span></p>
+                {/* Plan Basic Anual */}
+                <div className="p-3 rounded-2xl border border-neutral-800 bg-neutral-900/60 flex flex-col justify-between gap-1.5">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-[9px] font-bold text-neutral-400 uppercase">Básico Anual</span>
+                      <h4 className="text-xs font-bold text-white">Plan Basic Anual</h4>
+                    </div>
+                    <span className="text-xs font-black text-emerald-400">$39.990 <span className="text-[9px] font-normal text-neutral-400">/año</span></span>
                   </div>
-                  <a
-                    href="/producto/bc4dd526-5de4-4ee1-8ef8-3caab7a46608"
-                    className="w-full py-2 bg-neutral-800 hover:bg-neutral-700 text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl transition text-center border border-neutral-700 shadow-md block"
-                  >
-                    Ver Opciones y Planes 🚀
-                  </a>
+                  <p className="text-[10px] text-neutral-400">Perfil digital completo + soporte 1 año.</p>
                 </div>
+
+                {/* Plan Pro Mensual */}
+                <div className="p-3 rounded-2xl border border-neutral-800 bg-neutral-900/60 flex flex-col justify-between gap-1.5">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-[9px] font-bold text-emerald-400 uppercase">Profesional</span>
+                      <h4 className="text-xs font-bold text-white">Plan Pro Mensual</h4>
+                    </div>
+                    <span className="text-xs font-black text-emerald-400">$7.990 <span className="text-[9px] font-normal text-neutral-400">/mes</span></span>
+                  </div>
+                  <p className="text-[10px] text-neutral-400">Perfil digital + Menú o catálogo interactivo.</p>
+                </div>
+
+                {/* Plan Pro Anual (Destacado) */}
+                <div className="p-3 rounded-2xl border-2 border-emerald-500 bg-emerald-950/20 flex flex-col justify-between gap-1.5 shadow-md">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-[9px] font-bold text-emerald-400 uppercase">Recomendado ⭐</span>
+                      <h4 className="text-xs font-bold text-white">Plan Pro Anual</h4>
+                    </div>
+                    <span className="text-xs font-black text-emerald-400">$69.990 <span className="text-[9px] font-normal text-neutral-400">/año</span></span>
+                  </div>
+                  <p className="text-[10px] text-neutral-300">Perfil avanzado + Menú/Catálogo ilimitado + Soporte 1 año.</p>
+                </div>
+
               </div>
             </div>
 
             <button
               onClick={() => setActiveModal('none')}
-              className="w-full py-2.5 bg-neutral-900 border border-neutral-800 text-neutral-300 text-[10px] font-bold rounded-xl hover:text-white transition mt-4 cursor-pointer"
+              className="w-full py-2.5 bg-neutral-900 border border-neutral-800 text-neutral-300 text-[10px] font-bold rounded-xl hover:text-white transition mt-2 cursor-pointer"
             >
               ← Volver al Perfil
             </button>

@@ -16,6 +16,17 @@ interface Product {
   gradient_color: string
 }
 
+interface Plan {
+  id: string
+  name: string
+  slug: string
+  price: number
+  original_price: number | null
+  badge: string | null
+  interval: string
+  features: string[]
+}
+
 async function getProducts(): Promise<Product[]> {
   try {
     const { data, error } = await supabase
@@ -37,6 +48,26 @@ async function getProducts(): Promise<Product[]> {
   }
 }
 
+async function getPlans(): Promise<Plan[]> {
+  try {
+    const { data, error } = await supabase
+      .from('plans')
+      .select('*')
+      .eq('is_active', true)
+      .order('price', { ascending: true })
+
+    if (error) {
+      console.error('Error cargando planes Cloud:', error)
+      return []
+    }
+
+    return data || []
+  } catch (err) {
+    console.error('Error de conexión planes:', err)
+    return []
+  }
+}
+
 const formatPrice = (amount: number) => {
   return new Intl.NumberFormat('es-CL', {
     style: 'currency',
@@ -47,13 +78,13 @@ const formatPrice = (amount: number) => {
 
 export default async function Home() {
   const productos = await getProducts()
+  const planes = await getPlans()
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 font-sans selection:bg-neutral-800 selection:text-white relative overflow-hidden">
-      {/* FONDO INMERSIVO GENERATIVO DE NODOS NFC */}
+      {/* FONDO INMERSIVO GENERATIVO */}
       <NetworkBackground />
 
-      {/* CONTENIDO PRINCIPAL EN CAPA SUPERIOR (Z-10) */}
       <div className="relative z-10">
         
         {/* 1. HEADER FLOTANTE / NAVBAR */}
@@ -74,58 +105,80 @@ export default async function Home() {
             </Link>
 
             <nav className="hidden items-center gap-8 text-sm font-medium text-neutral-300 md:flex">
-              <Link href="#productos" className="transition hover:text-white">Productos</Link>
+              <Link href="#ecosistema" className="transition hover:text-white">Plataforma Cloud</Link>
               <Link href="#como-funciona" className="transition hover:text-white">¿Cómo funciona?</Link>
-              <Link href="#faq" className="transition hover:text-white">Preguntas Frecuentes</Link>
+              <Link href="#productos" className="transition hover:text-white">Tarjetas NFC</Link>
             </nav>
 
             <div className="flex items-center gap-3">
-              <button className="relative rounded-full border border-neutral-700 bg-neutral-900 px-4 py-2 text-xs font-semibold text-white transition hover:border-neutral-500 hover:bg-neutral-800">
-                Carrito
-                <span className="ml-2 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[10px] font-bold text-black">0</span>
-              </button>
               <Link href="/login" className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-semibold text-neutral-300 hover:text-white rounded-xl transition backdrop-blur-xl">
                 Iniciar Sesión
               </Link>
               <Link href="/login" className="px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-400 text-black text-xs font-extrabold uppercase tracking-wider rounded-xl transition shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:shadow-[0_0_25px_rgba(16,185,129,0.4)]">
-                Crear Cuenta
+                Crear mi Perfil 🚀
               </Link>
             </div>
           </div>
         </header>
 
         {/* 2. HERO SECTION */}
-        <section className="relative overflow-hidden px-6 py-16 md:py-24">
-          <div className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[400px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-[120px]" />
+        <section className="relative overflow-hidden px-6 py-24 md:py-36">
+          <div className="pointer-events-none absolute left-1/2 top-1/3 -z-10 h-[450px] w-[750px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/15 blur-[150px]" />
+          <div className="pointer-events-none absolute left-1/4 top-1/2 -z-10 h-[300px] w-[400px] rounded-full bg-teal-500/10 blur-[120px]" />
 
           <div className="mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             
-            <div className="lg:col-span-7 text-center lg:text-left">
-              <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-semibold text-emerald-400 mb-4">
-                Ecosistema Digital y Tarjetas NFC en Chile
-              </span>
+            <div className="lg:col-span-7 text-center lg:text-left space-y-8">
+              
+              {/* BADGE / PASTILLA EDITORIAL EXCLUSIVA */}
+              <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-emerald-500/30 bg-neutral-900/80 text-emerald-300 text-xs font-bold tracking-[0.2em] uppercase shadow-[0_0_25px_rgba(16,185,129,0.2)] backdrop-blur-xl mx-auto lg:mx-0">
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>Diseño</span>
+                <span className="text-emerald-500/40">/</span>
+                <span>Tecnología</span>
+                <span className="text-emerald-500/40">/</span>
+                <span>Creatividad</span>
+              </div>
 
-              <h1 className="text-4xl font-extrabold tracking-tight text-white md:text-5xl lg:text-6xl leading-[1.1]">
-                Tu identidad profesional y comercial en un solo <span className="text-emerald-400">tap</span>.
-              </h1>
+              {/* TÍTULO PRINCIPAL (SIN PUNTO Y SIN ILUMINACIÓN EN 'AQUÍ') */}
+              <div className="space-y-3">
+                <h1 className="text-4xl font-black tracking-tight text-white md:text-6xl lg:text-7xl leading-[1.05]">
+                  Tu próximo nivel digital <br className="hidden sm:block" />
+                  comienza aquí
+                </h1>
+              </div>
 
-              <p className="mt-6 text-base text-neutral-400 md:text-lg max-w-xl mx-auto lg:mx-0">
-                Tarjetas inteligentes para tu negocio presencial y perfiles digitales profesionales optimizados para tus redes sociales. Todo integrado en una sola plataforma.
+              {/* DESCRIPCIÓN */}
+              <p className="text-base text-neutral-300 md:text-lg max-w-xl mx-auto lg:mx-0 font-normal leading-relaxed">
+                Impulsa tu negocio con una plataforma SaaS de alto rendimiento y tarjetas NFC inteligentes. Gestiona tu identidad, menús y catálogos en tiempo real con un diseño impecable.
               </p>
 
-              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+              {/* BOTONES DE LLAMADA A LA ACCIÓN */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                 <Link
-                  href="#productos"
-                  className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 px-8 py-3.5 text-sm font-black text-black transition hover:opacity-90 shadow-[0_0_20px_rgba(16,185,129,0.3)] text-center"
+                  href="#ecosistema"
+                  className="w-full sm:w-auto rounded-2xl bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-400 px-8 py-4 text-xs font-black uppercase tracking-wider text-black transition-all hover:scale-[1.02] active:scale-98 shadow-[0_0_30px_rgba(16,185,129,0.4)] text-center"
                 >
-                  Ver Opciones y Planes 🚀
+                  Explorar Planes Cloud ✨
                 </Link>
                 <Link
                   href="#como-funciona"
-                  className="w-full sm:w-auto rounded-xl border border-neutral-800 bg-neutral-900 px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-neutral-800 text-center"
+                  className="w-full sm:w-auto rounded-2xl border border-neutral-800 bg-neutral-900/80 px-8 py-4 text-xs font-bold uppercase tracking-wider text-white transition-all hover:bg-neutral-800 hover:border-neutral-700 active:scale-98 text-center backdrop-blur-md"
                 >
-                  Conocer más
+                  ¿Cómo funciona?
                 </Link>
+              </div>
+
+              {/* CONFIANZA / AVISO INFERIOR */}
+              <div className="pt-2 flex items-center justify-center lg:justify-start gap-3 text-xs text-neutral-400">
+                <div className="flex -space-x-1.5">
+                  <div className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-[9px] font-bold text-emerald-400">✓</div>
+                  <div className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-[9px] font-bold text-emerald-400">✓</div>
+                </div>
+                <span>Soporte técnico de 1 año incluido en todos los planes ⚡</span>
               </div>
             </div>
 
@@ -136,47 +189,129 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 3. SECCIÓN: ¿CÓMO FUNCIONA? */}
+        {/* 3. PLANES PLATAFORMA CLOUD MOGU (DINÁMICOS DESDE SUPABASE) */}
+        <section id="ecosistema" className="mx-auto max-w-7xl px-6 py-20 border-t border-neutral-900">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Plataforma Cloud Mogu</span>
+            <h2 className="text-3xl md:text-5xl font-black text-white mt-3">Planes de Ecosistema Digital</h2>
+            <p className="text-neutral-400 text-sm md:text-base mt-4">
+              Selecciona el plan perfecto para tu marca con diseño editorial de alta gama y gestión en tiempo real.
+            </p>
+          </div>
+
+          {planes.length === 0 ? (
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-12 text-center">
+              <p className="text-neutral-400">Cargando planes de Supabase o no hay registros disponibles.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+              {planes.map((plan) => {
+                const isProAnnual = plan.slug === 'pro-anual'
+
+                return (
+                  <div
+                    key={plan.id}
+                    className={`p-6 rounded-3xl flex flex-col justify-between gap-6 transition backdrop-blur-sm ${
+                      isProAnnual
+                        ? 'border-2 border-emerald-500 bg-neutral-900/90 shadow-[0_0_35px_rgba(16,185,129,0.2)] scale-[1.02] relative'
+                        : 'border border-neutral-800 bg-neutral-900/60 hover:border-neutral-700'
+                    }`}
+                  >
+                    {isProAnnual && (
+                      <div className="absolute right-4 top-4">
+                        <span className="bg-emerald-500 text-black text-[9px] font-extrabold uppercase px-2.5 py-0.5 rounded-full">
+                          Recomendado ⭐
+                        </span>
+                      </div>
+                    )}
+
+                    <div>
+                      <span className={`text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full ${
+                        isProAnnual ? 'bg-emerald-500/20 text-emerald-400' : 'bg-neutral-800 text-neutral-300'
+                      }`}>
+                        {plan.badge || 'Plan'}
+                      </span>
+                      <h3 className="text-lg font-bold text-white mt-3">{plan.name}</h3>
+                      <p className="text-2xl font-black text-emerald-400 mt-2">
+                        {formatPrice(plan.price)}{' '}
+                        <span className="text-xs font-normal text-neutral-400">
+                          / {plan.interval === 'month' ? 'mes' : 'año'}
+                        </span>
+                      </p>
+                      
+                      <ul className="space-y-2.5 mt-6 text-xs text-neutral-300">
+                        {plan.features.map((feature, idx) => {
+                          const isNegative = feature.toLowerCase().includes('no incluye')
+                          return (
+                            <li key={idx} className={`flex items-center gap-2 ${isNegative ? 'text-neutral-500 line-through pt-1' : ''}`}>
+                              <span className={isNegative ? 'text-neutral-600 font-bold' : 'text-emerald-400 font-bold'}>
+                                {isNegative ? '—' : '✓'}
+                              </span>
+                              <span>{feature}</span>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+
+                    <Link
+                      href={`/producto/${plan.id}`}
+                      className={`w-full py-3 text-xs font-extrabold uppercase tracking-wider rounded-xl transition text-center shadow-lg ${
+                        isProAnnual
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:opacity-90'
+                          : 'bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700'
+                      }`}
+                    >
+                      Elegir {plan.name} 🚀
+                    </Link>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* 4. SECCIÓN: ¿CÓMO FUNCIONA? */}
         <section id="como-funciona" className="mx-auto max-w-7xl px-6 py-20 bg-neutral-950/60 backdrop-blur-sm border-t border-neutral-900">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Tecnología Contactless</span>
-            <h2 className="text-3xl md:text-5xl font-black text-white mt-3">¿Cómo funciona Mogu?</h2>
+            <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Tecnología Web App</span>
+            <h2 className="text-3xl md:text-5xl font-black text-white mt-3">Simple para ti, impecable para tus clientes</h2>
             <p className="text-neutral-400 text-sm md:text-base mt-4">
-              Sin aplicaciones, sin fricción. Comparte tu menú, redes y contactos de forma instantánea.
+              Lanza tu ecosistema digital en menos de 5 minutos y edítalo cuantas veces quieras.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center text-center p-8 rounded-2xl border border-neutral-800/80 bg-neutral-900/40 backdrop-blur-sm">
               <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg mb-6">01</div>
-              <h3 className="text-lg font-bold text-white mb-2">Haz TAP o usa tu Link</h3>
+              <h3 className="text-lg font-bold text-white mb-2">Crea tu Cuenta</h3>
               <p className="text-xs md:text-sm text-neutral-400 leading-relaxed">
-                Acerca tu tarjeta física con chip NFC al celular de tu cliente o comparte tu enlace digital personalizado en tu biografía.
+                Elige tu enlace personalizado y configura el estilo visual de tu perfil o carta interactiva.
               </p>
             </div>
 
             <div className="flex flex-col items-center text-center p-8 rounded-2xl border border-neutral-800/80 bg-neutral-900/40 backdrop-blur-sm">
               <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg mb-6">02</div>
-              <h3 className="text-lg font-bold text-white mb-2">Abre tu Perfil y Menú</h3>
+              <h3 className="text-lg font-bold text-white mb-2">Publica y Comparte</h3>
               <p className="text-xs md:text-sm text-neutral-400 leading-relaxed">
-                Se despliega de inmediato tu página digital con botones de contacto, redes sociales, catálogos o cartas interactivas.
+                Añade tus platos, servicios y redes sociales. Compártelo en Instagram, WhatsApp o código QR.
               </p>
             </div>
 
             <div className="flex flex-col items-center text-center p-8 rounded-2xl border border-neutral-800/80 bg-neutral-900/40 backdrop-blur-sm">
               <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg mb-6">03</div>
-              <h3 className="text-lg font-bold text-white mb-2">Conecta y Vende Más</h3>
+              <h3 className="text-lg font-bold text-white mb-2">Crece sin Límites</h3>
               <p className="text-xs md:text-sm text-neutral-400 leading-relaxed">
-                Tus clientes guardan tus datos en su agenda con un solo clic y tú actualizas precios o información en tiempo real.
+                Actualiza precios e información al instante desde cualquier celular o computador.
               </p>
             </div>
           </div>
         </section>
 
-        {/* 4. SECCIÓN DE TARJETAS FÍSICAS */}
+        {/* 5. SECCIÓN DE TARJETAS NFC FÍSICAS */}
         <section id="productos" className="mx-auto max-w-7xl px-6 py-20 border-t border-neutral-900">
           <div className="mb-12 text-center max-w-2xl mx-auto">
-            <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Colección Física</span>
+            <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Colección Física Opcional</span>
             <h2 className="text-3xl font-bold tracking-tight text-white md:text-4xl mt-1">
               Tarjetas NFC
             </h2>
@@ -228,7 +363,7 @@ export default async function Home() {
                             </li>
                             <li className="flex items-center gap-2.5">
                               <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">🛡️</span>
-                              <span>Incluye 1 año de plataforma digital activa.</span>
+                              <span>Incluye soporte y plataforma activa por 1 año.</span>
                             </li>
                           </>
                         ) : producto.price === 22990 ? (
@@ -246,7 +381,7 @@ export default async function Home() {
                               <span>Actualiza tus precios y productos en tiempo real.</span>
                             </li>
                             <li className="flex items-center gap-2.5">
-                              <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">⭐</span>
+                              <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">🛡️</span>
                               <span>Soporte prioritario incluido por 1 año.</span>
                             </li>
                           </>
@@ -266,7 +401,7 @@ export default async function Home() {
                             </li>
                             <li className="flex items-center gap-2.5">
                               <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">🛡️</span>
-                              <span>Soporte preferencial dedicado (1 año).</span>
+                              <span>Soporte preferencial dedicado por 1 año.</span>
                             </li>
                           </>
                         )}
@@ -302,85 +437,6 @@ export default async function Home() {
               })}
             </div>
           )}
-
-          {/* BANNER DE SUSCRIPCIÓN DIGITAL */}
-          <div className="mt-16 p-8 rounded-3xl border border-emerald-500/30 bg-gradient-to-r from-neutral-900/90 via-neutral-900/50 to-emerald-950/30 backdrop-blur-md shadow-2xl space-y-8">
-            <div className="text-center md:text-left">
-              <span className="inline-block px-3 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold uppercase tracking-wider rounded-full mb-2">
-                Suscripción Digital ☁️
-              </span>
-              <h3 className="text-2xl font-black text-white">¿Solo necesitas tu perfil digital para redes sociales?</h3>
-              <p className="text-xs text-neutral-400 max-w-2xl leading-relaxed mt-1">
-                Crea tu página web personalizada en <strong className="text-white">mogu.cl/tu-negocio</strong> con enlaces ilimitados y menús interactivos, sin necesidad de comprar una tarjeta física. Elige el plan que mejor se adapte a ti.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              <div className="p-6 rounded-2xl border border-neutral-800 bg-neutral-950/60 flex flex-col justify-between gap-4">
-                <div>
-                  <span className="text-xs font-semibold text-neutral-400">Plan Flexible</span>
-                  <h4 className="text-base font-bold text-white">Suscripción Mensual</h4>
-                  <p className="text-2xl font-black text-emerald-400 mt-2">$3.990 <span className="text-xs font-normal text-neutral-400">/ mes</span></p>
-                </div>
-                <Link
-                  href="/producto/a29bacd6-9f4e-4a05-8bcb-66d30e3432fb"
-                  className="w-full py-3 bg-neutral-800 hover:bg-neutral-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition text-center border border-neutral-700 shadow-lg"
-                >
-                  Elegir Mensual 🚀
-                </Link>
-              </div>
-
-              <div className="p-6 rounded-2xl border border-emerald-500/50 bg-emerald-950/20 flex flex-col justify-between gap-4 relative overflow-hidden">
-                <div className="absolute right-3 top-3">
-                  <span className="bg-emerald-500 text-black text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-full">
-                    Ahorra 45% 🔥
-                  </span>
-                </div>
-                <div>
-                  <span className="text-xs font-semibold text-emerald-400">Plan Profesional</span>
-                  <h4 className="text-base font-bold text-white">Suscripción Anual</h4>
-                  <p className="text-2xl font-black text-emerald-400 mt-2">$24.990 <span className="text-xs font-normal text-neutral-400">/ año</span></p>
-                </div>
-                <Link
-                  href="/producto/bc4dd526-5de4-4ee1-8ef8-3caab7a46608"
-                  className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl transition text-center shadow-lg hover:opacity-90"
-                >
-                  Elegir Anual 🚀
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 5. SECCIÓN DE PREGUNTAS FRECUENTES (FAQ) */}
-        <section id="faq" className="mx-auto max-w-4xl px-6 py-20 border-t border-neutral-900">
-          <div className="text-center mb-12">
-            <span className="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Resolviendo Dudas</span>
-            <h2 className="text-2xl md:text-3xl font-black text-white mt-1">Preguntas Frecuentes</h2>
-          </div>
-
-          <div className="space-y-4">
-            <div className="p-6 rounded-2xl border border-neutral-800 bg-neutral-950">
-              <h3 className="text-sm font-bold text-white mb-1">¿Qué incluye la compra de una tarjeta física?</h3>
-              <p className="text-xs text-neutral-400 leading-relaxed">
-                Adquieres tu tarjeta plástica o metálica de alta calidad con tecnología NFC y código QR, junto con 1 año completo de acceso a tu perfil digital, menús y analíticas sin cobros adicionales.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-2xl border border-neutral-800 bg-neutral-950">
-              <h3 className="text-sm font-bold text-white mb-1">¿Cómo actualizo mi menú o mis enlaces?</h3>
-              <p className="text-xs text-neutral-400 leading-relaxed">
-                Ingresas a tu panel de control privado en Mogu con tu cuenta, y cualquier cambio en tus precios, productos o redes se actualiza de manera instantánea en tiempo real.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-2xl border border-neutral-800 bg-neutral-950">
-              <h3 className="text-sm font-bold text-white mb-1">¿Qué pasa al cumplirse el periodo de servicio?</h3>
-              <p className="text-xs text-neutral-400 leading-relaxed">
-                Se te enviará una invitación para renovar tu membresía de forma sencilla para mantener tus enlaces y códigos activos, sin perder tu dirección web personalizada.
-              </p>
-            </div>
-          </div>
         </section>
 
         {/* 6. FOOTER */}
