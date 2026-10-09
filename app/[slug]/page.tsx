@@ -18,7 +18,7 @@ interface Profile {
   accent_color?: string | null
   expires_at?: string | null
   subscription_status?: string | null
-  has_menu?: boolean // <-- NUEVO: Para validar si muestra el menú digital
+  has_menu?: boolean
 }
 
 interface LinkItem {
@@ -28,6 +28,37 @@ interface LinkItem {
   position: number
   is_active: boolean
   emoji?: string
+}
+
+// Helpers para traducir el theme_color guardado a clases y colores hexadecimales
+const getThemeGlowClass = (themeColor?: string | null) => {
+  switch (themeColor) {
+    case 'from-blue-500 to-indigo-500':
+      return 'from-blue-500 to-indigo-500'
+    case 'from-pink-500 to-rose-500':
+      return 'from-pink-500 to-rose-500'
+    case 'from-amber-400 to-orange-500':
+      return 'from-amber-400 to-orange-500'
+    case 'from-purple-500 to-violet-600':
+      return 'from-purple-500 to-violet-600'
+    default:
+      return 'from-emerald-500 to-teal-400'
+  }
+}
+
+const getThemeHex = (themeColor?: string | null) => {
+  switch (themeColor) {
+    case 'from-blue-500 to-indigo-500':
+      return '#3B82F6'
+    case 'from-pink-500 to-rose-500':
+      return '#EC4899'
+    case 'from-amber-400 to-orange-500':
+      return '#F59E0B'
+    case 'from-purple-500 to-violet-600':
+      return '#8B5CF6'
+    default:
+      return '#10B981'
+  }
 }
 
 export default function PublicProfilePage() {
@@ -210,11 +241,14 @@ export default function PublicProfilePage() {
     .substring(0, 2)
     .toUpperCase()
 
+  const themeGlowClass = getThemeGlowClass(profile.theme_color)
+  const themeHex = getThemeHex(profile.theme_color)
+
   return (
     <div className="min-h-screen bg-[#0A0A0C] text-white font-sans selection:bg-emerald-500/35 selection:text-emerald-300 relative overflow-hidden flex flex-col justify-between">
       
-      {/* GLOW ATMOSFÉRICO DE FONDO */}
-      <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[500px] h-[350px] bg-gradient-to-r from-emerald-500 to-teal-400 opacity-15 blur-[120px] rounded-full pointer-events-none" />
+      {/* GLOW ATMOSFÉRICO DE FONDO DINÁMICO */}
+      <div className={`absolute -top-32 left-1/2 -translate-x-1/2 w-[500px] h-[350px] bg-gradient-to-r ${themeGlowClass} opacity-15 blur-[120px] rounded-full pointer-events-none`} />
 
       {/* CONTENEDOR PRINCIPAL */}
       <main className="relative z-10 max-w-md w-full mx-auto px-5 pt-10 pb-16 flex-1 flex flex-col justify-center">
@@ -222,7 +256,7 @@ export default function PublicProfilePage() {
         {/* AVATAR + HEADER */}
         <div className="flex flex-col items-center text-center space-y-4 mb-6">
           <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full blur opacity-50 group-hover:opacity-75 transition duration-500" />
+            <div className={`absolute -inset-1 bg-gradient-to-r ${themeGlowClass} rounded-full blur opacity-50 group-hover:opacity-75 transition duration-500`} />
             
             <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-neutral-800 to-neutral-900 border border-neutral-700/80 p-1 flex items-center justify-center shadow-2xl overflow-hidden">
               {profile.avatar_url ? (
@@ -247,7 +281,10 @@ export default function PublicProfilePage() {
               {fullName}
             </h1>
             {profile.title && (
-              <p className="text-xs font-semibold text-emerald-400 tracking-wider uppercase">
+              <p 
+                className="text-xs font-semibold tracking-wider uppercase"
+                style={{ color: themeHex }}
+              >
                 {profile.title}
               </p>
             )}
@@ -259,11 +296,11 @@ export default function PublicProfilePage() {
           </div>
         </div>
 
-        {/* ACCIÓN PRINCIPAL: GUARDAR CONTACTO */}
+        {/* ACCIÓN PRINCIPAL: GUARDAR CONTACTO (DINÁMICO CON EL COLOR SELECCIONADO) */}
         <div className="mb-4">
           <button
             onClick={handleDownloadVCard}
-            className="group relative w-full py-3.5 px-6 bg-gradient-to-r from-emerald-400 to-teal-400 text-black font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 overflow-hidden cursor-pointer"
+            className={`group relative w-full py-3.5 px-6 bg-gradient-to-r ${themeGlowClass} text-black font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 overflow-hidden cursor-pointer`}
           >
             <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:left-[100%] transition-all duration-1000 ease-in-out" />
             
