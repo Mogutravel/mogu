@@ -161,11 +161,38 @@ export default function MoguSubtleAmbientMenu() {
          ========================================== */}
       {menuStyle === 'classic' && (
         <div className="flex-1 flex flex-col justify-between relative z-10">
-          <header className="py-20 px-6 text-center relative border-b border-[#211C18]/60">
-            <div className="max-w-xl mx-auto space-y-3">
+          <header className="pt-16 pb-10 px-6 text-center relative border-b border-[#211C18]/60 space-y-6">
+            <div className="max-w-xl mx-auto space-y-2">
               <span className="text-[9px] uppercase tracking-[0.4em] text-[#9E8D80] block">Fine Dining Experience</span>
               <h1 className="text-3xl md:text-4xl font-serif font-light tracking-wide text-[#EFECE6]">{displayName}</h1>
-              <div className="w-10 h-[1px] bg-[#38312B] mx-auto my-4" />
+              <div className="w-10 h-[1px] bg-[#38312B] mx-auto my-3" />
+            </div>
+
+            {/* Barra de Secciones Superior (Filtros en línea estricta) */}
+            <div className="flex items-center justify-start md:justify-center gap-2 overflow-x-auto pb-2 max-w-xl mx-auto flex-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <button
+                onClick={() => setActiveCategory('all')}
+                className={`px-4 py-1.5 rounded-full text-xs font-serif tracking-wider transition whitespace-nowrap flex-shrink-0 cursor-pointer ${
+                  activeCategory === 'all' 
+                    ? 'bg-[#26211D] text-[#EFECE6] border border-[#38312B]' 
+                    : 'text-[#8C7A6B] hover:text-[#D4CEC7]'
+                }`}
+              >
+                Todas
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-serif tracking-wider transition whitespace-nowrap flex-shrink-0 cursor-pointer ${
+                    activeCategory === cat.id 
+                      ? 'bg-[#26211D] text-[#EFECE6] border border-[#38312B]' 
+                      : 'text-[#8C7A6B] hover:text-[#D4CEC7]'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
             </div>
           </header>
 
@@ -215,9 +242,9 @@ export default function MoguSubtleAmbientMenu() {
          ========================================== */}
       {menuStyle === 'modern' && (
         <div className="flex-1 flex flex-col justify-between relative z-10">
-          <header className="sticky top-0 z-30 bg-[#0E0C0A]/80 backdrop-blur-xl border-b border-[#211C18]/60 px-6 py-4">
-            <div className="max-w-3xl mx-auto flex items-center justify-between">
-              <h1 className="text-xs font-serif uppercase tracking-widest text-[#B3A497]">{displayName}</h1>
+          <header className="sticky top-0 z-30 bg-[#0E0C0A]/90 backdrop-blur-xl border-b border-[#211C18]/60 px-6 py-4 space-y-3">
+            <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
+              <h1 className="text-xs font-serif uppercase tracking-widest text-[#B3A497] truncate">{displayName}</h1>
               <input
                 type="text"
                 placeholder="Buscar preparación..."
@@ -225,6 +252,33 @@ export default function MoguSubtleAmbientMenu() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="bg-[#161311] border border-[#26211D] rounded-full px-4 py-2 text-xs text-[#D4CEC7] placeholder-[#73655B] focus:border-[#66584E] outline-none w-48 md:w-60 shadow-inner transition"
               />
+            </div>
+
+            {/* Barra de Secciones Superior (Filtros en línea estricta) */}
+            <div className="max-w-3xl mx-auto flex items-center gap-2 overflow-x-auto pb-1 flex-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <button
+                onClick={() => setActiveCategory('all')}
+                className={`px-4 py-1.5 rounded-xl text-xs font-serif tracking-wider transition whitespace-nowrap flex-shrink-0 cursor-pointer ${
+                  activeCategory === 'all' 
+                    ? 'bg-[#26211D] text-[#EFECE6] border border-[#38312B]' 
+                    : 'bg-[#13100E] text-[#8C7A6B] hover:text-[#D4CEC7] border border-[#211C18]'
+                }`}
+              >
+                Todas
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={`px-4 py-1.5 rounded-xl text-xs font-serif tracking-wider transition whitespace-nowrap flex-shrink-0 cursor-pointer ${
+                    activeCategory === cat.id 
+                      ? 'bg-[#26211D] text-[#EFECE6] border border-[#38312B]' 
+                      : 'bg-[#13100E] text-[#8C7A6B] hover:text-[#D4CEC7] border border-[#211C18]'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
             </div>
           </header>
 
@@ -265,8 +319,8 @@ export default function MoguSubtleAmbientMenu() {
          ========================================== */}
       {menuStyle === 'cards' && (
         <div className="flex-1 flex flex-col justify-between relative z-10">
-          <header className="border-b border-[#211C18]/60 bg-[#0E0C0A]/80 backdrop-blur-xl sticky top-0 z-30">
-            <div className="max-w-3xl mx-auto px-6 py-6 flex items-center justify-between">
+          <header className="border-b border-[#211C18]/60 bg-[#0E0C0A]/90 backdrop-blur-xl sticky top-0 z-30 px-6 py-5 space-y-4">
+            <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
               <div>
                 <span className="text-[9px] font-serif uppercase tracking-[0.3em] text-[#8C7A6B] block">Café de Especialidad</span>
                 <h1 className="text-sm font-serif font-medium text-[#E8E4DF] tracking-wide mt-0.5">{displayName}</h1>
@@ -278,6 +332,33 @@ export default function MoguSubtleAmbientMenu() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="bg-[#161311] border border-[#26211D] rounded-2xl px-4 py-2 text-xs text-[#D4CEC7] placeholder-[#73655B] focus:border-[#66584E] outline-none w-44 md:w-56 shadow-inner transition"
               />
+            </div>
+
+            {/* Barra de Secciones Superior (Filtros en línea estricta) */}
+            <div className="max-w-3xl mx-auto flex items-center gap-2 overflow-x-auto pb-1 flex-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <button
+                onClick={() => setActiveCategory('all')}
+                className={`px-4 py-1.5 rounded-xl text-xs font-serif tracking-wider transition whitespace-nowrap flex-shrink-0 cursor-pointer ${
+                  activeCategory === 'all' 
+                    ? 'bg-[#26211D] text-[#EFECE6] border border-[#38312B]' 
+                    : 'bg-[#13100E] text-[#8C7A6B] hover:text-[#D4CEC7] border border-[#211C18]'
+                }`}
+              >
+                Todas
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={`px-4 py-1.5 rounded-xl text-xs font-serif tracking-wider transition whitespace-nowrap flex-shrink-0 cursor-pointer ${
+                    activeCategory === cat.id 
+                      ? 'bg-[#26211D] text-[#EFECE6] border border-[#38312B]' 
+                      : 'bg-[#13100E] text-[#8C7A6B] hover:text-[#D4CEC7] border border-[#211C18]'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
             </div>
           </header>
 
@@ -300,7 +381,6 @@ export default function MoguSubtleAmbientMenu() {
                           className="h-44 overflow-hidden bg-[#0A0807] relative cursor-pointer group/img"
                         >
                           <img src={item.image_url} alt="" className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-700 opacity-85 group-hover/img:opacity-100 filter brightness-95" />
-                          {/* Difuminado cenital sutil */}
                           <div className="absolute inset-0 bg-gradient-to-t from-[#13100E] via-transparent to-transparent opacity-70" />
                         </div>
                       )}
@@ -325,7 +405,7 @@ export default function MoguSubtleAmbientMenu() {
       )}
 
       {/* ==========================================
-          BANNER DE CONVERSIÓN COMERCIAL MOGU (Sutil & Elegante)
+          BANNER DE CONVERSIÓN COMERCIAL MOGU
          ========================================== */}
       <section className="relative z-10 bg-gradient-to-b from-transparent via-[#120F0D] to-[#0A0807] border-t border-[#211C18]/60 py-16 px-6 text-center">
         <div className="max-w-md mx-auto space-y-3">
