@@ -220,18 +220,21 @@ export default function Panel() {
     <main className="min-h-screen bg-mogu-cream px-4 py-8 flex justify-center">
       <div className="w-full max-w-xl">
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3"><img src="/mogu-icon.png" alt="Mogu" className="h-10 w-auto" /><h1 className="text-2xl font-bold text-mogu-wine">Mi página</h1></div>
+          <div className="flex items-center gap-3">
+            <img src="/mogu-icon.png" alt="Mogu" className="h-10 w-auto" />
+            <h1 className="text-2xl font-bold text-mogu-wine">Mi página</h1>
+          </div>
           <button onClick={salir} className="text-sm text-mogu-wine/70 underline">
             Salir
           </button>
         </div>
 
         <a
-          href={`/nfc/${business.slug}`}
+          href={`/${business.slug}`}
           target="_blank"
           className="block bg-white border border-mogu-pink rounded-xl p-4 mb-6 text-mogu-red"
         >
-          Ver mi página pública: mogu.cl/nfc/{business.slug} ↗
+          Ver mi página pública: mogu.cl/{business.slug} ↗
         </a>
 
         <Stats businessId={business.id} />
