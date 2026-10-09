@@ -14,6 +14,7 @@ interface Profile {
   email: string | null
   avatar_url?: string | null
   theme_color?: string | null
+  has_menu?: boolean
 }
 
 interface LinkItem {
@@ -255,7 +256,7 @@ export default function AdvancedClientDashboard() {
 
           {profile && (
             <Link
-              href={`/nfc/${profile.slug}`}
+              href={`/${profile.slug}`}
               target="_blank"
               className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-xs font-bold text-white rounded-xl transition flex items-center gap-2 shadow-lg"
             >
@@ -452,6 +453,30 @@ export default function AdvancedClientDashboard() {
               )}
             </div>
           </div>
+
+          {/* BANNER DE ACCESO AL EDITOR DE MENÚ (SOLO SI HAS_MENU ES TRUE) */}
+          {profile?.has_menu && (
+            <div className="p-8 rounded-3xl bg-gradient-to-r from-amber-500/10 via-neutral-900/60 to-neutral-900/40 border border-amber-500/30 backdrop-blur-xl shadow-2xl">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="space-y-1">
+                  <span className="inline-block px-3 py-1 bg-amber-500/20 text-amber-400 text-[10px] font-extrabold uppercase tracking-wider rounded-full mb-1">
+                    Plan Pro / Carta Digital 🍽️
+                  </span>
+                  <h2 className="text-lg font-black text-white">Editor de Menú y Catálogo</h2>
+                  <p className="text-xs text-neutral-400 max-w-sm">
+                    Gestiona tus categorías, platos, precios y elige entre los 3 diseños visuales de tu carta.
+                  </p>
+                </div>
+                
+                <Link
+                  href="/panel/menu"
+                  className="px-5 py-3 bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl transition shadow-lg flex items-center gap-2 flex-shrink-0 cursor-pointer"
+                >
+                  <span>Editar Menú ↗</span>
+                </Link>
+              </div>
+            </div>
+          )}
 
           <div className="p-8 rounded-3xl bg-neutral-900/40 border border-neutral-800 backdrop-blur-xl shadow-2xl">
             <h2 className="text-lg font-bold text-white mb-2">Seguridad de la Cuenta 🔒</h2>

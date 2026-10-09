@@ -18,6 +18,7 @@ interface Profile {
   accent_color?: string | null
   expires_at?: string | null
   subscription_status?: string | null
+  has_menu?: boolean // <-- NUEVO: Para validar si muestra el menú digital
 }
 
 interface LinkItem {
@@ -212,7 +213,7 @@ export default function PublicProfilePage() {
   return (
     <div className="min-h-screen bg-[#0A0A0C] text-white font-sans selection:bg-emerald-500/35 selection:text-emerald-300 relative overflow-hidden flex flex-col justify-between">
       
-      {/* GLOW ATMOSFÉRICO DE FONDO (BRILLO INTENSO EXACTO) */}
+      {/* GLOW ATMOSFÉRICO DE FONDO */}
       <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[500px] h-[350px] bg-gradient-to-r from-emerald-500 to-teal-400 opacity-15 blur-[120px] rounded-full pointer-events-none" />
 
       {/* CONTENEDOR PRINCIPAL */}
@@ -258,8 +259,8 @@ export default function PublicProfilePage() {
           </div>
         </div>
 
-        {/* ACCIÓN PRINCIPAL: GUARDAR CONTACTO (BOTÓN VIBRANTE EXACTO) */}
-        <div className="mb-8">
+        {/* ACCIÓN PRINCIPAL: GUARDAR CONTACTO */}
+        <div className="mb-4">
           <button
             onClick={handleDownloadVCard}
             className="group relative w-full py-3.5 px-6 bg-gradient-to-r from-emerald-400 to-teal-400 text-black font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 overflow-hidden cursor-pointer"
@@ -272,6 +273,24 @@ export default function PublicProfilePage() {
             <span>{savedContact ? '¡Contacto Guardado con Éxito! 🚀' : 'Guardar en Contactos'}</span>
           </button>
         </div>
+
+        {/* BOTÓN CARTA / MENÚ DIGITAL (SOLO SI HAS_MENU ES TRUE) */}
+        {profile.has_menu && (
+          <div className="mb-6">
+            <a
+              href={`/menu/${profile.slug}`}
+              className="group flex items-center justify-between py-3.5 px-6 bg-neutral-900/80 hover:bg-neutral-800 border border-emerald-500/40 hover:border-emerald-400 text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-lg transition-all duration-200 active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-base">📖</span>
+                <span>Ver Carta / Menú Digital</span>
+              </div>
+              <svg className="w-4 h-4 text-emerald-400 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </a>
+          </div>
+        )}
 
         {/* LISTA DE ENLACES CON EMOJIS */}
         <div className="space-y-3.5">
