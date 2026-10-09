@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -32,273 +32,369 @@ interface MenuCategory {
   items: MenuItem[]
 }
 
-export default function PublicMenuPage() {
+export default function MoguSubtleAmbientMenu() {
   const params = useParams()
   const slug = params?.slug as string
 
   const [profile, setProfile] = useState<Profile | null>(null)
   const [categories, setCategories] = useState<MenuCategory[]>([])
   const [loading, setLoading] = useState(true)
-  const [notFound, setNotFound] = useState(false)
-  const [noMenu, setNoMenu] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
+  
+  const [searchTerm, setSearchTerm] = useState('')
+  const [activeCategory, setActiveCategory] = useState<string>('all')
+
+  const [activeImageModal, setActiveImageModal] = useState<{
+    url: string
+    name: string
+    description: string | null
+    price: string | null
+  } | null>(null)
 
   useEffect(() => {
-    async function loadMenu() {
+    async function loadMenuData() {
       if (!slug) return
       setLoading(true)
-
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, slug, full_name, name, has_menu, menu_style, avatar_url')
-        .eq('slug', slug)
-        .single()
-
-      if (profileError || !profileData) {
-        setNotFound(true)
-        setLoading(false)
-        return
-      }
-
-      if (!profileData.has_menu) {
-        setNoMenu(true)
-        setLoading(false)
-        return
-      }
-
-      setProfile(profileData)
-
-      const { data: catsData } = await supabase
-        .from('menu_categories')
-        .select('*')
-        .eq('profile_id', profileData.id)
-        .order('position', { ascending: true })
-
-      if (catsData && catsData.length > 0) {
-        const catIds = catsData.map((c) => c.id)
-
-        const { data: itemsData } = await supabase
-          .from('menu_items')
+      try {
+        let { data: profileData } = await supabase
+          .from('profiles')
           .select('*')
-          .in('category_id', catIds)
-          .eq('active', true)
+          .eq('slug', slug)
+          .maybeSingle()
+
+        if (!profileData) {
+          const { data: fallback } = await supabase
+            .from('profiles')
+            .select('*')
+            .ilike('full_name', `%${slug}%`)
+            .maybeSingle()
+          profileData = fallback
+        }
+
+        if (!profileData) {
+          setErrorMsg(`No se encontró el establecimiento: "${slug}".`)
+          setLoading(false)
+          return
+        }
+
+        setProfile(profileData)
+
+        const { data: catsData } = await supabase
+          .from('menu_categories')
+          .select('*')
+          .eq('profile_id', profileData.id)
           .order('position', { ascending: true })
 
-        const catsWithItems: MenuCategory[] = catsData.map((cat) => ({
-          ...cat,
-          items: itemsData?.filter((item) => item.category_id === cat.id) || [],
-        })).filter((cat) => cat.items.length > 0)
+        if (catsData && catsData.length > 0) {
+          const catIds = catsData.map((c) => c.id)
+          const { data: itemsData } = await supabase
+            .from('menu_items')
+            .select('*')
+            .in('category_id', catIds)
+            .order('position', { ascending: true })
 
-        setCategories(catsWithItems)
+          const catsWithItems: MenuCategory[] = catsData.map((cat) => ({
+            ...cat,
+            items: itemsData?.filter((item) => item.category_id === cat.id && item.active !== false) || [],
+          })).filter((cat) => cat.items.length > 0)
+
+          setCategories(catsWithItems)
+        }
+      } catch (err) {
+        console.error(err)
+        setErrorMsg('Error al conectar con la base de datos.')
+      } finally {
+        setLoading(false)
       }
-
-      setLoading(false)
     }
-
-    loadMenu()
+    loadMenuData()
   }, [slug])
+
+  const filteredCategories = useMemo(() => {
+    return categories
+      .map((cat) => {
+        if (activeCategory !== 'all' && cat.id !== activeCategory) return null
+
+        const filteredItems = cat.items.filter((item) => {
+          const query = searchTerm.toLowerCase()
+          return item.name.toLowerCase().includes(query) || (item.description?.toLowerCase().includes(query) ?? false)
+        })
+
+        if (filteredItems.length === 0) return null
+        return { ...cat, items: filteredItems }
+      })
+      .filter(Boolean) as MenuCategory[]
+  }, [categories, searchTerm, activeCategory])
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0A0C] text-white flex flex-col items-center justify-center p-4">
-        <div className="relative flex items-center justify-center">
-          <div className="w-16 h-16 rounded-full border-2 border-emerald-500/20 border-t-emerald-400 animate-spin" />
-          <div className="absolute font-black text-xs text-emerald-400 tracking-wider">MOGU</div>
-        </div>
+      <div className="min-h-screen bg-[#0E0C0A] text-[#D4CEC7] flex flex-col items-center justify-center p-4">
+        <div className="w-8 h-8 rounded-full border border-[#8C7A6B]/20 border-t-[#8C7A6B] animate-spin" />
+        <span className="mt-4 font-serif italic text-xs tracking-[0.2em] text-[#8C7A6B]">Cargando atmósfera...</span>
       </div>
     )
   }
 
-  if (notFound || !profile) {
+  if (errorMsg || !profile) {
     return (
-      <div className="min-h-screen bg-[#0A0A0C] text-white flex flex-col items-center justify-center p-6 text-center">
-        <h1 className="text-xl font-extrabold text-white mb-2">Perfil No Encontrado</h1>
-        <p className="text-xs text-neutral-400 mb-6">La carta digital consultada no existe.</p>
-        <a href="/" className="px-6 py-3 bg-neutral-900 border border-neutral-800 text-neutral-200 text-xs font-semibold rounded-2xl">
-          Ir al Inicio
+      <div className="min-h-screen bg-[#0E0C0A] text-[#D4CEC7] flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <h1 className="font-serif text-lg tracking-wide text-[#E8E4DF]">Establecimiento no disponible</h1>
+        <p className="text-xs text-[#8C7A6B]">{errorMsg}</p>
+        <a href={`/panel/menu/${slug}`} className="px-5 py-2 bg-[#26211D] text-[#D4CEC7] text-xs font-serif rounded-full hover:bg-[#38312B] transition">
+          Ir al Panel
         </a>
       </div>
     )
   }
 
-  if (noMenu) {
-    return (
-      <div className="min-h-screen bg-[#0A0A0C] text-white flex flex-col items-center justify-center p-6 text-center">
-        <h1 className="text-xl font-extrabold text-white mb-2">Menú no disponible</h1>
-        <p className="text-xs text-neutral-400 mb-6">Este negocio no tiene habilitada una carta digital.</p>
-        <a href={`/${slug}`} className="px-6 py-3 bg-neutral-900 border border-neutral-800 text-neutral-200 text-xs font-semibold rounded-2xl">
-          ← Volver al Perfil
-        </a>
-      </div>
-    )
-  }
+  const displayName = profile.full_name || profile.name || slug
+  const menuStyle = profile.menu_style || 'modern'
 
-  const fullName = profile.full_name || profile.name || slug
-  const style = profile.menu_style || 'modern'
+  return (
+    <div className="min-h-screen bg-[#0E0C0A] text-[#D4CEC7] font-sans selection:bg-[#8C7A6B]/20 relative overflow-hidden flex flex-col justify-between">
+      
+      {/* Halo de luz ambiental difuminado sutil en el fondo */}
+      <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-b from-[#8C7A6B]/10 via-[#594B3F]/5 to-transparent blur-[140px] rounded-full pointer-events-none" />
 
-  // ESTILO 1: MODERN
-  if (style === 'modern') {
-    return (
-      <div className="min-h-screen bg-[#0A0A0C] text-white font-sans selection:bg-emerald-500/35 relative flex flex-col justify-between">
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[500px] h-[350px] bg-gradient-to-r from-emerald-500 to-teal-400 opacity-15 blur-[120px] rounded-full pointer-events-none" />
-        
-        <main className="relative z-10 max-w-md w-full mx-auto px-5 pt-8 pb-16 flex-1">
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-neutral-800">
-            <div>
-              <span className="text-[10px] font-extrabold text-emerald-400 uppercase tracking-widest">Carta Digital</span>
-              <h1 className="text-xl font-black text-white">{fullName}</h1>
+      {/* ==========================================
+          ESTILO 1: CLÁSICO (Alta Gama / Fine Dining)
+         ========================================== */}
+      {menuStyle === 'classic' && (
+        <div className="flex-1 flex flex-col justify-between relative z-10">
+          <header className="py-20 px-6 text-center relative border-b border-[#211C18]/60">
+            <div className="max-w-xl mx-auto space-y-3">
+              <span className="text-[9px] uppercase tracking-[0.4em] text-[#9E8D80] block">Fine Dining Experience</span>
+              <h1 className="text-3xl md:text-4xl font-serif font-light tracking-wide text-[#EFECE6]">{displayName}</h1>
+              <div className="w-10 h-[1px] bg-[#38312B] mx-auto my-4" />
             </div>
-            <a href={`/${slug}`} className="px-3 py-1.5 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-300 text-[11px] font-semibold rounded-xl transition">
-              ← Volver
-            </a>
-          </div>
+          </header>
 
-          <div className="space-y-8">
-            {categories.map((cat) => (
-              <div key={cat.id} className="space-y-3">
-                <h2 className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 bg-emerald-950/30 border border-emerald-500/20 px-3.5 py-2 rounded-xl">
-                  {cat.name}
-                </h2>
-                <div className="grid grid-cols-1 gap-3">
-                  {cat.items.map((item) => (
-                    <div key={item.id} className="p-3.5 bg-neutral-900/50 backdrop-blur-xl border border-neutral-800/80 rounded-2xl flex items-center justify-between shadow-lg gap-3 hover:border-emerald-500/40 transition">
-                      <div className="flex items-center space-x-3 overflow-hidden">
-                        {item.image_url && (
-                          <img src={item.image_url} alt={item.name} className="w-14 h-14 rounded-xl object-cover border border-neutral-700/60 flex-shrink-0" />
-                        )}
-                        <div className="overflow-hidden">
-                          <h3 className="text-xs font-bold text-white truncate">{item.name}</h3>
-                          {item.description && <p className="text-[10px] text-neutral-400 line-clamp-2 mt-0.5 font-light">{item.description}</p>}
-                        </div>
-                      </div>
-                      {item.price && (
-                        <span className="text-xs font-extrabold text-emerald-400 bg-neutral-800/90 border border-neutral-700/60 px-3 py-1.5 rounded-xl flex-shrink-0">
-                          {item.price}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </main>
-
-        <footer className="relative z-10 py-6 text-center border-t border-neutral-900">
-          <a href="https://mogu.cl" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-500 hover:text-emerald-400 transition">
-            <span>POWERED BY</span> <span className="font-black text-white tracking-wider">MOGU</span>
-          </a>
-        </footer>
-      </div>
-    )
-  }
-
-  // ESTILO 2: CLASSIC
-  if (style === 'classic') {
-    return (
-      <div className="min-h-screen bg-[#FDFBF7] text-neutral-800 font-serif relative flex flex-col justify-between selection:bg-amber-100">
-        <main className="relative z-10 max-w-md w-full mx-auto px-5 pt-10 pb-16 flex-1">
-          <div className="text-center mb-8 pb-4 border-b border-amber-900/20 relative">
-            <a href={`/${slug}`} className="absolute left-0 top-0 text-xs text-amber-900/60 hover:text-amber-900 underline font-sans">
-              ← Volver
-            </a>
-            <h1 className="text-2xl font-bold tracking-wide text-amber-950 uppercase">{fullName}</h1>
-            <p className="text-xs italic text-amber-900/70 mt-1 font-sans">Carta y Menús Digital</p>
-          </div>
-
-          <div className="space-y-8">
-            {categories.map((cat) => (
-              <div key={cat.id} className="space-y-4">
+          <main className="max-w-2xl w-full mx-auto px-6 py-12 flex-1 space-y-16">
+            {filteredCategories.map((cat) => (
+              <section key={cat.id} className="space-y-6">
                 <div className="text-center">
-                  <h2 className="text-sm font-bold uppercase tracking-widest text-amber-900 inline-block border-b border-amber-900/30 pb-1 font-sans">
+                  <h2 className="text-xs font-serif uppercase tracking-[0.3em] text-[#9E8D80] inline-block border-b border-[#26211D] pb-2">
                     {cat.name}
                   </h2>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-8 font-serif">
                   {cat.items.map((item) => (
-                    <div key={item.id} className="flex justify-between items-baseline gap-4 border-b border-dashed border-amber-900/10 pb-3">
-                      <div className="space-y-0.5 flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-xs font-bold text-neutral-900 uppercase tracking-wide">{item.name}</h3>
+                    <div key={item.id} className="flex items-center justify-between gap-4 group">
+                      {item.image_url && (
+                        <div 
+                          onClick={() => setActiveImageModal({ url: item.image_url!, name: item.name, description: item.description, price: item.price })}
+                          className="w-12 h-12 rounded-full overflow-hidden border border-[#26211D] flex-shrink-0 cursor-pointer relative group/img shadow-sm"
+                        >
+                          <img src={item.image_url} alt="" className="w-full h-full object-cover group-hover/img:scale-105 transition duration-700 opacity-90" />
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition flex items-center justify-center text-[10px]">✨</div>
                         </div>
-                        {item.description && <p className="text-[11px] text-neutral-600 font-sans italic">{item.description}</p>}
+                      )}
+                      <div className="flex-1 space-y-1">
+                        <div className="flex justify-between items-baseline gap-4">
+                          <span className="text-sm font-light tracking-wider text-[#E8E4DF] group-hover:text-[#B3A497] transition">{item.name}</span>
+                          <div className="flex-1 border-b border-dotted border-[#211C18] mx-3" />
+                          <span className="text-sm text-[#A8988C] font-sans tracking-wide">{item.price}</span>
+                        </div>
+                        {item.description && (
+                          <p className="text-xs text-[#8C7A6B] font-sans font-light italic leading-relaxed">
+                            {item.description}
+                          </p>
+                        )}
                       </div>
-                      {item.price && (
-                        <span className="text-xs font-bold text-amber-950 font-sans tracking-tight">
-                          {item.price}
-                        </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </main>
+        </div>
+      )}
+
+      {/* ==========================================
+          ESTILO 2: MODERNO (Hamburguesería)
+         ========================================== */}
+      {menuStyle === 'modern' && (
+        <div className="flex-1 flex flex-col justify-between relative z-10">
+          <header className="sticky top-0 z-30 bg-[#0E0C0A]/80 backdrop-blur-xl border-b border-[#211C18]/60 px-6 py-4">
+            <div className="max-w-3xl mx-auto flex items-center justify-between">
+              <h1 className="text-xs font-serif uppercase tracking-widest text-[#B3A497]">{displayName}</h1>
+              <input
+                type="text"
+                placeholder="Buscar preparación..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-[#161311] border border-[#26211D] rounded-full px-4 py-2 text-xs text-[#D4CEC7] placeholder-[#73655B] focus:border-[#66584E] outline-none w-48 md:w-60 shadow-inner transition"
+              />
+            </div>
+          </header>
+
+          <main className="max-w-3xl w-full mx-auto px-6 py-10 flex-1 space-y-10">
+            {filteredCategories.map((cat) => (
+              <section key={cat.id} className="space-y-4">
+                <h2 className="text-[11px] font-serif uppercase tracking-widest text-[#9E8D80] bg-[#161311]/60 border border-[#26211D] px-3.5 py-1.5 rounded-xl inline-block">
+                  {cat.name}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {cat.items.map((item) => (
+                    <div key={item.id} className="group bg-[#13100E]/70 hover:bg-[#161311] border border-[#211C18] hover:border-[#38312B] rounded-2xl p-4 flex items-center justify-between gap-4 transition-all duration-500 shadow-sm">
+                      <div className="space-y-1 overflow-hidden">
+                        <h3 className="text-xs font-serif font-medium text-[#E8E4DF] group-hover:text-[#B3A497] transition truncate">{item.name}</h3>
+                        {item.description && <p className="text-[11px] text-[#8C7A6B] font-light line-clamp-2 leading-relaxed">{item.description}</p>}
+                        <span className="inline-block text-xs font-serif font-medium text-[#A8988C] pt-1">{item.price}</span>
+                      </div>
+                      {item.image_url && (
+                        <div 
+                          onClick={() => setActiveImageModal({ url: item.image_url!, name: item.name, description: item.description, price: item.price })}
+                          className="w-15 h-15 rounded-xl overflow-hidden border border-[#26211D] flex-shrink-0 relative cursor-pointer group/img"
+                        >
+                          <img src={item.image_url} alt="" className="w-full h-full object-cover group-hover/img:scale-110 transition duration-700 opacity-90" />
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition flex items-center justify-center text-xs">✨</div>
+                        </div>
                       )}
                     </div>
                   ))}
                 </div>
-              </div>
+              </section>
             ))}
-          </div>
-        </main>
-
-        <footer className="py-6 text-center border-t border-amber-900/10 font-sans">
-          <a href="https://mogu.cl" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 hover:text-amber-900 transition">
-            <span>POWERED BY</span> <span className="font-black text-neutral-800 tracking-wider">MOGU</span>
-          </a>
-        </footer>
-      </div>
-    )
-  }
-
-  // ESTILO 3: CARDS
-  return (
-    <div className="min-h-screen bg-neutral-100 text-neutral-900 font-sans relative flex flex-col justify-between">
-      <main className="relative z-10 max-w-md w-full mx-auto px-4 pt-6 pb-16 flex-1">
-        <div className="flex items-center justify-between mb-6 bg-white p-4 rounded-2xl shadow-sm">
-          <div className="flex items-center gap-3">
-            {profile.avatar_url && <img src={profile.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border" />}
-            <div>
-              <h1 className="text-sm font-black text-neutral-900">{fullName}</h1>
-              <span className="text-[10px] text-neutral-500 font-semibold uppercase tracking-wider">Menú Visual</span>
-            </div>
-          </div>
-          <a href={`/${slug}`} className="px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-bold rounded-xl transition">
-            Volver
-          </a>
+          </main>
         </div>
+      )}
 
-        <div className="space-y-6">
-          {categories.map((cat) => (
-            <div key={cat.id} className="space-y-3">
-              <h2 className="text-xs font-black uppercase tracking-wider text-neutral-700 px-1">
-                {cat.name}
-              </h2>
-              <div className="grid grid-cols-2 gap-3">
-                {cat.items.map((item) => (
-                  <div key={item.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-neutral-200 flex flex-col justify-between">
-                    <div>
-                      {item.image_url ? (
-                        <img src={item.image_url} alt={item.name} className="w-full h-28 object-cover" />
-                      ) : (
-                        <div className="w-full h-28 bg-neutral-200 flex items-center justify-center text-[10px] text-neutral-400 font-bold">
-                          Sin foto
+      {/* ==========================================
+          ESTILO 3: TARJETAS EDITORIAL (Cafetería)
+         ========================================== */}
+      {menuStyle === 'cards' && (
+        <div className="flex-1 flex flex-col justify-between relative z-10">
+          <header className="border-b border-[#211C18]/60 bg-[#0E0C0A]/80 backdrop-blur-xl sticky top-0 z-30">
+            <div className="max-w-3xl mx-auto px-6 py-6 flex items-center justify-between">
+              <div>
+                <span className="text-[9px] font-serif uppercase tracking-[0.3em] text-[#8C7A6B] block">Café de Especialidad</span>
+                <h1 className="text-sm font-serif font-medium text-[#E8E4DF] tracking-wide mt-0.5">{displayName}</h1>
+              </div>
+              <input
+                type="text"
+                placeholder="Buscar café o tostado..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-[#161311] border border-[#26211D] rounded-2xl px-4 py-2 text-xs text-[#D4CEC7] placeholder-[#73655B] focus:border-[#66584E] outline-none w-44 md:w-56 shadow-inner transition"
+              />
+            </div>
+          </header>
+
+          <main className="max-w-3xl w-full mx-auto px-6 py-12 flex-1 space-y-12">
+            {filteredCategories.map((cat) => (
+              <section key={cat.id} className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xs font-serif uppercase tracking-[0.25em] text-[#9E8D80]">
+                    {cat.name}
+                  </h2>
+                  <div className="flex-1 h-[1px] bg-[#211C18]" />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {cat.items.map((item) => (
+                    <article key={item.id} className="group bg-[#13100E]/80 border border-[#211C18] hover:border-[#38312B] rounded-3xl overflow-hidden transition-all duration-700 flex flex-col justify-between shadow-md">
+                      {item.image_url && (
+                        <div 
+                          onClick={() => setActiveImageModal({ url: item.image_url!, name: item.name, description: item.description, price: item.price })}
+                          className="h-44 overflow-hidden bg-[#0A0807] relative cursor-pointer group/img"
+                        >
+                          <img src={item.image_url} alt="" className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-700 opacity-85 group-hover/img:opacity-100 filter brightness-95" />
+                          {/* Difuminado cenital sutil */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#13100E] via-transparent to-transparent opacity-70" />
                         </div>
                       )}
-                      <div className="p-3">
-                        <h3 className="text-xs font-bold text-neutral-900 line-clamp-1">{item.name}</h3>
-                        {item.description && <p className="text-[10px] text-neutral-500 line-clamp-2 mt-1">{item.description}</p>}
+                      <div className="p-6 space-y-2 flex-1 flex flex-col justify-between">
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between items-baseline gap-2">
+                            <h3 className="font-serif text-sm font-medium text-[#E8E4DF] group-hover:text-[#B3A497] transition">{item.name}</h3>
+                            <span className="font-serif text-xs text-[#A8988C] font-light">{item.price}</span>
+                          </div>
+                          {item.description && (
+                            <p className="text-xs text-[#8C7A6B] font-light leading-relaxed">{item.description}</p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="p-3 pt-0 flex items-center justify-between mt-auto">
-                      <span className="text-xs font-extrabold text-emerald-600">{item.price}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </main>
         </div>
-      </main>
+      )}
 
-      <footer className="py-6 text-center border-t border-neutral-200 bg-white">
-        <a href="https://mogu.cl" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 hover:text-neutral-800 transition">
-          <span>POWERED BY</span> <span className="font-black text-neutral-900 tracking-wider">MOGU</span>
-        </a>
+      {/* ==========================================
+          BANNER DE CONVERSIÓN COMERCIAL MOGU (Sutil & Elegante)
+         ========================================== */}
+      <section className="relative z-10 bg-gradient-to-b from-transparent via-[#120F0D] to-[#0A0807] border-t border-[#211C18]/60 py-16 px-6 text-center">
+        <div className="max-w-md mx-auto space-y-3">
+          <span className="text-[9px] font-serif uppercase tracking-[0.35em] text-[#8C7A6B]">Plataforma Mogu</span>
+          <h3 className="text-base font-serif font-light text-[#E8E4DF]">Eleva la experiencia digital de tu local</h3>
+          <p className="text-xs text-[#73655B] font-light">Crea cartas interactivas de alta gama en minutos.</p>
+          <div className="pt-3">
+            <a href="https://mogu.cl" target="_blank" rel="noopener noreferrer" className="inline-block px-7 py-3 bg-[#1C1714] hover:bg-[#26211D] border border-[#38312B] text-[#D4CEC7] text-xs font-serif uppercase tracking-widest rounded-full transition shadow-lg">
+              Crear mi carta Mogu ↗
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="relative z-10 py-6 text-center border-t border-[#1C1714] bg-[#0A0807] text-[9px] tracking-[0.25em] text-[#594B3F] font-serif">
+        CURATED BY <span className="text-[#A8988C] font-medium">MOGU DIGITAL</span>
       </footer>
+
+      {/* ==========================================
+          MODAL DIFUMINADO INMERSIVO
+         ========================================== */}
+      {activeImageModal && (
+        <div 
+          onClick={() => setActiveImageModal(null)}
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-4 md:p-8 transition-all"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-lg w-full bg-[#13100E] border border-[#26211D] rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col"
+          >
+            {/* Botón Cerrar */}
+            <button 
+              onClick={() => setActiveImageModal(null)}
+              className="absolute top-4 right-4 z-40 w-8 h-8 rounded-full bg-black/50 hover:bg-black text-[#D4CEC7] flex items-center justify-center text-xs transition border border-[#26211D] cursor-pointer"
+            >
+              ✕
+            </button>
+
+            {/* Contenedor de Imagen */}
+            <div className="relative h-[45vh] bg-[#0A0807] flex items-center justify-center overflow-hidden">
+              <img 
+                src={activeImageModal.url} 
+                alt={activeImageModal.name} 
+                className="max-h-[42vh] object-contain rounded-xl opacity-95" 
+              />
+            </div>
+
+            {/* Información del Plato */}
+            <div className="p-6 space-y-2 bg-[#13100E] border-t border-[#211C18]">
+              <div className="flex items-baseline justify-between gap-4">
+                <h3 className="font-serif text-base font-medium text-[#E8E4DF]">
+                  {activeImageModal.name}
+                </h3>
+                {activeImageModal.price && (
+                  <span className="font-serif text-xs text-[#A8988C] px-3 py-1 bg-[#1A1613] border border-[#26211D] rounded-xl">
+                    {activeImageModal.price}
+                  </span>
+                )}
+              </div>
+              {activeImageModal.description && (
+                <p className="text-xs text-[#8C7A6B] font-light leading-relaxed">
+                  {activeImageModal.description}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

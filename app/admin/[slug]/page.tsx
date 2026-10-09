@@ -454,7 +454,7 @@ export default function AdvancedClientDashboard() {
             </div>
           </div>
 
-          {/* BANNER DE ACCESO AL EDITOR DE MENÚ (SOLO SI HAS_MENU ES TRUE) */}
+          {/* BANNER DE ACCESO AL EDITOR DE MENÚ (DINÁMICO CON EL SLUG) */}
           {profile?.has_menu && (
             <div className="p-8 rounded-3xl bg-gradient-to-r from-amber-500/10 via-neutral-900/60 to-neutral-900/40 border border-amber-500/30 backdrop-blur-xl shadow-2xl">
               <div className="flex items-center justify-between flex-wrap gap-4">
@@ -469,7 +469,7 @@ export default function AdvancedClientDashboard() {
                 </div>
                 
                 <Link
-                  href="/panel/menu"
+                  href={`/panel/menu/${profile?.slug}`}
                   className="px-5 py-3 bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl transition shadow-lg flex items-center gap-2 flex-shrink-0 cursor-pointer"
                 >
                   <span>Editar Menú ↗</span>
