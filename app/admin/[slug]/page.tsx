@@ -4,6 +4,18 @@ import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
+import { 
+  FaWhatsapp, 
+  FaInstagram, 
+  FaFacebook, 
+  FaGlobe, 
+  FaMapMarkerAlt, 
+  FaUtensils, 
+  FaPhone, 
+  FaStar, 
+  FaShoppingBag, 
+  FaCalendarAlt 
+} from 'react-icons/fa'
 
 interface Profile {
   id: string
@@ -35,7 +47,29 @@ const COLOR_OPTIONS = [
   { name: 'Púrpura Cyber', value: 'from-purple-500 to-violet-600', hex: '#8B5CF6', border: 'border-purple-500' },
 ]
 
-const EMOJI_OPTIONS = ['🛍️', '💬', '📸', '🌐', '📍', '🍔', '☕', '🚀', '⭐', '📦', '💳', '📞']
+// OPCIONES DE ICONOS CON COLORES OFICIALES Y VIBRANTES
+const SOCIAL_OPTIONS = [
+  { key: "whatsapp", emoji: "💬", label: "💬 WhatsApp", icon: <FaWhatsapp style={{ color: "#25D366" }} className="text-xl" /> },
+  { key: "instagram", emoji: "📸", label: "📸 Instagram", icon: <FaInstagram style={{ color: "#E4405F" }} className="text-xl" /> },
+  { key: "facebook", emoji: "📘", label: "📘 Facebook", icon: <FaFacebook style={{ color: "#1877F2" }} className="text-xl" /> },
+  { key: "web", emoji: "🌐", label: "🌐 Sitio Web", icon: <FaGlobe style={{ color: "#38BDF8" }} className="text-xl" /> },
+  { key: "map", emoji: "📍", label: "📍 Ubicación", icon: <FaMapMarkerAlt style={{ color: "#F43F5E" }} className="text-xl" /> },
+  { key: "menu", emoji: "📖", label: "📖 Menú Digital", icon: <FaUtensils style={{ color: "#F59E0B" }} className="text-xl" /> },
+  { key: "phone", emoji: "📞", label: "📞 Teléfono Directo", icon: <FaPhone style={{ color: "#2DD4BF" }} className="text-xl" /> },
+  { key: "star", emoji: "⭐", label: "⭐ Reseña Google", icon: <FaStar style={{ color: "#FACC15" }} className="text-xl" /> },
+  { key: "shop", emoji: "🛍️", label: "🛍️ Tienda Online", icon: <FaShoppingBag style={{ color: "#A855F7" }} className="text-xl" /> },
+  { key: "booking", emoji: "📅", label: "📅 Reservas", icon: <FaCalendarAlt style={{ color: "#60A5FA" }} className="text-xl" /> },
+]
+
+// Helper para renderizar iconos oficiales con sus colores originales
+function renderLinkIcon(keyOrEmoji?: string) {
+  if (!keyOrEmoji) return <FaGlobe style={{ color: "#38BDF8" }} className="text-xl" />
+  const found = SOCIAL_OPTIONS.find(
+    (opt) => opt.key === keyOrEmoji || opt.emoji === keyOrEmoji
+  )
+  if (found) return found.icon
+  return <span className="text-base">{keyOrEmoji}</span>
+}
 
 export default function AdvancedClientDashboard() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -47,7 +81,7 @@ export default function AdvancedClientDashboard() {
   // Estados para nuevo enlace
   const [newTitle, setNewTitle] = useState('')
   const [newUrl, setNewUrl] = useState('')
-  const [newEmoji, setNewEmoji] = useState('🛍️')
+  const [newEmoji, setNewEmoji] = useState('whatsapp')
   const [addingLink, setAddingLink] = useState(false)
 
   // Estados para cambio de contraseña
@@ -149,7 +183,7 @@ export default function AdvancedClientDashboard() {
     }
   }
 
-  // Subir imagen real a Supabase Storage Bucket ('avatars')
+  // Subir imagen a Supabase Storage
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !profile) return
@@ -181,7 +215,7 @@ export default function AdvancedClientDashboard() {
     }
   }
 
-  // AGREGAR ENLACE
+  // Agregar enlace
   const handleAddLink = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!profile) {
@@ -223,11 +257,11 @@ export default function AdvancedClientDashboard() {
       setLinks([...links, data[0]])
       setNewTitle('')
       setNewUrl('')
-      setNewEmoji('🛍️')
+      setNewEmoji('whatsapp')
     }
   }
 
-  // MANEJAR DRAG & DROP (REORDENAR Y GUARDAR EN SUPABASE)
+  // Manejar Drag & Drop y actualizar Supabase
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return
 
@@ -242,7 +276,6 @@ export default function AdvancedClientDashboard() {
 
     setLinks(updatedLinks)
 
-    // Sincronizar posiciones automáticamente en Supabase
     try {
       const updates = updatedLinks.map((link) =>
         supabase
@@ -420,17 +453,19 @@ export default function AdvancedClientDashboard() {
 
           <div className="p-8 rounded-3xl bg-neutral-900/40 border border-neutral-800 backdrop-blur-xl shadow-2xl">
             <h2 className="text-lg font-bold text-white mb-2">Canales y Enlaces Interactivos</h2>
-            <p className="text-xs text-neutral-400 mb-6">Elige el emoji representativo y mantén presionado <b>⋮⋮</b> para reordenar.</p>
+            <p className="text-xs text-neutral-400 mb-6">Elige el canal oficial y mantén presionado <b>⋮⋮</b> para reordenar.</p>
 
             <div className="space-y-4 mb-8">
               <div className="flex gap-2">
                 <select
                   value={newEmoji}
                   onChange={(e) => setNewEmoji(e.target.value)}
-                  className="bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2.5 text-base text-white focus:border-emerald-500 outline-none cursor-pointer"
+                  className="bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2.5 text-xs font-semibold text-white focus:border-emerald-500 outline-none cursor-pointer"
                 >
-                  {EMOJI_OPTIONS.map((em) => (
-                    <option key={em} value={em}>{em}</option>
+                  {SOCIAL_OPTIONS.map((option) => (
+                    <option key={option.key} value={option.key} className="bg-neutral-900 text-white">
+                      {option.label}
+                    </option>
                   ))}
                 </select>
                 <input
@@ -492,7 +527,10 @@ export default function AdvancedClientDashboard() {
                                   <span className="text-base font-black leading-none">⋮⋮</span>
                                 </div>
 
-                                <span className="text-xl p-2 bg-neutral-900 rounded-xl">{link.emoji || '🔗'}</span>
+                                <div className="w-9 h-9 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center flex-shrink-0">
+                                  {renderLinkIcon(link.emoji)}
+                                </div>
+
                                 <div className="overflow-hidden">
                                   <p className="text-xs font-bold text-white truncate">{link.title}</p>
                                   <p className="text-[10px] text-neutral-400 truncate">{link.url}</p>
@@ -609,7 +647,6 @@ export default function AdvancedClientDashboard() {
 
                 <div>
                   <h2 className="text-lg font-black text-white">{profile?.full_name || 'Tu Negocio'}</h2>
-                  {/* Categoría con color dinámico en tiempo real */}
                   <p 
                     className="text-[10px] font-bold uppercase tracking-wider mt-0.5"
                     style={{ color: activeTheme.hex }}
@@ -630,7 +667,9 @@ export default function AdvancedClientDashboard() {
                     links.map((l) => (
                       <div key={l.id} className="p-2.5 bg-neutral-900/80 border border-neutral-800 rounded-xl flex items-center justify-between text-left">
                         <div className="flex items-center space-x-2 overflow-hidden">
-                          <span className="text-sm">{l.emoji || '🔗'}</span>
+                          <div className="w-6 h-6 rounded-lg bg-neutral-950 flex items-center justify-center flex-shrink-0">
+                            {renderLinkIcon(l.emoji)}
+                          </div>
                           <span className="text-[10px] font-bold text-white truncate">{l.title}</span>
                         </div>
                         <span className="text-[10px] text-neutral-500">→</span>

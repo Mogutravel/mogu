@@ -1,9 +1,21 @@
 "use client";
 
-import React, { useEffect, useState, type ChangeEvent } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
+import { 
+  FaWhatsapp, 
+  FaInstagram, 
+  FaFacebook, 
+  FaGlobe, 
+  FaMapMarkerAlt, 
+  FaUtensils, 
+  FaPhone, 
+  FaStar, 
+  FaShoppingBag, 
+  FaCalendarAlt 
+} from "react-icons/fa";
 
 type Business = {
   id: string;
@@ -24,7 +36,27 @@ type LinkItem = {
   emoji?: string;
 };
 
-const EMOJIS = ["🛍️", "⭐", "📍", "📸", "💬", "📖", "📞", "🌐", "📅", "🔗"];
+// OPCIONES DE ICONOS CON LOGOS OFICIALES DE MARCA
+const SOCIAL_OPTIONS = [
+  { key: "whatsapp", label: "💬 WhatsApp", icon: <FaWhatsapp className="text-emerald-400 text-lg" /> },
+  { key: "instagram", label: "📸 Instagram", icon: <FaInstagram className="text-pink-500 text-lg" /> },
+  { key: "facebook", label: "📘 Facebook", icon: <FaFacebook className="text-blue-500 text-lg" /> },
+  { key: "web", label: "🌐 Sitio Web", icon: <FaGlobe className="text-sky-400 text-lg" /> },
+  { key: "map", label: "📍 Ubicación", icon: <FaMapMarkerAlt className="text-rose-500 text-lg" /> },
+  { key: "menu", label: "📖 Menú Digital", icon: <FaUtensils className="text-amber-400 text-lg" /> },
+  { key: "phone", label: "📞 Teléfono Directo", icon: <FaPhone className="text-teal-400 text-lg" /> },
+  { key: "star", label: "⭐ Reseña Google", icon: <FaStar className="text-yellow-400 text-lg" /> },
+  { key: "shop", label: "🛍️ Tienda Online", icon: <FaShoppingBag className="text-purple-400 text-lg" /> },
+  { key: "booking", label: "📅 Reservas", icon: <FaCalendarAlt className="text-blue-400 text-lg" /> },
+];
+
+// Helper para renderizar icono oficial o emoji clásico
+function renderLinkIcon(key?: string) {
+  if (!key) return <FaGlobe className="text-sky-400 text-lg" />;
+  const found = SOCIAL_OPTIONS.find((opt) => opt.key === key);
+  if (found) return found.icon;
+  return <span className="text-base">{key}</span>;
+}
 
 export default function StudioPanel() {
   const router = useRouter();
@@ -34,7 +66,7 @@ export default function StudioPanel() {
   const [msg, setMsg] = useState("");
 
   // Campos para nuevo enlace
-  const [newEmoji, setNewEmoji] = useState("🛍️");
+  const [newEmoji, setNewEmoji] = useState("whatsapp");
   const [newLabel, setNewLabel] = useState("");
   const [newUrl, setNewUrl] = useState("");
 
@@ -137,7 +169,11 @@ export default function StudioPanel() {
   }
 
   if (loading) {
-    return <main className="min-h-screen bg-[#0A0A0C] text-white p-8 flex items-center justify-center">Cargando estudio...</main>;
+    return (
+      <main className="min-h-screen bg-[#0A0A0C] text-white p-8 flex items-center justify-center">
+        Cargando estudio...
+      </main>
+    );
   }
 
   if (!business) return null;
@@ -169,19 +205,23 @@ export default function StudioPanel() {
           
           <div className="space-y-1">
             <h2 className="text-lg font-bold text-white">Canales y Enlaces Interactivos</h2>
-            <p className="text-xs text-neutral-400">Elige el emoji representativo para cada botón de tu negocio.</p>
+            <p className="text-xs text-neutral-400">
+              Elige el canal o red social oficial para cada botón de tu negocio.
+            </p>
           </div>
 
-          {/* CREADOR DE ENLACE */}
+          {/* CREADOR DE ENLACE CON SELECTOR DE REDES SOCIALES */}
           <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-4 space-y-3">
             <div className="flex gap-2">
               <select
                 value={newEmoji}
                 onChange={(e) => setNewEmoji(e.target.value)}
-                className="bg-neutral-900 border border-neutral-800 text-white rounded-xl px-3 py-2 text-base cursor-pointer focus:border-emerald-500 outline-none"
+                className="bg-neutral-900 border border-neutral-800 text-white rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer focus:border-emerald-500 outline-none"
               >
-                {EMOJIS.map((emoji) => (
-                  <option key={emoji} value={emoji}>{emoji}</option>
+                {SOCIAL_OPTIONS.map((option) => (
+                  <option key={option.key} value={option.key} className="bg-neutral-900 text-white">
+                    {option.label}
+                  </option>
                 ))}
               </select>
               <input
@@ -244,8 +284,9 @@ export default function StudioPanel() {
                                 <span className="text-base font-black leading-none">⋮⋮</span>
                               </div>
 
+                              {/* ICONO OFICIAL VECTORIZADO */}
                               <div className="w-9 h-9 rounded-xl bg-neutral-800 border border-neutral-700/60 flex items-center justify-center text-base flex-shrink-0">
-                                {link.emoji || "🔗"}
+                                {renderLinkIcon(link.emoji)}
                               </div>
 
                               <div className="overflow-hidden">
@@ -304,15 +345,17 @@ export default function StudioPanel() {
                 GUARDAR EN CONTACTOS
               </div>
 
-              {/* LISTA EN TIEMPO REAL DENTRO DEL MOCKUP */}
+              {/* LISTA EN TIEMPO REAL CON ICONOS OFICIALES */}
               <div className="space-y-2 pt-2">
                 {links.map((link) => (
                   <div
                     key={link.id}
                     className="p-3 bg-neutral-900/80 border border-neutral-800 rounded-xl flex items-center justify-between text-left transition-all"
                   >
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <span className="text-xs">{link.emoji || "🔗"}</span>
+                    <div className="flex items-center gap-2.5 overflow-hidden">
+                      <div className="w-6 h-6 rounded-lg bg-neutral-800 flex items-center justify-center flex-shrink-0">
+                        {renderLinkIcon(link.emoji)}
+                      </div>
                       <span className="text-[11px] font-bold text-white truncate">{link.label}</span>
                     </div>
                     <span className="text-xs text-neutral-500">→</span>

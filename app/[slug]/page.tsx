@@ -3,6 +3,18 @@
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { 
+  FaWhatsapp, 
+  FaInstagram, 
+  FaFacebook, 
+  FaGlobe, 
+  FaMapMarkerAlt, 
+  FaUtensils, 
+  FaPhone, 
+  FaStar, 
+  FaShoppingBag, 
+  FaCalendarAlt 
+} from 'react-icons/fa'
 
 interface Profile {
   id: string
@@ -15,7 +27,6 @@ interface Profile {
   email: string | null
   avatar_url?: string | null
   theme_color?: string | null
-  accent_color?: string | null
   expires_at?: string | null
   subscription_status?: string | null
   has_menu?: boolean
@@ -30,7 +41,7 @@ interface LinkItem {
   emoji?: string
 }
 
-// Helpers para traducir el theme_color guardado a clases y colores hexadecimales
+// Helper para traducir el theme_color a clases CSS de degradado
 const getThemeGlowClass = (themeColor?: string | null) => {
   switch (themeColor) {
     case 'from-blue-500 to-indigo-500':
@@ -46,6 +57,7 @@ const getThemeGlowClass = (themeColor?: string | null) => {
   }
 }
 
+// Helper para traducir el theme_color a Hexadecimal
 const getThemeHex = (themeColor?: string | null) => {
   switch (themeColor) {
     case 'from-blue-500 to-indigo-500':
@@ -59,6 +71,30 @@ const getThemeHex = (themeColor?: string | null) => {
     default:
       return '#10B981'
   }
+}
+
+// MAPA DE ICONOS DE MARCA CON COLORES OFICIALES EXPLICITOS
+const SOCIAL_OPTIONS = [
+  { key: "whatsapp", emoji: "💬", label: "WhatsApp", icon: <FaWhatsapp style={{ color: "#25D366" }} className="text-xl" /> },
+  { key: "instagram", emoji: "📸", label: "Instagram", icon: <FaInstagram style={{ color: "#E4405F" }} className="text-xl" /> },
+  { key: "facebook", emoji: "📘", label: "Facebook", icon: <FaFacebook style={{ color: "#1877F2" }} className="text-xl" /> },
+  { key: "web", emoji: "🌐", label: "Sitio Web", icon: <FaGlobe style={{ color: "#38BDF8" }} className="text-xl" /> },
+  { key: "map", emoji: "📍", label: "Ubicación", icon: <FaMapMarkerAlt style={{ color: "#F43F5E" }} className="text-xl" /> },
+  { key: "menu", emoji: "📖", label: "Menú Digital", icon: <FaUtensils style={{ color: "#F59E0B" }} className="text-xl" /> },
+  { key: "phone", emoji: "📞", label: "Teléfono", icon: <FaPhone style={{ color: "#2DD4BF" }} className="text-xl" /> },
+  { key: "star", emoji: "⭐", label: "Reseña Google", icon: <FaStar style={{ color: "#FACC15" }} className="text-xl" /> },
+  { key: "shop", emoji: "🛍️", label: "Tienda Online", icon: <FaShoppingBag style={{ color: "#A855F7" }} className="text-xl" /> },
+  { key: "booking", emoji: "📅", label: "Reservas", icon: <FaCalendarAlt style={{ color: "#60A5FA" }} className="text-xl" /> },
+]
+
+// Helper para renderizar icono oficial con su color original o emoji previo
+function renderLinkIcon(keyOrEmoji?: string) {
+  if (!keyOrEmoji) return <FaGlobe style={{ color: "#38BDF8" }} className="text-xl" />
+  const found = SOCIAL_OPTIONS.find(
+    (opt) => opt.key === keyOrEmoji || opt.emoji === keyOrEmoji
+  )
+  if (found) return found.icon
+  return <span className="text-base">{keyOrEmoji}</span>
 }
 
 export default function PublicProfilePage() {
@@ -78,11 +114,12 @@ export default function PublicProfilePage() {
       if (!slug) return
       setLoading(true)
 
+      // Cargar Perfil desde la tabla 'profiles'
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('slug', slug)
-        .single()
+        .maybeSingle()
 
       if (profileError || !profileData) {
         setNotFound(true)
@@ -90,7 +127,7 @@ export default function PublicProfilePage() {
         return
       }
 
-      // Validación de estado de suscripción
+      // Validación de expiración de suscripción
       const now = new Date()
       const expirationDate = profileData.expires_at ? new Date(profileData.expires_at) : null
 
@@ -102,6 +139,7 @@ export default function PublicProfilePage() {
 
       setProfile(profileData)
 
+      // Cargar Enlaces vinculados al profile_id
       const { data: linksData } = await supabase
         .from('links')
         .select('*')
@@ -116,7 +154,7 @@ export default function PublicProfilePage() {
     loadPublicData()
   }, [slug])
 
-  // Generar y descargar vCard con URL limpia
+  // Generar y descargar contacto en formato vCard
   const handleDownloadVCard = () => {
     if (!profile) return
 
@@ -176,7 +214,7 @@ export default function PublicProfilePage() {
     }
   }
 
-  // Helper para subtítulo inteligente
+  // Subtítulo descriptivo inteligente
   const getLinkSubtitle = (title: string) => {
     const t = title.toLowerCase()
     if (t.includes('whatsapp') || t.includes('wtsp') || t.includes('chat')) return 'Canal directo de atención'
@@ -201,14 +239,8 @@ export default function PublicProfilePage() {
       <div className="min-h-screen bg-[#0A0A0C] text-white flex flex-col items-center justify-center p-6 text-center">
         <h1 className="text-xl font-extrabold text-white mb-2">Este perfil MOGU ha expirado</h1>
         <p className="text-xs text-neutral-400 mb-6 max-w-xs leading-relaxed">
-          El período de activación de este enlace digital ha concluido. El propietario debe renovar su membresía para reactivar su menú y enlaces.
+          El período de activación de este enlace digital ha concluido. El propietario debe renovar su membresía.
         </p>
-        <a
-          href="/renovar"
-          className="px-6 py-3 bg-emerald-400 text-black text-xs font-extrabold uppercase tracking-wider rounded-2xl transition-all"
-        >
-          Renovar Membresía MOGU 🚀
-        </a>
       </div>
     )
   }
@@ -221,11 +253,11 @@ export default function PublicProfilePage() {
         </div>
         <h1 className="text-xl font-extrabold text-white mb-2">Perfil No Encontrado</h1>
         <p className="text-xs text-neutral-400 mb-6 max-w-xs leading-relaxed">
-          La tarjeta digital consultada no está vinculada a ningún perfil o la dirección no es válida.
+          La tarjeta digital consultada no está vinculada a ningún perfil activo.
         </p>
         <a
           href="/"
-          className="px-6 py-3 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-200 text-xs font-semibold rounded-2xl transition-all"
+          className="px-6 py-3 bg-neutral-900 border border-neutral-800 text-neutral-200 text-xs font-semibold rounded-2xl transition-all"
         >
           Ir al Inicio de MOGU
         </a>
@@ -247,13 +279,12 @@ export default function PublicProfilePage() {
   return (
     <div className="min-h-screen bg-[#0A0A0C] text-white font-sans selection:bg-emerald-500/35 selection:text-emerald-300 relative overflow-hidden flex flex-col justify-between">
       
-      {/* GLOW ATMOSFÉRICO DE FONDO DINÁMICO */}
+      {/* GLOW DE FONDO CON EL COLOR DEL TEMA */}
       <div className={`absolute -top-32 left-1/2 -translate-x-1/2 w-[500px] h-[350px] bg-gradient-to-r ${themeGlowClass} opacity-15 blur-[120px] rounded-full pointer-events-none`} />
 
-      {/* CONTENEDOR PRINCIPAL */}
       <main className="relative z-10 max-w-md w-full mx-auto px-5 pt-10 pb-16 flex-1 flex flex-col justify-center">
         
-        {/* AVATAR + HEADER */}
+        {/* AVATAR Y DATOS DE LA MARCA */}
         <div className="flex flex-col items-center text-center space-y-4 mb-6">
           <div className="relative group">
             <div className={`absolute -inset-1 bg-gradient-to-r ${themeGlowClass} rounded-full blur opacity-50 group-hover:opacity-75 transition duration-500`} />
@@ -268,7 +299,6 @@ export default function PublicProfilePage() {
               )}
             </div>
 
-            {/* Verification Badge */}
             <div className="absolute bottom-0 right-0 bg-emerald-400 text-black p-1 rounded-full shadow-lg border-2 border-[#0A0A0C]" title="Verificado por MOGU">
               <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
                 <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" />
@@ -296,7 +326,7 @@ export default function PublicProfilePage() {
           </div>
         </div>
 
-        {/* ACCIÓN PRINCIPAL: GUARDAR CONTACTO (DINÁMICO CON EL COLOR SELECCIONADO) */}
+        {/* ACCIÓN PRINCIPAL: GUARDAR CONTACTO */}
         <div className="mb-4">
           <button
             onClick={handleDownloadVCard}
@@ -311,9 +341,9 @@ export default function PublicProfilePage() {
           </button>
         </div>
 
-        {/* BOTÓN CARTA / MENÚ DIGITAL (SOLO SI HAS_MENU ES TRUE) */}
+        {/* BOTÓN CARTA / MENÚ DIGITAL (SI TIENE MENU HABILITADO) */}
         {profile.has_menu && (
-          <div className="mb-6">
+          <div className="mb-4">
             <a
               href={`/menu/${profile.slug}`}
               className="group flex items-center justify-between py-3.5 px-6 bg-neutral-900/80 hover:bg-neutral-800 border border-emerald-500/40 hover:border-emerald-400 text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-lg transition-all duration-200 active:scale-[0.98]"
@@ -329,7 +359,7 @@ export default function PublicProfilePage() {
           </div>
         )}
 
-        {/* LISTA DE ENLACES CON EMOJIS */}
+        {/* LISTA DE ENLACES CON ICONOS A COLOR */}
         <div className="space-y-3.5">
           {links.length === 0 ? (
             <div className="p-6 bg-neutral-900/40 backdrop-blur-xl border border-neutral-800/80 rounded-2xl text-center">
@@ -345,8 +375,8 @@ export default function PublicProfilePage() {
                 className="group relative flex items-center justify-between p-4 bg-neutral-900/50 hover:bg-neutral-800/70 backdrop-blur-xl border border-neutral-800/80 hover:border-emerald-500/40 rounded-2xl transition-all duration-200 active:scale-[0.99] shadow-lg"
               >
                 <div className="flex items-center space-x-3.5 overflow-hidden pr-2">
-                  <div className="w-10 h-10 rounded-xl bg-neutral-800/90 border border-neutral-700/60 flex items-center justify-center text-lg shadow-inner group-hover:scale-105 transition-all flex-shrink-0">
-                    {link.emoji || '🔗'}
+                  <div className="w-10 h-10 rounded-xl bg-neutral-800/90 border border-neutral-700/60 flex items-center justify-center shadow-inner group-hover:scale-105 transition-all flex-shrink-0">
+                    {renderLinkIcon(link.emoji)}
                   </div>
                   <div className="overflow-hidden">
                     <span className="text-xs font-bold text-neutral-100 group-hover:text-white transition-colors block truncate">
@@ -381,7 +411,7 @@ export default function PublicProfilePage() {
           </button>
         </div>
 
-        {/* BANNER VIRAL DE CONVERSIÓN MOGU */}
+        {/* BANNER DE CONVERSIÓN MOGU */}
         <div className="mt-10 p-5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-neutral-900/60 to-teal-950/40 border border-emerald-500/30 text-center relative overflow-hidden shadow-2xl backdrop-blur-md">
           <span className="inline-block px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-widest bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mb-2">
             Tecnología MOGU
@@ -402,7 +432,7 @@ export default function PublicProfilePage() {
 
       </main>
 
-      {/* FOOTER MOGU */}
+      {/* FOOTER */}
       <footer className="relative z-10 py-6 text-center border-t border-neutral-900">
         <a href="https://mogu.cl" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-500 hover:text-emerald-400 transition">
           <span>POWERED BY</span>
