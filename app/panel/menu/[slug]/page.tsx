@@ -12,6 +12,7 @@ interface Profile {
   name?: string
   has_menu?: boolean
   menu_style?: 'modern' | 'classic' | 'cards'
+  menu_theme?: 'dark' | 'light'
 }
 
 interface MenuItem {
@@ -78,7 +79,11 @@ export default function HauteCuisineAdminPanel() {
           return
         }
 
-        setProfile(profileData)
+        setProfile({
+          ...profileData,
+          menu_theme: profileData.menu_theme || 'dark',
+          menu_style: profileData.menu_style || 'modern',
+        })
 
         // Cargar categorías
         const { data: catsData } = await supabase
@@ -113,7 +118,7 @@ export default function HauteCuisineAdminPanel() {
     loadAdminData()
   }, [slug])
 
-  // Guardar configuración general del establecimiento y estilo seleccionado
+  // Guardar configuración general, estilo y tema en Supabase
   const handleSaveAllChanges = async () => {
     if (!profile) return
     setSavingGlobal(true)
@@ -123,6 +128,7 @@ export default function HauteCuisineAdminPanel() {
       .from('profiles')
       .update({
         menu_style: profile.menu_style || 'modern',
+        menu_theme: profile.menu_theme || 'dark',
         has_menu: profile.has_menu ?? true,
       })
       .eq('id', profile.id)
@@ -132,7 +138,7 @@ export default function HauteCuisineAdminPanel() {
     if (error) {
       setMessage(`❌ Error al guardar: ${error.message}`)
     } else {
-      setMessage('✨ ¡Estilo y configuración actualizados con éxito en la carta pública!')
+      setMessage('✨ ¡Apariencia, tema y configuración actualizados con éxito en la carta pública!')
       setTimeout(() => setMessage(''), 4000)
     }
   }
@@ -300,6 +306,7 @@ export default function HauteCuisineAdminPanel() {
   }
 
   const currentStyle = profile.menu_style || 'modern'
+  const currentTheme = profile.menu_theme || 'dark'
 
   return (
     <div className="min-h-screen bg-[#110E0D] text-[#E8E2D9] font-sans selection:bg-[#B08968]/30 pb-32">
@@ -331,12 +338,12 @@ export default function HauteCuisineAdminPanel() {
           </div>
         )}
 
-        {/* SECCIÓN DE CONFIGURACIÓN Y SELECTOR DE ESTILOS */}
-        <div className="p-8 rounded-3xl bg-[#161210] border border-[#26201D] shadow-2xl space-y-6">
+        {/* SECCIÓN DE CONFIGURACIÓN Y SELECTOR DE TEMA / ESTILOS */}
+        <div className="p-8 rounded-3xl bg-[#161210] border border-[#26201D] shadow-2xl space-y-8">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[#26201D] pb-6">
             <div>
               <h2 className="font-serif text-base text-[#F4F0EB]">Identidad y Estilo Visual del Menú</h2>
-              <p className="text-xs text-[#9C9289] font-light mt-1">Elige cómo se presentará la carta a tus comensales y controla su visibilidad.</p>
+              <p className="text-xs text-[#9C9289] font-light mt-1">Elige el tono de fondo y el diseño de maquetación que verán tus comensales.</p>
             </div>
 
             <div className="flex items-center gap-4">
@@ -361,9 +368,47 @@ export default function HauteCuisineAdminPanel() {
             </div>
           </div>
 
-          {/* Selector Visual de 3 Estilos */}
+          {/* SELECTOR DE TEMA: OSCURO VS CLARO */}
           <div className="space-y-3">
-            <label className="block text-[10px] font-serif uppercase tracking-widest text-[#B08968]">Selecciona el Estilo de tu Carta</label>
+            <label className="block text-[10px] font-serif uppercase tracking-widest text-[#B08968]">1. Tono de Fondo de la Carta (Tema)</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* TEMA OSCURO */}
+              <div
+                onClick={() => setProfile({ ...profile, menu_theme: 'dark' })}
+                className={`cursor-pointer rounded-2xl p-5 border transition-all duration-300 flex items-center gap-4 ${
+                  currentTheme === 'dark'
+                    ? 'bg-[#1A1513] border-[#B08968] shadow-[0_0_20px_rgba(176,137,104,0.15)]'
+                    : 'bg-[#14110F] border-[#26201D] hover:border-[#382F2A]'
+                }`}
+              >
+                <div className="w-12 h-12 rounded-xl bg-[#0E0C0A] border border-[#382F2A] flex items-center justify-center text-sm font-serif">🌙</div>
+                <div>
+                  <span className="font-serif text-xs font-bold text-[#F4F0EB] block">Fondo Oscuro (Atmósfera Elegante)</span>
+                  <span className="text-[10px] text-[#9C9289]">El diseño original de alta gama</span>
+                </div>
+              </div>
+
+              {/* TEMA CLARO */}
+              <div
+                onClick={() => setProfile({ ...profile, menu_theme: 'light' })}
+                className={`cursor-pointer rounded-2xl p-5 border transition-all duration-300 flex items-center gap-4 ${
+                  currentTheme === 'light'
+                    ? 'bg-[#1A1513] border-[#B08968] shadow-[0_0_20px_rgba(176,137,104,0.15)]'
+                    : 'bg-[#14110F] border-[#26201D] hover:border-[#382F2A]'
+                }`}
+              >
+                <div className="w-12 h-12 rounded-xl bg-[#F9F8F6] border border-neutral-300 flex items-center justify-center text-sm font-serif text-neutral-900">☀️</div>
+                <div>
+                  <span className="font-serif text-xs font-bold text-[#F4F0EB] block">Fondo Claro (Luminoso Editorial)</span>
+                  <span className="text-[10px] text-[#9C9289]">Ideal para brunch y restaurantes de día</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Selector Visual de 3 Estilos */}
+          <div className="space-y-3 pt-2">
+            <label className="block text-[10px] font-serif uppercase tracking-widest text-[#B08968]">2. Estilo de Maquetación de la Carta</label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               
               {/* Estilo 1: Moderno */}
@@ -385,9 +430,6 @@ export default function HauteCuisineAdminPanel() {
                   <p className="text-[11px] text-[#9C9289] font-light leading-relaxed">
                     Diseño limpio y minimalista con buscador rápido, ideal para bistrós contemporáneos y cafeterías de autor.
                   </p>
-                </div>
-                <div className="mt-4 pt-3 border-t border-[#26201D] text-[10px] font-serif text-[#B08968] uppercase tracking-wider">
-                  Configurado para UX ágil
                 </div>
               </div>
 
@@ -411,9 +453,6 @@ export default function HauteCuisineAdminPanel() {
                     Elegancia tradicional con tipografía serif prominente, estructurada para restaurantes de alta cocina formal.
                   </p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-[#26201D] text-[10px] font-serif text-[#B08968] uppercase tracking-wider">
-                  Enfoque gastronómico puro
-                </div>
               </div>
 
               {/* Estilo 3: Tarjetas Editorial */}
@@ -435,9 +474,6 @@ export default function HauteCuisineAdminPanel() {
                   <p className="text-[11px] text-[#9C9289] font-light leading-relaxed">
                     Formato tipo revista de lujo con fotografía protagonista en grande y diseño inmersivo para destacar platos estrella.
                   </p>
-                </div>
-                <div className="mt-4 pt-3 border-t border-[#26201D] text-[10px] font-serif text-[#B08968] uppercase tracking-wider">
-                  Alto impacto visual
                 </div>
               </div>
 
