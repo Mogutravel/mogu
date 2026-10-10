@@ -110,17 +110,10 @@ export default function PublicProfilePage() {
   const [isInstagramBrowser, setIsInstagramBrowser] = useState(false)
 
   useEffect(() => {
-    // Detectar si se está navegando desde el In-App Browser de Instagram
     if (typeof window !== 'undefined') {
       const ua = navigator.userAgent || navigator.vendor
       const isIG = /Instagram/i.test(ua)
       setIsInstagramBrowser(isIG)
-
-      // Si es Android dentro de Instagram, intentar forzar la apertura en Chrome
-      if (isIG && /Android/i.test(ua)) {
-        const cleanUrl = window.location.href.replace(/^https?:\/\//, '')
-        window.location.href = `intent://${cleanUrl}#Intent;scheme=https;package=com.android.chrome;end;`
-      }
     }
   }, [])
 
@@ -166,7 +159,7 @@ export default function PublicProfilePage() {
     loadPublicData()
   }, [slug])
 
-  // MANEJADOR UNIVERSAL DE vCARD COMPATIBLE CON INSTAGRAM
+  // MANEJADOR vCARD: ABRE EN NAVEGADOR EXTERNO DESDE INSTAGRAM Y DESCARGA INMEDIATA
   const handleDownloadVCard = () => {
     if (!profile) return
 
@@ -186,38 +179,49 @@ export default function PublicProfilePage() {
       .filter(Boolean)
       .join('\r\n')
 
-    try {
-      if (isInstagramBrowser) {
-        // En WebView de Instagram creamos una Data URI para activar la agenda
-        const encodedVCard = encodeURIComponent(vCardContent)
-        const dataUrl = `data:text/vcard;charset=utf-8,${encodedVCard}`
-        
-        const win = window.open(dataUrl, '_self')
-        if (!win && profile.phone) {
-          window.location.href = `tel:${profile.phone}`
-        }
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : ''
+    const isInstagram = /Instagram|FBAN|FBAV/i.test(ua)
+    const isAndroid = /Android/i.test(ua)
+
+    // Si está en Instagram, intentamos romper el WebView abriendo el navegador externo
+    if (isInstagram) {
+      const currentUrl = window.location.href
+      if (isAndroid) {
+        const cleanUrl = currentUrl.replace(/^https?:\/\//, '')
+        window.location.href = `intent://${cleanUrl}#Intent;scheme=https;package=com.android.chrome;end;`
+        return
       } else {
-        // Descarga estándar por Blob
-        const blob = new Blob([vCardContent], { type: 'text/vcard;charset=utf-8;' })
-        const url = URL.createObjectURL(blob)
-        
-        const link = document.createElement('a')
-        link.href = url
-        link.setAttribute('download', `${fullName.replace(/\s+/g, '_')}_MOGU.vcf`)
-        
-        document.body.appendChild(link)
-        link.click()
-        
-        setTimeout(() => {
-          document.body.removeChild(link)
-          URL.revokeObjectURL(url)
-        }, 250)
+        // En iOS, abrir URL actual con esquema x-safari-https para saltar al navegador nativo
+        const safariUrl = currentUrl.replace(/^https?:\/\//, 'x-safari-https://')
+        const opened = window.open(safariUrl, '_system')
+        if (!opened) {
+          window.location.href = currentUrl
+        }
+        return
       }
+    }
+
+    // Descarga directa estándar vCard en navegador normal
+    try {
+      const blob = new Blob([vCardContent], { type: 'text/vcard;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `${fullName.replace(/\s+/g, '_')}_MOGU.vcf`)
+      
+      document.body.appendChild(link)
+      link.click()
+      
+      setTimeout(() => {
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      }, 250)
 
       setSavedContact(true)
       setTimeout(() => setSavedContact(false), 3000)
     } catch (err) {
-      console.warn('Fallback por bloqueo de navegador:', err)
+      console.warn('Error al descargar contacto:', err)
       if (profile.phone) {
         window.location.href = `tel:${profile.phone}`
       }
@@ -316,9 +320,9 @@ export default function PublicProfilePage() {
         
         {/* AVISO RECOMENDADO SI SE ABRE EN INSTAGRAM IN-APP */}
         {isInstagramBrowser && (
-          <div className="mb-6 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center animate-pulse">
+          <div className="mb-6 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center">
             <p className="text-[11px] text-amber-300 font-medium leading-relaxed">
-              💡 <b>Para descargar contactos o usar la app fluida:</b> Presiona los tres puntos (<b>•••</b>) en la esquina superior y selecciona <b>"Abrir en el navegador"</b>.
+              💡 <b>Nota:</b> Al guardar contacto desde Instagram, el navegador externo se abrirá para asegurar la descarga.
             </p>
           </div>
         )}
