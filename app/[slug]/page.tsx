@@ -107,6 +107,22 @@ export default function PublicProfilePage() {
   const [expired, setExpired] = useState(false)
   const [copied, setCopied] = useState(false)
   const [savedContact, setSavedContact] = useState(false)
+  const [isInstagramBrowser, setIsInstagramBrowser] = useState(false)
+
+  useEffect(() => {
+    // Detectar si se está navegando desde el In-App Browser de Instagram
+    if (typeof window !== 'undefined') {
+      const ua = navigator.userAgent || navigator.vendor
+      const isIG = /Instagram/i.test(ua)
+      setIsInstagramBrowser(isIG)
+
+      // Si es Android dentro de Instagram, intentar forzar la apertura en Chrome
+      if (isIG && /Android/i.test(ua)) {
+        const cleanUrl = window.location.href.replace(/^https?:\/\//, '')
+        window.location.href = `intent://${cleanUrl}#Intent;scheme=https;package=com.android.chrome;end;`
+      }
+    }
+  }, [])
 
   useEffect(() => {
     async function loadPublicData() {
@@ -150,7 +166,7 @@ export default function PublicProfilePage() {
     loadPublicData()
   }, [slug])
 
-  // MANEJADOR UNIVERSAL DE vCARD COMPATIBLE CON INSTAGRAM IN-APP BROWSER
+  // MANEJADOR UNIVERSAL DE vCARD COMPATIBLE CON INSTAGRAM
   const handleDownloadVCard = () => {
     if (!profile) return
 
@@ -170,20 +186,18 @@ export default function PublicProfilePage() {
       .filter(Boolean)
       .join('\r\n')
 
-    const isInstagram = typeof window !== 'undefined' && /Instagram/i.test(navigator.userAgent)
-
     try {
-      if (isInstagram) {
-        // Fallback especial para Instagram In-App Browser mediante Data URI
+      if (isInstagramBrowser) {
+        // En WebView de Instagram creamos una Data URI para activar la agenda
         const encodedVCard = encodeURIComponent(vCardContent)
         const dataUrl = `data:text/vcard;charset=utf-8,${encodedVCard}`
         
-        const windowRef = window.open(dataUrl, '_blank')
-        if (!windowRef && profile.phone) {
+        const win = window.open(dataUrl, '_self')
+        if (!win && profile.phone) {
           window.location.href = `tel:${profile.phone}`
         }
       } else {
-        // Descarga estándar vía Blob
+        // Descarga estándar por Blob
         const blob = new Blob([vCardContent], { type: 'text/vcard;charset=utf-8;' })
         const url = URL.createObjectURL(blob)
         
@@ -203,7 +217,7 @@ export default function PublicProfilePage() {
       setSavedContact(true)
       setTimeout(() => setSavedContact(false), 3000)
     } catch (err) {
-      console.warn('Bloqueo en In-App Browser:', err)
+      console.warn('Fallback por bloqueo de navegador:', err)
       if (profile.phone) {
         window.location.href = `tel:${profile.phone}`
       }
@@ -300,6 +314,15 @@ export default function PublicProfilePage() {
 
       <main className="relative z-10 max-w-md w-full mx-auto px-5 pt-10 pb-16 flex-1 flex flex-col justify-center">
         
+        {/* AVISO RECOMENDADO SI SE ABRE EN INSTAGRAM IN-APP */}
+        {isInstagramBrowser && (
+          <div className="mb-6 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center animate-pulse">
+            <p className="text-[11px] text-amber-300 font-medium leading-relaxed">
+              💡 <b>Para descargar contactos o usar la app fluida:</b> Presiona los tres puntos (<b>•••</b>) en la esquina superior y selecciona <b>"Abrir en el navegador"</b>.
+            </p>
+          </div>
+        )}
+
         {/* AVATAR Y DATOS DE LA MARCA */}
         <div className="flex flex-col items-center text-center space-y-4 mb-6">
           <div className="relative group">
