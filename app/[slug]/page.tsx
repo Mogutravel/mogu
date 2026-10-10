@@ -87,7 +87,6 @@ const SOCIAL_OPTIONS = [
   { key: "booking", emoji: "📅", label: "Reservas", icon: <FaCalendarAlt style={{ color: "#60A5FA" }} className="text-xl" /> },
 ]
 
-// Helper para renderizar icono oficial con su color original o emoji previo
 function renderLinkIcon(keyOrEmoji?: string) {
   if (!keyOrEmoji) return <FaGlobe style={{ color: "#38BDF8" }} className="text-xl" />
   const found = SOCIAL_OPTIONS.find(
@@ -114,7 +113,6 @@ export default function PublicProfilePage() {
       if (!slug) return
       setLoading(true)
 
-      // Cargar Perfil desde la tabla 'profiles'
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -127,7 +125,6 @@ export default function PublicProfilePage() {
         return
       }
 
-      // Validación de expiración de suscripción
       const now = new Date()
       const expirationDate = profileData.expires_at ? new Date(profileData.expires_at) : null
 
@@ -139,7 +136,6 @@ export default function PublicProfilePage() {
 
       setProfile(profileData)
 
-      // Cargar Enlaces vinculados al profile_id
       const { data: linksData } = await supabase
         .from('links')
         .select('*')
@@ -154,13 +150,13 @@ export default function PublicProfilePage() {
     loadPublicData()
   }, [slug])
 
-  // Generar y descargar contacto en formato vCard
+  // MANEJADOR UNIVERSAL DE vCARD COMPATIBLE CON INSTAGRAM IN-APP BROWSER
   const handleDownloadVCard = () => {
     if (!profile) return
 
     const fullName = profile.full_name || profile.name || slug
 
-    const vCardData = [
+    const vCardContent = [
       'BEGIN:VCARD',
       'VERSION:3.0',
       `N:${fullName};;;;`,
@@ -174,23 +170,44 @@ export default function PublicProfilePage() {
       .filter(Boolean)
       .join('\r\n')
 
-    const blob = new Blob([vCardData], { type: 'text/vcard;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `${fullName.replace(/\s+/g, '_')}_MOGU.vcf`)
-    
-    document.body.appendChild(link)
-    link.click()
-    
-    setTimeout(() => {
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-    }, 250)
+    const isInstagram = typeof window !== 'undefined' && /Instagram/i.test(navigator.userAgent)
 
-    setSavedContact(true)
-    setTimeout(() => setSavedContact(false), 3000)
+    try {
+      if (isInstagram) {
+        // Fallback especial para Instagram In-App Browser mediante Data URI
+        const encodedVCard = encodeURIComponent(vCardContent)
+        const dataUrl = `data:text/vcard;charset=utf-8,${encodedVCard}`
+        
+        const windowRef = window.open(dataUrl, '_blank')
+        if (!windowRef && profile.phone) {
+          window.location.href = `tel:${profile.phone}`
+        }
+      } else {
+        // Descarga estándar vía Blob
+        const blob = new Blob([vCardContent], { type: 'text/vcard;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', `${fullName.replace(/\s+/g, '_')}_MOGU.vcf`)
+        
+        document.body.appendChild(link)
+        link.click()
+        
+        setTimeout(() => {
+          document.body.removeChild(link)
+          URL.revokeObjectURL(url)
+        }, 250)
+      }
+
+      setSavedContact(true)
+      setTimeout(() => setSavedContact(false), 3000)
+    } catch (err) {
+      console.warn('Bloqueo en In-App Browser:', err)
+      if (profile.phone) {
+        window.location.href = `tel:${profile.phone}`
+      }
+    }
   }
 
   // Compartir Perfil
@@ -214,7 +231,6 @@ export default function PublicProfilePage() {
     }
   }
 
-  // Subtítulo descriptivo inteligente
   const getLinkSubtitle = (title: string) => {
     const t = title.toLowerCase()
     if (t.includes('whatsapp') || t.includes('wtsp') || t.includes('chat')) return 'Canal directo de atención'
