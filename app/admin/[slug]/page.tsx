@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
 
 interface Profile {
   id: string
@@ -226,6 +227,35 @@ export default function AdvancedClientDashboard() {
     }
   }
 
+  // MANEJAR DRAG & DROP (REORDENAR Y GUARDAR EN SUPABASE)
+  const handleDragEnd = async (result: DropResult) => {
+    if (!result.destination) return
+
+    const items = Array.from(links)
+    const [reorderedItem] = items.splice(result.source.index, 1)
+    items.splice(result.destination.index, 0, reorderedItem)
+
+    const updatedLinks = items.map((item, index) => ({
+      ...item,
+      position: index + 1,
+    }))
+
+    setLinks(updatedLinks)
+
+    // Sincronizar posiciones automáticamente en Supabase
+    try {
+      const updates = updatedLinks.map((link) =>
+        supabase
+          .from('links')
+          .update({ position: link.position })
+          .eq('id', link.id)
+      )
+      await Promise.all(updates)
+    } catch (error) {
+      console.error('Error al actualizar las posiciones en Supabase:', error)
+    }
+  }
+
   // Eliminar enlace
   const handleDeleteLink = async (id: string) => {
     const { error } = await supabase.from('links').delete().eq('id', id)
@@ -390,7 +420,7 @@ export default function AdvancedClientDashboard() {
 
           <div className="p-8 rounded-3xl bg-neutral-900/40 border border-neutral-800 backdrop-blur-xl shadow-2xl">
             <h2 className="text-lg font-bold text-white mb-2">Canales y Enlaces Interactivos</h2>
-            <p className="text-xs text-neutral-400 mb-6">Elige el emoji representativo para cada botón de tu negocio.</p>
+            <p className="text-xs text-neutral-400 mb-6">Elige el emoji representativo y mantén presionado <b>⋮⋮</b> para reordenar.</p>
 
             <div className="space-y-4 mb-8">
               <div className="flex gap-2">
@@ -428,30 +458,63 @@ export default function AdvancedClientDashboard() {
               </button>
             </div>
 
-            <div className="space-y-3">
-              {links.length === 0 ? (
-                <p className="text-xs text-neutral-500 text-center py-4">No hay enlaces agregados todavía.</p>
-              ) : (
-                links.map((link) => (
-                  <div key={link.id} className="flex items-center justify-between p-4 bg-neutral-950 border border-neutral-800 rounded-2xl">
-                    <div className="flex items-center space-x-3 overflow-hidden pr-2">
-                      <span className="text-xl p-2 bg-neutral-900 rounded-xl">{link.emoji || '🔗'}</span>
-                      <div className="overflow-hidden">
-                        <p className="text-xs font-bold text-white truncate">{link.title}</p>
-                        <p className="text-[10px] text-neutral-400 truncate">{link.url}</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteLink(link.id)}
-                      className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold rounded-lg transition cursor-pointer"
-                    >
-                      Borrar
-                    </button>
+            {/* LISTA DRAG & DROP DE ENLACES */}
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <Droppable droppableId="dashboard-links">
+                {(provided) => (
+                  <div
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                    className="space-y-3"
+                  >
+                    {links.length === 0 ? (
+                      <p className="text-xs text-neutral-500 text-center py-4">No hay enlaces agregados todavía.</p>
+                    ) : (
+                      links.map((link, index) => (
+                        <Draggable key={link.id} draggableId={link.id} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className={`flex items-center justify-between p-4 bg-neutral-950 border rounded-2xl transition-all ${
+                                snapshot.isDragging
+                                  ? 'border-emerald-500 bg-neutral-900 shadow-2xl scale-[1.02] z-50'
+                                  : 'border-neutral-800 hover:border-neutral-700'
+                              }`}
+                            >
+                              <div className="flex items-center space-x-3 overflow-hidden pr-2">
+                                {/* MANIJA DE ARRASTRE */}
+                                <div
+                                  {...provided.dragHandleProps}
+                                  className="cursor-grab active:cursor-grabbing text-neutral-500 hover:text-white p-1 rounded transition"
+                                  title="Arrastrar para mover"
+                                >
+                                  <span className="text-base font-black leading-none">⋮⋮</span>
+                                </div>
+
+                                <span className="text-xl p-2 bg-neutral-900 rounded-xl">{link.emoji || '🔗'}</span>
+                                <div className="overflow-hidden">
+                                  <p className="text-xs font-bold text-white truncate">{link.title}</p>
+                                  <p className="text-[10px] text-neutral-400 truncate">{link.url}</p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteLink(link.id)}
+                                className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold rounded-lg transition cursor-pointer"
+                              >
+                                Borrar
+                              </button>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))
+                    )}
+                    {provided.placeholder}
                   </div>
-                ))
-              )}
-            </div>
+                )}
+              </Droppable>
+            </DragDropContext>
           </div>
 
           {/* BANNER DE ACCESO AL EDITOR DE MENÚ (DINÁMICO CON EL SLUG) */}
