@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import { FaArrowLeft, FaPlus, FaTrash, FaEye, FaEyeSlash, FaShoppingBag, FaUpload } from 'react-icons/fa'
+import { FaArrowLeft, FaPlus, FaTrash, FaEye, FaEyeSlash, FaShoppingBag, FaUpload, FaSave, FaCheck, FaImage } from 'react-icons/fa'
 
 interface Profile {
   id: string
@@ -12,6 +12,10 @@ interface Profile {
   full_name: string
   has_catalogo?: boolean
   has_menu?: boolean
+  catalog_hero_title?: string | null
+  catalog_hero_subtitle?: string | null
+  catalog_hero_description?: string | null
+  catalog_hero_image?: string | null
 }
 
 interface CatalogCategory {
@@ -46,12 +50,21 @@ export default function CatalogAdminEditor() {
   const [savingItem, setSavingItem] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
 
-  // Formularios
+  // Estados para formularios de productos y categorías
   const [newCatName, setNewCatName] = useState('')
   const [newItemName, setNewItemName] = useState('')
   const [newItemPrice, setNewItemPrice] = useState('')
   const [newItemDesc, setNewItemDesc] = useState('')
   const [newItemImage, setNewItemImage] = useState('')
+
+  // Estados para el editor del Hero (Portada)
+  const [heroSubtitle, setHeroSubtitle] = useState('')
+  const [heroTitle, setHeroTitle] = useState('')
+  const [heroDescription, setHeroDescription] = useState('')
+  const [heroImage, setHeroImage] = useState('')
+  const [savingHero, setSavingHero] = useState(false)
+  const [heroSuccess, setHeroSuccess] = useState(false)
+  const [uploadingHeroImg, setUploadingHeroImg] = useState(false)
 
   useEffect(() => {
     async function loadAdminData() {
@@ -59,14 +72,12 @@ export default function CatalogAdminEditor() {
       setLoading(true)
 
       try {
-        // Verificar autenticación
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
           router.push('/login')
           return
         }
 
-        // 1. Obtener Perfil
         const { data: profileData } = await supabase
           .from('profiles')
           .select('*')
@@ -78,7 +89,6 @@ export default function CatalogAdminEditor() {
           return
         }
 
-        // 🛡️ GUARDIA DE SEGURIDAD: Si no tiene el módulo de catálogo activo, bloquear acceso y redirigir
         if (!profileData.has_catalogo) {
           alert('No tienes acceso autorizado a este módulo de Tienda Online.')
           router.push(`/admin/${profileData.slug}`)
@@ -87,7 +97,12 @@ export default function CatalogAdminEditor() {
 
         setProfile(profileData)
 
-        // 2. Obtener Categorías
+        // Inicializar datos del Hero en los estados locales
+        setHeroSubtitle(profileData.catalog_hero_subtitle || `✦ ${profileData.full_name?.toUpperCase() || 'MOGU'} COLLECTION ✦`)
+        setHeroTitle(profileData.catalog_hero_title || 'Curaduría\nExclusiva')
+        setHeroDescription(profileData.catalog_hero_description || 'Una selección donde la luz, las texturas y el espacio dialogan en perfecta armonía.')
+        setHeroImage(profileData.catalog_hero_image || '')
+
         const { data: catsData } = await supabase
           .from('catalogo_categories')
           .select('*')
@@ -98,7 +113,6 @@ export default function CatalogAdminEditor() {
           setCategories(catsData)
           setSelectedCategory(catsData[0].id)
 
-          // 3. Obtener Productos
           const catIds = catsData.map((c) => c.id)
           const { data: itemsData } = await supabase
             .from('catalogo_items')
@@ -118,7 +132,62 @@ export default function CatalogAdminEditor() {
     loadAdminData()
   }, [slug, router])
 
-  // Crear nueva categoría
+  // Guardar la Portada (Hero)
+  const handleSaveHero = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!profile) return
+
+    setSavingHero(true)
+    setHeroSuccess(false)
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        catalog_hero_subtitle: heroSubtitle,
+        catalog_hero_title: heroTitle,
+        catalog_hero_description: heroDescription,
+        catalog_hero_image: heroImage,
+      })
+      .eq('id', profile.id)
+
+    setSavingHero(false)
+
+    if (error) {
+      alert(`Error al actualizar la portada: ${error.message}`)
+    } else {
+      setHeroSuccess(true)
+      setTimeout(() => setHeroSuccess(false), 3500)
+    }
+  }
+
+  // Subir imagen para el Hero
+  const handleUploadHeroImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !profile) return
+
+    try {
+      setUploadingHeroImg(true)
+      const fileExt = file.name.split('.').pop()
+      const fileName = `hero_${profile.id}_${Date.now()}.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true })
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName)
+
+      setHeroImage(publicUrl)
+      setUploadingHeroImg(false)
+    } catch (error: any) {
+      alert(`Error al subir imagen: ${error.message}`)
+      setUploadingHeroImg(false)
+    }
+  }
+
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!profile || !newCatName.trim()) return
@@ -148,7 +217,6 @@ export default function CatalogAdminEditor() {
     }
   }
 
-  // Eliminar categoría
   const handleDeleteCategory = async (catId: string) => {
     if (!confirm('¿Estás seguro de eliminar esta categoría y todos sus productos?')) return
 
@@ -164,7 +232,6 @@ export default function CatalogAdminEditor() {
     }
   }
 
-  // Subir foto del producto a Supabase
   const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !profile) return
@@ -192,7 +259,6 @@ export default function CatalogAdminEditor() {
     }
   }
 
-  // Crear nuevo producto
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedCategory || !newItemName.trim()) {
@@ -231,7 +297,6 @@ export default function CatalogAdminEditor() {
     }
   }
 
-  // Alternar Visibilidad Activo/Inactivo
   const toggleItemActive = async (item: CatalogItem) => {
     const { error } = await supabase
       .from('catalogo_items')
@@ -243,7 +308,6 @@ export default function CatalogAdminEditor() {
     }
   }
 
-  // Eliminar producto
   const handleDeleteItem = async (itemId: string) => {
     const { error } = await supabase.from('catalogo_items').delete().eq('id', itemId)
     if (!error) {
@@ -288,192 +352,285 @@ export default function CatalogAdminEditor() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 pt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <main className="max-w-6xl mx-auto px-6 pt-8 space-y-8">
         
-        {/* COLUMNA IZQUIERDA: GESTIÓN DE CATEGORÍAS */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="p-6 rounded-3xl bg-neutral-900/50 border border-neutral-800 backdrop-blur-xl shadow-2xl">
-            <h2 className="text-sm font-black uppercase tracking-wider text-white mb-4 flex items-center gap-2">
-              <FaShoppingBag className="text-slate-400" /> Categorías del Catálogo
+        {/* SECCIÓN 1: EDITOR DE PORTADA (HERO) */}
+        <div className="p-6 sm:p-8 rounded-3xl bg-neutral-900/50 border border-neutral-800 backdrop-blur-xl shadow-2xl space-y-6">
+          <div className="border-b border-neutral-800 pb-4">
+            <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+              <FaImage className="text-slate-400" /> Personalizar Portada (Hero)
             </h2>
-
-            {/* Formulario Nueva Categoría */}
-            <form onSubmit={handleAddCategory} className="flex gap-2 mb-6">
-              <input
-                type="text"
-                placeholder="Ej. Poleras, Accesorios..."
-                value={newCatName}
-                onChange={(e) => setNewCatName(e.target.value)}
-                className="flex-1 bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-white focus:border-slate-400 outline-none"
-              />
-              <button
-                type="submit"
-                disabled={savingCategory}
-                className="px-4 py-2 bg-slate-200 hover:bg-white text-black font-black text-xs rounded-xl transition cursor-pointer"
-              >
-                +
-              </button>
-            </form>
-
-            {/* Lista de Categorías */}
-            <div className="space-y-2">
-              {categories.length === 0 ? (
-                <p className="text-xs text-neutral-500 text-center py-4">No has agregado categorías aún.</p>
-              ) : (
-                categories.map((cat) => (
-                  <div
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${
-                      selectedCategory === cat.id
-                        ? 'bg-slate-800/80 border-slate-400 text-white shadow-lg'
-                        : 'bg-neutral-950/60 border-neutral-800/80 text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    <span className="text-xs font-bold">{cat.name}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteCategory(cat.id)
-                      }}
-                      className="text-neutral-500 hover:text-rose-400 p-1.5 transition"
-                    >
-                      <FaTrash className="text-xs" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
+            <p className="text-xs text-neutral-400 mt-1">
+              Configura los textos principales y la imagen de fondo con la que se recibe a los visitantes en tu tienda.
+            </p>
           </div>
-        </div>
 
-        {/* COLUMNA DERECHA: GESTIÓN DE PRODUCTOS */}
-        <div className="lg:col-span-8 space-y-6">
-          {!selectedCategory ? (
-            <div className="p-12 text-center border border-dashed border-neutral-800 rounded-3xl text-neutral-500 text-xs">
-              Selecciona o crea una categoría a la izquierda para administrar sus productos.
+          {heroSuccess && (
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center gap-2">
+              <FaCheck /> Portada actualizada correctamente.
             </div>
-          ) : (
-            <div className="p-6 rounded-3xl bg-neutral-900/50 border border-neutral-800 backdrop-blur-xl shadow-2xl space-y-6">
-              
-              <h2 className="text-sm font-black uppercase tracking-wider text-white border-b border-neutral-800 pb-3">
-                Agregar Producto a "{categories.find((c) => c.id === selectedCategory)?.name}"
-              </h2>
+          )}
 
-              <form onSubmit={handleAddItem} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input
-                    type="text"
-                    placeholder="Nombre del Producto (ej. Chaqueta Oversize)"
-                    value={newItemName}
-                    onChange={(e) => setNewItemName(e.target.value)}
-                    className="bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-slate-400 outline-none"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Precio (ej. $29.990)"
-                    value={newItemPrice}
-                    onChange={(e) => setNewItemPrice(e.target.value)}
-                    className="bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-slate-400 outline-none"
-                  />
-                </div>
+          <form onSubmit={handleSaveHero} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-neutral-400 mb-1">Badge Superior / Tag</label>
+                <input
+                  type="text"
+                  value={heroSubtitle}
+                  onChange={(e) => setHeroSubtitle(e.target.value)}
+                  placeholder="✦ PRUEBA CATALOGO 1 COLLECTION ✦"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-slate-400 outline-none"
+                />
+              </div>
 
+              <div>
+                <label className="block text-xs font-semibold text-neutral-400 mb-1">Título Principal (Usa salto de línea para cursiva)</label>
                 <textarea
                   rows={2}
-                  placeholder="Descripción del producto..."
-                  value={newItemDesc}
-                  onChange={(e) => setNewItemDesc(e.target.value)}
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-slate-400 outline-none resize-none"
+                  value={heroTitle}
+                  onChange={(e) => setHeroTitle(e.target.value)}
+                  placeholder="Curaduría&#10;Exclusiva"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2 text-xs text-white focus:border-slate-400 outline-none resize-none font-serif"
                 />
+              </div>
+            </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 items-center">
-                  <input
-                    type="text"
-                    placeholder="URL de la Foto (https://...)"
-                    value={newItemImage}
-                    onChange={(e) => setNewItemImage(e.target.value)}
-                    className="flex-1 w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-slate-400 outline-none"
-                  />
-                  <label className="w-full sm:w-auto px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-xs font-bold text-white rounded-xl cursor-pointer transition flex items-center justify-center gap-2">
-                    <FaUpload className="text-xs" />
-                    <span>{uploadingImage ? 'Subiendo...' : 'Subir Imagen'}</span>
-                    <input type="file" accept="image/*" onChange={handleUploadImage} className="hidden" />
-                  </label>
+            <div>
+              <label className="block text-xs font-semibold text-neutral-400 mb-1">Descripción del Hero</label>
+              <textarea
+                rows={2}
+                value={heroDescription}
+                onChange={(e) => setHeroDescription(e.target.value)}
+                placeholder="Una selección donde la luz, las texturas y el espacio dialogan en perfecta armonía."
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-slate-400 outline-none resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-neutral-400 mb-1">Imagen de Fondo del Hero</label>
+              <div className="flex flex-col sm:flex-row gap-3 items-center">
+                <input
+                  type="text"
+                  value={heroImage}
+                  onChange={(e) => setHeroImage(e.target.value)}
+                  placeholder="URL de la imagen de fondo (https://...)"
+                  className="flex-1 w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-slate-400 outline-none"
+                />
+                <label className="w-full sm:w-auto px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-xs font-bold text-white rounded-xl cursor-pointer transition flex items-center justify-center gap-2">
+                  <FaUpload className="text-xs" />
+                  <span>{uploadingHeroImg ? 'Subiendo...' : 'Subir Imagen'}</span>
+                  <input type="file" accept="image/*" onChange={handleUploadHeroImage} className="hidden" />
+                </label>
+              </div>
+
+              {heroImage && (
+                <div className="mt-3 relative h-36 w-full rounded-2xl overflow-hidden border border-neutral-800">
+                  <img src={heroImage} alt="Hero Preview" className="w-full h-full object-cover" />
                 </div>
+              )}
+            </div>
 
-                {newItemImage && (
-                  <div className="w-20 h-20 rounded-2xl overflow-hidden border border-neutral-700 bg-neutral-950">
-                    <img src={newItemImage} alt="Previsualización" className="w-full h-full object-cover" />
-                  </div>
-                )}
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={savingHero}
+                className="px-6 py-3 bg-slate-200 hover:bg-white text-black font-black text-xs uppercase tracking-wider rounded-xl transition shadow-lg flex items-center gap-2 cursor-pointer"
+              >
+                <FaSave />
+                <span>{savingHero ? 'Guardando Portada...' : 'Guardar Portada'}</span>
+              </button>
+            </div>
+          </form>
+        </div>
 
+        {/* SECCIÓN 2: GESTIÓN DE CATEGORÍAS Y PRODUCTOS */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* COLUMNA IZQUIERDA: CATEGORÍAS */}
+          <div className="lg:col-span-4 space-y-6">
+            <div className="p-6 rounded-3xl bg-neutral-900/50 border border-neutral-800 backdrop-blur-xl shadow-2xl">
+              <h2 className="text-sm font-black uppercase tracking-wider text-white mb-4 flex items-center gap-2">
+                <FaShoppingBag className="text-slate-400" /> Categorías del Catálogo
+              </h2>
+
+              <form onSubmit={handleAddCategory} className="flex gap-2 mb-6">
+                <input
+                  type="text"
+                  placeholder="Ej. Poleras, Accesorios..."
+                  value={newCatName}
+                  onChange={(e) => setNewCatName(e.target.value)}
+                  className="flex-1 bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-white focus:border-slate-400 outline-none"
+                />
                 <button
                   type="submit"
-                  disabled={savingItem}
-                  className="w-full py-3 bg-slate-200 hover:bg-white text-black font-black text-xs uppercase tracking-wider rounded-xl transition shadow-lg cursor-pointer"
+                  disabled={savingCategory}
+                  className="px-4 py-2 bg-slate-200 hover:bg-white text-black font-black text-xs rounded-xl transition cursor-pointer"
                 >
-                  {savingItem ? 'Guardando...' : '+ Guardar Producto en Catálogo'}
+                  +
                 </button>
               </form>
 
-              <div className="pt-6 border-t border-neutral-800 space-y-3">
-                <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
-                  Productos Guardados
-                </h3>
-
-                {items.filter((i) => i.category_id === selectedCategory).length === 0 ? (
-                  <p className="text-xs text-neutral-500 py-4">No hay productos guardados en esta categoría.</p>
+              <div className="space-y-2">
+                {categories.length === 0 ? (
+                  <p className="text-xs text-neutral-500 text-center py-4">No has agregado categorías aún.</p>
                 ) : (
-                  items
-                    .filter((i) => i.category_id === selectedCategory)
-                    .map((item) => (
-                      <div
-                        key={item.id}
-                        className={`p-4 bg-neutral-950 border rounded-2xl flex items-center justify-between gap-4 transition ${
-                          item.active ? 'border-neutral-800' : 'border-neutral-800/40 opacity-50'
-                        }`}
+                  categories.map((cat) => (
+                    <div
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${
+                        selectedCategory === cat.id
+                          ? 'bg-slate-800/80 border-slate-400 text-white shadow-lg'
+                          : 'bg-neutral-950/60 border-neutral-800/80 text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="text-xs font-bold">{cat.name}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteCategory(cat.id)
+                        }}
+                        className="text-neutral-500 hover:text-rose-400 p-1.5 transition"
                       >
-                        <div className="flex items-center gap-3 overflow-hidden">
-                          {item.image_url ? (
-                            <img src={item.image_url} alt="" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
-                          ) : (
-                            <div className="w-12 h-12 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center text-lg flex-shrink-0">
-                              🛍️
-                            </div>
-                          )}
-                          <div className="overflow-hidden">
-                            <h4 className="text-xs font-bold text-white truncate">{item.name}</h4>
-                            <p className="text-[10px] text-neutral-400 truncate">{item.description || 'Sin descripción'}</p>
-                            <span className="text-xs font-black text-slate-300">{item.price || 'Sin precio'}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => toggleItemActive(item)}
-                            className={`p-2 rounded-xl border text-xs transition cursor-pointer ${
-                              item.active
-                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                                : 'bg-neutral-900 border-neutral-800 text-neutral-500'
-                            }`}
-                            title={item.active ? 'Visible en catálogo' : 'Oculto'}
-                          >
-                            {item.active ? <FaEye /> : <FaEyeSlash />}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteItem(item.id)}
-                            className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 text-xs transition cursor-pointer"
-                          >
-                            <FaTrash />
-                          </button>
-                        </div>
-                      </div>
-                    ))
+                        <FaTrash className="text-xs" />
+                      </button>
+                    </div>
+                  ))
                 )}
               </div>
-
             </div>
-          )}
+          </div>
+
+          {/* COLUMNA DERECHA: PRODUCTOS */}
+          <div className="lg:col-span-8 space-y-6">
+            {!selectedCategory ? (
+              <div className="p-12 text-center border border-dashed border-neutral-800 rounded-3xl text-neutral-500 text-xs">
+                Selecciona o crea una categoría a la izquierda para administrar sus productos.
+              </div>
+            ) : (
+              <div className="p-6 rounded-3xl bg-neutral-900/50 border border-neutral-800 backdrop-blur-xl shadow-2xl space-y-6">
+                
+                <h2 className="text-sm font-black uppercase tracking-wider text-white border-b border-neutral-800 pb-3">
+                  Agregar Producto a "{categories.find((c) => c.id === selectedCategory)?.name}"
+                </h2>
+
+                <form onSubmit={handleAddItem} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input
+                      type="text"
+                      placeholder="Nombre del Producto (ej. Chaqueta Oversize)"
+                      value={newItemName}
+                      onChange={(e) => setNewItemName(e.target.value)}
+                      className="bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-slate-400 outline-none"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Precio (ej. $29.990)"
+                      value={newItemPrice}
+                      onChange={(e) => setNewItemPrice(e.target.value)}
+                      className="bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-slate-400 outline-none"
+                    />
+                  </div>
+
+                  <textarea
+                    rows={2}
+                    placeholder="Descripción del producto..."
+                    value={newItemDesc}
+                    onChange={(e) => setNewItemDesc(e.target.value)}
+                    className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-slate-400 outline-none resize-none"
+                  />
+
+                  <div className="flex flex-col sm:flex-row gap-3 items-center">
+                    <input
+                      type="text"
+                      placeholder="URL de la Foto (https://...)"
+                      value={newItemImage}
+                      onChange={(e) => setNewItemImage(e.target.value)}
+                      className="flex-1 w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-slate-400 outline-none"
+                    />
+                    <label className="w-full sm:w-auto px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-xs font-bold text-white rounded-xl cursor-pointer transition flex items-center justify-center gap-2">
+                      <FaUpload className="text-xs" />
+                      <span>{uploadingImage ? 'Subiendo...' : 'Subir Imagen'}</span>
+                      <input type="file" accept="image/*" onChange={handleUploadImage} className="hidden" />
+                    </label>
+                  </div>
+
+                  {newItemImage && (
+                    <div className="w-20 h-20 rounded-2xl overflow-hidden border border-neutral-700 bg-neutral-950">
+                      <img src={newItemImage} alt="Previsualización" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={savingItem}
+                    className="w-full py-3 bg-slate-200 hover:bg-white text-black font-black text-xs uppercase tracking-wider rounded-xl transition shadow-lg cursor-pointer"
+                  >
+                    {savingItem ? 'Guardando...' : '+ Guardar Producto en Catálogo'}
+                  </button>
+                </form>
+
+                <div className="pt-6 border-t border-neutral-800 space-y-3">
+                  <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
+                    Productos Guardados
+                  </h3>
+
+                  {items.filter((i) => i.category_id === selectedCategory).length === 0 ? (
+                    <p className="text-xs text-neutral-500 py-4">No hay productos guardados en esta categoría.</p>
+                  ) : (
+                    items
+                      .filter((i) => i.category_id === selectedCategory)
+                      .map((item) => (
+                        <div
+                          key={item.id}
+                          className={`p-4 bg-neutral-950 border rounded-2xl flex items-center justify-between gap-4 transition ${
+                            item.active ? 'border-neutral-800' : 'border-neutral-800/40 opacity-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            {item.image_url ? (
+                              <img src={item.image_url} alt="" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+                            ) : (
+                              <div className="w-12 h-12 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center text-lg flex-shrink-0">
+                                🛍️
+                              </div>
+                            )}
+                            <div className="overflow-hidden">
+                              <h4 className="text-xs font-bold text-white truncate">{item.name}</h4>
+                              <p className="text-[10px] text-neutral-400 truncate">{item.description || 'Sin descripción'}</p>
+                              <span className="text-xs font-black text-slate-300">{item.price || 'Sin precio'}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => toggleItemActive(item)}
+                              className={`p-2 rounded-xl border text-xs transition cursor-pointer ${
+                                item.active
+                                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                  : 'bg-neutral-900 border-neutral-800 text-neutral-500'
+                              }`}
+                              title={item.active ? 'Visible en catálogo' : 'Oculto'}
+                            >
+                              {item.active ? <FaEye /> : <FaEyeSlash />}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteItem(item.id)}
+                              className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 text-xs transition cursor-pointer"
+                            >
+                              <FaTrash />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                  )}
+                </div>
+
+              </div>
+            )}
+          </div>
+
         </div>
 
       </main>

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { FiArrowRight, FiHeart, FiShoppingBag, FiX, FiMessageCircle } from 'react-icons/fi'
+import { FiArrowRight, FiHeart, FiShoppingBag, FiX, FiMessageCircle, FiLayers } from 'react-icons/fi'
 
 interface Profile {
   id: string
@@ -12,6 +12,10 @@ interface Profile {
   full_name: string
   phone?: string | null
   has_catalogo?: boolean
+  catalog_hero_title?: string | null
+  catalog_hero_subtitle?: string | null
+  catalog_hero_description?: string | null
+  catalog_hero_image?: string | null
 }
 
 interface Category {
@@ -37,6 +41,7 @@ export default function LightEditorialCatalogPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [items, setItems] = useState<Item[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all')
   const [loading, setLoading] = useState(true)
 
   const [wishlist, setWishlist] = useState<string[]>([])
@@ -119,10 +124,13 @@ export default function LightEditorialCatalogPage() {
     )
   }
 
-  const allActiveItems = items
+  // Filtrado de ítems según la categoría seleccionada
+  const filteredItems = selectedCategory === 'all' 
+    ? items 
+    : items.filter(i => i.category_id === selectedCategory)
 
   const handleWhatsAppConsult = () => {
-    const selectedItems = allActiveItems.filter(i => wishlist.includes(i.id))
+    const selectedItems = items.filter(i => wishlist.includes(i.id))
     if (selectedItems.length === 0) return
 
     let text = `Hola *${profile.full_name}*, me interesa consultar sobre la siguiente selección de tu catálogo:\n\n`
@@ -131,13 +139,18 @@ export default function LightEditorialCatalogPage() {
     })
 
     const rawPhone = profile.phone ? profile.phone.replace(/\D/g, '') : ''
-
     const whatsappUrl = rawPhone 
       ? `https://wa.me/${rawPhone}?text=${encodeURIComponent(text)}`
       : `https://wa.me/?text=${encodeURIComponent(text)}`
 
     window.open(whatsappUrl, '_blank')
   }
+
+  // Textos editables del Hero con Fallbacks
+  const heroSubtitle = profile.catalog_hero_subtitle || `✦ ${profile.full_name.toUpperCase()} COLLECTION ✦`
+  const heroTitle = profile.catalog_hero_title || 'Curaduría\nExclusiva'
+  const heroDescription = profile.catalog_hero_description || 'Una selección donde la luz, las texturas y el espacio dialogan en perfecta armonía.'
+  const heroImage = profile.catalog_hero_image || "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=1600&auto=format&fit=crop"
 
   return (
     <div className="bg-[#F9F8F6] text-[#1C1917] font-sans selection:bg-[#B88E56]/20 selection:text-[#1C1917] min-h-screen relative">
@@ -166,11 +179,11 @@ export default function LightEditorialCatalogPage() {
         </div>
       </header>
 
-      {/* HERO EDITORIAL CLARO Y LUMINOSO */}
+      {/* HERO EDITORIAL CLARO Y EDITABLE */}
       <section className="relative h-screen w-full flex flex-col justify-end p-6 lg:p-16 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
-            src={allActiveItems[0]?.image_url || "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=1600&auto=format&fit=crop"} 
+            src={heroImage} 
             alt="Hero background" 
             className="w-full h-full object-cover opacity-85 scale-105 transition-transform duration-1000"
           />
@@ -178,14 +191,26 @@ export default function LightEditorialCatalogPage() {
         </div>
 
         <div className="relative z-10 max-w-5xl space-y-4 pb-12">
+          {/* Subtítulo Editable */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-md border border-[#E8E4DF] text-[10px] uppercase tracking-[0.3em] text-[#A37B4C] shadow-sm">
-            <span>✦</span> {profile.full_name} Collection <span>✦</span>
+            {heroSubtitle}
           </div>
-          <h1 className="text-5xl sm:text-7xl lg:text-8xl font-serif font-light text-[#1C1917] tracking-wide leading-none">
-            Curaduría <br /><span className="italic text-[#A37B4C]">Exclusiva</span>
+
+          {/* Título Principal Editable */}
+          <h1 className="text-5xl sm:text-7xl lg:text-8xl font-serif font-light text-[#1C1917] tracking-wide leading-none whitespace-pre-line">
+            {heroTitle.includes('\n') ? (
+              <>
+                {heroTitle.split('\n')[0]} <br />
+                <span className="italic text-[#A37B4C]">{heroTitle.split('\n')[1]}</span>
+              </>
+            ) : (
+              heroTitle
+            )}
           </h1>
+
+          {/* Descripción Editable */}
           <p className="text-sm sm:text-base text-[#78716C] font-light max-w-lg leading-relaxed pt-2">
-            Una selección donde la luz, las texturas y el espacio dialogan en perfecta armonía.
+            {heroDescription}
           </p>
         </div>
 
@@ -195,14 +220,46 @@ export default function LightEditorialCatalogPage() {
         </div>
       </section>
 
+      {/* NAVEGACIÓN SUPERIOR POR CATEGORÍAS */}
+      {categories.length > 0 && (
+        <div className="sticky top-[73px] z-40 bg-[#F9F8F6]/90 backdrop-blur-md border-y border-[#E8E4DF] py-4 px-6 lg:px-16 overflow-x-auto no-scrollbar">
+          <div className="max-w-7xl mx-auto flex items-center justify-start sm:justify-center gap-3">
+            <button
+              onClick={() => setSelectedCategory('all')}
+              className={`px-5 py-2 rounded-full font-serif text-xs uppercase tracking-widest transition-all cursor-pointer whitespace-nowrap border ${
+                selectedCategory === 'all'
+                  ? 'bg-[#1C1917] text-white border-[#1C1917] shadow-sm'
+                  : 'bg-white text-[#78716C] border-[#E8E4DF] hover:border-[#A37B4C] hover:text-[#1C1917]'
+              }`}
+            >
+              Todas las Piezas
+            </button>
+
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-5 py-2 rounded-full font-serif text-xs uppercase tracking-widest transition-all cursor-pointer whitespace-nowrap border ${
+                  selectedCategory === cat.id
+                    ? 'bg-[#A37B4C] text-white border-[#A37B4C] shadow-sm'
+                    : 'bg-white text-[#78716C] border-[#E8E4DF] hover:border-[#A37B4C] hover:text-[#1C1917]'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* GALERÍA DE ESCENAS EDITORIALES */}
-      <div className="space-y-32 py-24 px-6 lg:px-16 max-w-7xl mx-auto">
-        {allActiveItems.length === 0 ? (
+      <div className="space-y-32 py-20 px-6 lg:px-16 max-w-7xl mx-auto">
+        {filteredItems.length === 0 ? (
           <div className="text-center py-20 text-[#78716C] font-serif text-sm italic">
-            No hay productos publicados en este catálogo todavía.
+            No hay productos disponibles en esta categoría por el momento.
           </div>
         ) : (
-          allActiveItems.map((item, index) => {
+          filteredItems.map((item, index) => {
             const isLiked = wishlist.includes(item.id)
             const isEven = index % 2 === 1
             const categoryObj = categories.find(c => c.id === item.category_id)
@@ -249,7 +306,7 @@ export default function LightEditorialCatalogPage() {
                   </div>
                 </div>
 
-                {/* INFORMACIÓN EDITORIAL EN FONDO CLARO */}
+                {/* INFORMACIÓN EDITORIAL */}
                 <div className="w-full lg:w-5/12 space-y-6">
                   <span className="text-[10px] uppercase font-serif tracking-[0.3em] font-semibold text-[#A37B4C]">
                     {categoryObj?.name || 'Colección Exclusiva'}
@@ -337,7 +394,7 @@ export default function LightEditorialCatalogPage() {
                     Tu selección está vacía. Haz clic en el ícono de favorito ❤️ en las piezas que desees destacar.
                   </div>
                 ) : (
-                  allActiveItems.filter(item => wishlist.includes(item.id)).map(item => (
+                  items.filter(item => wishlist.includes(item.id)).map(item => (
                     <div key={item.id} className="flex items-center justify-between gap-3 p-3.5 bg-white border border-[#E8E4DF] rounded-2xl shadow-sm">
                       <div className="flex items-center gap-3.5">
                         {item.image_url ? (
