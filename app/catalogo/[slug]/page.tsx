@@ -4,12 +4,13 @@ import React, { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { FiArrowRight, FiHeart, FiShoppingBag, FiX, FiCheck, FiMessageCircle } from 'react-icons/fi'
+import { FiArrowRight, FiHeart, FiShoppingBag, FiX, FiMessageCircle } from 'react-icons/fi'
 
 interface Profile {
   id: string
   slug: string
   full_name: string
+  phone?: string | null
   has_catalogo?: boolean
 }
 
@@ -47,7 +48,6 @@ export default function LightEditorialCatalogPage() {
       setLoading(true)
 
       try {
-        // 1. Obtener Perfil por Slug
         const { data: profileData } = await supabase
           .from('profiles')
           .select('*')
@@ -57,7 +57,6 @@ export default function LightEditorialCatalogPage() {
         if (profileData && profileData.has_catalogo) {
           setProfile(profileData)
 
-          // 2. Obtener Categorías del cliente
           const { data: catsData } = await supabase
             .from('catalogo_categories')
             .select('*')
@@ -67,7 +66,6 @@ export default function LightEditorialCatalogPage() {
           if (catsData && catsData.length > 0) {
             setCategories(catsData)
 
-            // 3. Obtener Productos activos
             const catIds = catsData.map((c) => c.id)
             const { data: itemsData } = await supabase
               .from('catalogo_items')
@@ -121,7 +119,6 @@ export default function LightEditorialCatalogPage() {
     )
   }
 
-  // Aplanamos todos los productos activos para renderizarlos en la galería editorial estilo lookbook
   const allActiveItems = items
 
   const handleWhatsAppConsult = () => {
@@ -133,7 +130,12 @@ export default function LightEditorialCatalogPage() {
       text += `• *${item.name}* ${item.price ? `(${item.price})` : ''}\n`
     })
 
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`
+    const rawPhone = profile.phone ? profile.phone.replace(/\D/g, '') : ''
+
+    const whatsappUrl = rawPhone 
+      ? `https://wa.me/${rawPhone}?text=${encodeURIComponent(text)}`
+      : `https://wa.me/?text=${encodeURIComponent(text)}`
+
     window.open(whatsappUrl, '_blank')
   }
 
@@ -149,13 +151,6 @@ export default function LightEditorialCatalogPage() {
         </div>
 
         <div className="flex items-center gap-6">
-          <Link 
-            href={`/admin/${slug}`} 
-            className="text-xs uppercase tracking-widest text-[#78716C] hover:text-[#1C1917] transition-colors"
-          >
-            Panel Admin
-          </Link>
-
           <button 
             onClick={() => setShowDrawer(true)}
             className="relative px-5 py-2 rounded-full bg-white border border-[#E8E4DF] hover:border-[#A37B4C] text-xs font-serif tracking-wider text-[#1C1917] transition-all shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer"
@@ -210,8 +205,6 @@ export default function LightEditorialCatalogPage() {
           allActiveItems.map((item, index) => {
             const isLiked = wishlist.includes(item.id)
             const isEven = index % 2 === 1
-
-            // Buscamos el nombre de la categoría a la que pertenece
             const categoryObj = categories.find(c => c.id === item.category_id)
 
             return (
@@ -304,9 +297,6 @@ export default function LightEditorialCatalogPage() {
             <h3 className="text-2xl font-serif font-light text-[#1C1917]">Curaduría digital y diseño inmersivo.</h3>
           </div>
           <div className="flex items-center gap-6">
-            <Link href={`/admin/${slug}`} className="text-xs uppercase tracking-widest text-[#78716C] hover:text-[#1C1917] transition-colors">
-              Administración
-            </Link>
             <button 
               onClick={() => setShowDrawer(true)}
               className="px-6 py-3 rounded-full bg-[#A37B4C] text-white font-serif text-xs uppercase tracking-wider font-medium hover:bg-[#8B673E] transition-all shadow-md"
