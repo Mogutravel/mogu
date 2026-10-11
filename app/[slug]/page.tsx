@@ -31,8 +31,8 @@ interface Profile {
   expires_at?: string | null
   subscription_status?: string | null
   plan_id?: string | null
-  has_menu?: boolean      // <-- Controlado por el Trigger SQL
-  has_catalogo?: boolean  // <-- Controlado por el Trigger SQL
+  has_menu?: boolean
+  has_catalogo?: boolean
 }
 
 interface LinkItem {
@@ -80,10 +80,10 @@ const SOCIAL_OPTIONS = [
   { key: "facebook", emoji: "📘", label: "Facebook", icon: <FaFacebook style={{ color: "#1877F2" }} className="text-xl" /> },
   { key: "web", emoji: "🌐", label: "Sitio Web", icon: <FaGlobe style={{ color: "#38BDF8" }} className="text-xl" /> },
   { key: "map", emoji: "📍", label: "Ubicación", icon: <FaMapMarkerAlt style={{ color: "#F43F5E" }} className="text-xl" /> },
-  { key: "menu", emoji: "📖", label: "Menú Digital", icon: <FaUtensils style={{ color: "#F59E0B" }} className="text-xl" /> },
+  { key: "menu", emoji: "📖", label: "Menu digital", icon: <FaUtensils style={{ color: "#F59E0B" }} className="text-xl" /> },
   { key: "phone", emoji: "📞", label: "Teléfono", icon: <FaPhone style={{ color: "#2DD4BF" }} className="text-xl" /> },
   { key: "star", emoji: "⭐", label: "Reseña Google", icon: <FaStar style={{ color: "#FACC15" }} className="text-xl" /> },
-  { key: "shop", emoji: "🛍️", label: "Tienda Online", icon: <FaShoppingBag style={{ color: "#A855F7" }} className="text-xl" /> },
+  { key: "shop", emoji: "🛍️", label: "Tienda online", icon: <FaShoppingBag style={{ color: "#A855F7" }} className="text-xl" /> },
   { key: "booking", emoji: "📅", label: "Reservas", icon: <FaCalendarAlt style={{ color: "#60A5FA" }} className="text-xl" /> },
 ]
 
@@ -327,7 +327,7 @@ export default function PublicProfilePage() {
           </button>
         </div>
 
-        {/* 🛍️ BOTÓN TIENDA ONLINE Y CATÁLOGO (CONDICIONAL: SEGÚN PROFILE.HAS_CATALOGO) */}
+        {/* 🛍️ BOTÓN TIENDA ONLINE */}
         {profile.has_catalogo && (
           <div className="mb-4">
             <a
@@ -341,14 +341,9 @@ export default function PublicProfilePage() {
                   🛍️
                 </div>
                 <div className="text-left overflow-hidden">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-white group-hover:text-emerald-300 transition-colors">
-                      Tienda Online & Catálogo
-                    </h3>
-                    <span className="px-2 py-0.5 text-[9px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-full uppercase tracking-widest flex-shrink-0">
-                      Pro
-                    </span>
-                  </div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-white group-hover:text-emerald-300 transition-colors">
+                    Tienda online
+                  </h3>
                   <p className="text-[10px] text-neutral-400 mt-0.5 truncate font-light">
                     Explora productos, precios y haz tu pedido
                   </p>
@@ -362,20 +357,32 @@ export default function PublicProfilePage() {
           </div>
         )}
 
-        {/* 📖 BOTÓN CARTA / MENÚ DIGITAL (CONDICIONAL: SEGÚN PROFILE.HAS_MENU) */}
+        {/* 📖 BOTÓN MENÚ DIGITAL */}
         {profile.has_menu && (
           <div className="mb-4">
             <a
               href={`/menu/${profile.slug}`}
-              className="group flex items-center justify-between py-3.5 px-6 bg-neutral-900/80 hover:bg-neutral-800 border border-amber-500/40 hover:border-amber-400 text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-lg transition-all duration-200 active:scale-[0.98]"
+              className="group relative flex items-center justify-between p-4 bg-gradient-to-r from-amber-950/70 via-neutral-900 to-neutral-900 hover:from-amber-900/80 hover:to-neutral-800 border border-amber-500/50 hover:border-amber-400 rounded-2xl shadow-[0_0_20px_rgba(245,158,11,0.15)] hover:shadow-[0_0_25px_rgba(245,158,11,0.3)] transition-all duration-300 active:scale-[0.98] overflow-hidden"
             >
-              <div className="flex items-center gap-2.5">
-                <span className="text-base">📖</span>
-                <span>Ver Carta / Menú Digital</span>
+              <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-amber-400/20 to-transparent group-hover:left-[100%] transition-all duration-1000 ease-in-out pointer-events-none" />
+
+              <div className="flex items-center space-x-3.5 z-10">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-lg shadow-inner group-hover:scale-105 transition-transform flex-shrink-0">
+                  📖
+                </div>
+                <div className="text-left overflow-hidden">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-white group-hover:text-amber-300 transition-colors">
+                    Menu digital
+                  </h3>
+                  <p className="text-[10px] text-neutral-400 mt-0.5 truncate font-light">
+                    Explora nuestra carta, platos y especialidades
+                  </p>
+                </div>
               </div>
-              <svg className="w-4 h-4 text-amber-400 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
+
+              <div className="text-amber-400 group-hover:translate-x-1 transition-transform z-10 flex-shrink-0 ml-2">
+                <FaArrowRight className="text-sm" />
+              </div>
             </a>
           </div>
         )}

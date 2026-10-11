@@ -60,7 +60,7 @@ export default function PhoneMockup() {
           {/* Lista de enlaces interactivos */}
           <div className="mt-6 w-full space-y-3">
             
-            {/* ENLACE DIRECTO AL MENÚ DE MOGU (CON EMOJI DE HAMBURGUESA) */}
+            {/* ENLACE DIRECTO AL MENÚ DE MOGU */}
             <a
               href="https://mogu.cl/menu/mogu"
               target="_blank"
@@ -72,6 +72,22 @@ export default function PhoneMockup() {
                   <span className="text-xs">🍔</span>
                 </div>
                 <span className="font-bold">Ver Menú Demostración</span>
+              </div>
+              <span className="text-emerald-400 transition group-hover:translate-x-1">↗</span>
+            </a>
+
+            {/* ENLACE DIRECTO A LA TIENDA ONLINE DE MOGU */}
+            <a
+              href="https://mogu.cl/catalogo/mogu"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex w-full items-center justify-between rounded-2xl border border-emerald-500/40 bg-emerald-950/20 px-4 py-3 text-xs font-semibold text-emerald-300 backdrop-blur-sm transition-all hover:border-emerald-400 hover:bg-emerald-950/40 active:scale-98 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 transition">
+                  <span className="text-xs">🛍️</span>
+                </div>
+                <span className="font-bold">Tienda online</span>
               </div>
               <span className="text-emerald-400 transition group-hover:translate-x-1">↗</span>
             </a>
