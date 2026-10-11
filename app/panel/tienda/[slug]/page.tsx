@@ -524,13 +524,18 @@ export default function CatalogAdminEditor() {
                       onChange={(e) => setNewItemName(e.target.value)}
                       className="bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-slate-400 outline-none"
                     />
-                    <input
-                      type="text"
-                      placeholder="Precio (ej. $29.990)"
-                      value={newItemPrice}
-                      onChange={(e) => setNewItemPrice(e.target.value)}
-                      className="bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-slate-400 outline-none"
-                    />
+                    
+                    {/* Input de Precio con el signo $ fijo por defecto */}
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3 text-neutral-400 font-medium select-none">$</span>
+                      <input
+                        type="number"
+                        placeholder="29990"
+                        value={newItemPrice}
+                        onChange={(e) => setNewItemPrice(e.target.value)}
+                        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl pl-7 pr-4 py-2.5 text-xs text-white focus:border-slate-400 outline-none"
+                      />
+                    </div>
                   </div>
 
                   <textarea
@@ -599,7 +604,11 @@ export default function CatalogAdminEditor() {
                             <div className="overflow-hidden">
                               <h4 className="text-xs font-bold text-white truncate">{item.name}</h4>
                               <p className="text-[10px] text-neutral-400 truncate">{item.description || 'Sin descripción'}</p>
-                              <span className="text-xs font-black text-slate-300">{item.price || 'Sin precio'}</span>
+                              
+                              {/* Precio formateado con el signo peso y puntos de miles por defecto */}
+                              <span className="text-xs font-black text-slate-300">
+                                {item.price ? `$ ${Number(item.price).toLocaleString('es-CL')}` : 'Sin precio'}
+                              </span>
                             </div>
                           </div>
 
