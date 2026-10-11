@@ -557,25 +557,54 @@ export default function AdvancedClientDashboard() {
 
           {/* BANNER DE ACCESO AL EDITOR DE MENÚ (DINÁMICO CON EL SLUG) */}
           {profile?.has_menu && (
-            <div className="p-8 rounded-3xl bg-gradient-to-r from-amber-500/10 via-neutral-900/60 to-neutral-900/40 border border-amber-500/30 backdrop-blur-xl shadow-2xl">
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="space-y-1">
-                  <span className="inline-block px-3 py-1 bg-amber-500/20 text-amber-400 text-[10px] font-extrabold uppercase tracking-wider rounded-full mb-1">
-                    Plan Pro / Carta Digital 🍽️
-                  </span>
-                  <h2 className="text-lg font-black text-white">Editor de Menú y Catálogo</h2>
-                  <p className="text-xs text-neutral-400 max-w-sm">
-                    Gestiona tus categorías, platos, precios y elige entre los 3 diseños visuales de tu carta.
-                  </p>
+            <div className="space-y-3.5">
+              <div className="p-8 rounded-3xl bg-gradient-to-r from-amber-500/10 via-neutral-900/60 to-neutral-900/40 border border-amber-500/30 backdrop-blur-xl shadow-2xl">
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div className="space-y-1">
+                    <span className="inline-block px-3 py-1 bg-amber-500/20 text-amber-400 text-[10px] font-extrabold uppercase tracking-wider rounded-full mb-1">
+                      Plan Pro / Carta Digital 🍽️
+                    </span>
+                    <h2 className="text-lg font-black text-white">Editor de Menú y Catálogo</h2>
+                    <p className="text-xs text-neutral-400 max-w-sm">
+                      Gestiona tus categorías, platos, precios y elige entre los 3 diseños visuales de tu carta.
+                    </p>
+                  </div>
+                  
+                  <Link
+                    href={`/panel/menu/${profile?.slug}`}
+                    className="px-5 py-3 bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl transition shadow-lg flex items-center gap-2 flex-shrink-0 cursor-pointer"
+                  >
+                    <span>Editar Menú ↗</span>
+                  </Link>
                 </div>
-                
-                <Link
-                  href={`/panel/menu/${profile?.slug}`}
-                  className="px-5 py-3 bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl transition shadow-lg flex items-center gap-2 flex-shrink-0 cursor-pointer"
-                >
-                  <span>Editar Menú ↗</span>
-                </Link>
               </div>
+
+              {/* BOTÓN PLATEADO / SILVER: EDITAR TIENDA ONLINE (APUNTA AL PANEL DE GESTIÓN) */}
+              <Link
+                href={`/panel/tienda/${profile?.slug}`}
+                className="group relative flex items-center justify-between p-4 bg-gradient-to-r from-neutral-900 via-slate-800/40 to-neutral-900 hover:from-neutral-800 hover:to-neutral-900 border border-slate-400/40 hover:border-slate-300 rounded-3xl shadow-xl transition-all duration-300 active:scale-[0.99] overflow-hidden"
+              >
+                <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-slate-200/10 to-transparent group-hover:left-[100%] transition-all duration-1000 ease-in-out pointer-events-none" />
+
+                <div className="flex items-center space-x-3.5 z-10">
+                  <div className="w-11 h-11 rounded-xl bg-slate-700/30 border border-slate-400/30 flex items-center justify-center text-lg shadow-inner group-hover:scale-105 transition-transform">
+                    🛍️
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-100 group-hover:text-white transition-colors">
+                      Editar Tienda Online
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-normal mt-0.5">
+                      Gestión de catálogo, productos y stock
+                    </p>
+                  </div>
+                </div>
+                <div className="text-slate-300 group-hover:text-white group-hover:translate-x-1 transition-transform z-10">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </div>
+              </Link>
             </div>
           )}
 
