@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { FaArrowLeft, FaPlus, FaTrash, FaEye, FaEyeSlash, FaShoppingBag, FaUpload } from 'react-icons/fa'
@@ -10,6 +10,8 @@ interface Profile {
   id: string
   slug: string
   full_name: string
+  has_catalogo?: boolean
+  has_menu?: boolean
 }
 
 interface CatalogCategory {
@@ -31,6 +33,7 @@ interface CatalogItem {
 
 export default function CatalogAdminEditor() {
   const params = useParams()
+  const router = useRouter()
   const slug = params?.slug as string
 
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -55,14 +58,33 @@ export default function CatalogAdminEditor() {
       if (!slug) return
       setLoading(true)
 
-      // 1. Obtener Perfil
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('id, slug, full_name')
-        .eq('slug', slug)
-        .single()
+      try {
+        // Verificar autenticación
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/login')
+          return
+        }
 
-      if (profileData) {
+        // 1. Obtener Perfil
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('slug', slug)
+          .single()
+
+        if (!profileData) {
+          setLoading(false)
+          return
+        }
+
+        // 🛡️ GUARDIA DE SEGURIDAD: Si no tiene el módulo de catálogo activo, bloquear acceso y redirigir
+        if (!profileData.has_catalogo) {
+          alert('No tienes acceso autorizado a este módulo de Tienda Online.')
+          router.push(`/admin/${profileData.slug}`)
+          return
+        }
+
         setProfile(profileData)
 
         // 2. Obtener Categorías
@@ -86,12 +108,15 @@ export default function CatalogAdminEditor() {
 
           if (itemsData) setItems(itemsData)
         }
+      } catch (err) {
+        console.error('Error al inicializar panel de tienda:', err)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
 
     loadAdminData()
-  }, [slug])
+  }, [slug, router])
 
   // Crear nueva categoría
   const handleAddCategory = async (e: React.FormEvent) => {
@@ -322,7 +347,7 @@ export default function CatalogAdminEditor() {
           </div>
         </div>
 
-        {/* COLUMNA DERECHA: GESTIÓN DE PRODUCTOS DE LA CATEGORÍA SELECCIONADA */}
+        {/* COLUMNA DERECHA: GESTIÓN DE PRODUCTOS */}
         <div className="lg:col-span-8 space-y-6">
           {!selectedCategory ? (
             <div className="p-12 text-center border border-dashed border-neutral-800 rounded-3xl text-neutral-500 text-xs">
@@ -335,7 +360,6 @@ export default function CatalogAdminEditor() {
                 Agregar Producto a "{categories.find((c) => c.id === selectedCategory)?.name}"
               </h2>
 
-              {/* Formulario Agregar Producto */}
               <form onSubmit={handleAddItem} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input
@@ -356,13 +380,12 @@ export default function CatalogAdminEditor() {
 
                 <textarea
                   rows={2}
-                  placeholder="Descripción del producto (materiales, tallas, estilo...)"
+                  placeholder="Descripción del producto..."
                   value={newItemDesc}
                   onChange={(e) => setNewItemDesc(e.target.value)}
                   className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-slate-400 outline-none resize-none"
                 />
 
-                {/* Subida / URL de Imagen */}
                 <div className="flex flex-col sm:flex-row gap-3 items-center">
                   <input
                     type="text"
@@ -393,7 +416,6 @@ export default function CatalogAdminEditor() {
                 </button>
               </form>
 
-              {/* Lista de Productos de la Categoría */}
               <div className="pt-6 border-t border-neutral-800 space-y-3">
                 <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
                   Productos Guardados

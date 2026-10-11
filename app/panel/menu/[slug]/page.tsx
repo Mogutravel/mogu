@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 
@@ -11,6 +11,7 @@ interface Profile {
   full_name?: string
   name?: string
   has_menu?: boolean
+  has_catalogo?: boolean
   menu_style?: 'modern' | 'classic' | 'cards'
   menu_theme?: 'dark' | 'light'
 }
@@ -35,6 +36,7 @@ interface MenuCategory {
 
 export default function HauteCuisineAdminPanel() {
   const params = useParams()
+  const router = useRouter()
   const slug = params?.slug as string
 
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -58,6 +60,12 @@ export default function HauteCuisineAdminPanel() {
       setLoading(true)
 
       try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/login')
+          return
+        }
+
         let { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -76,6 +84,13 @@ export default function HauteCuisineAdminPanel() {
         if (profileError || !profileData) {
           console.error('Error al cargar perfil:', profileError)
           setLoading(false)
+          return
+        }
+
+        // 🛡️ GUARDIA DE SEGURIDAD: Si no tiene el módulo de menú activo, bloquear acceso
+        if (!profileData.has_menu) {
+          alert('No tienes acceso autorizado a este módulo de Menú Digital.')
+          router.push(`/admin/${profileData.slug}`)
           return
         }
 
@@ -116,7 +131,7 @@ export default function HauteCuisineAdminPanel() {
     }
 
     loadAdminData()
-  }, [slug])
+  }, [slug, router])
 
   // Guardar configuración general, estilo y tema en Supabase
   const handleSaveAllChanges = async () => {
@@ -372,7 +387,6 @@ export default function HauteCuisineAdminPanel() {
           <div className="space-y-3">
             <label className="block text-[10px] font-serif uppercase tracking-widest text-[#B08968]">1. Tono de Fondo de la Carta (Tema)</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* TEMA OSCURO */}
               <div
                 onClick={() => setProfile({ ...profile, menu_theme: 'dark' })}
                 className={`cursor-pointer rounded-2xl p-5 border transition-all duration-300 flex items-center gap-4 ${
@@ -388,7 +402,6 @@ export default function HauteCuisineAdminPanel() {
                 </div>
               </div>
 
-              {/* TEMA CLARO */}
               <div
                 onClick={() => setProfile({ ...profile, menu_theme: 'light' })}
                 className={`cursor-pointer rounded-2xl p-5 border transition-all duration-300 flex items-center gap-4 ${
@@ -410,8 +423,6 @@ export default function HauteCuisineAdminPanel() {
           <div className="space-y-3 pt-2">
             <label className="block text-[10px] font-serif uppercase tracking-widest text-[#B08968]">2. Estilo de Maquetación de la Carta</label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              
-              {/* Estilo 1: Moderno */}
               <div 
                 onClick={() => setProfile({ ...profile, menu_style: 'modern' })}
                 className={`cursor-pointer rounded-2xl p-5 border transition-all duration-300 flex flex-col justify-between ${
@@ -433,7 +444,6 @@ export default function HauteCuisineAdminPanel() {
                 </div>
               </div>
 
-              {/* Estilo 2: Clásico */}
               <div 
                 onClick={() => setProfile({ ...profile, menu_style: 'classic' })}
                 className={`cursor-pointer rounded-2xl p-5 border transition-all duration-300 flex flex-col justify-between ${
@@ -455,7 +465,6 @@ export default function HauteCuisineAdminPanel() {
                 </div>
               </div>
 
-              {/* Estilo 3: Tarjetas Editorial */}
               <div 
                 onClick={() => setProfile({ ...profile, menu_style: 'cards' })}
                 className={`cursor-pointer rounded-2xl p-5 border transition-all duration-300 flex flex-col justify-between ${
@@ -476,7 +485,6 @@ export default function HauteCuisineAdminPanel() {
                   </p>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
@@ -484,13 +492,10 @@ export default function HauteCuisineAdminPanel() {
         {/* GRID DE GESTIÓN DE SECCIONES Y PLATOS */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* FORMULARIOS DE CREACIÓN (7 COLUMNAS) */}
           <div className="lg:col-span-7 space-y-8">
-            
-            {/* CREAR SECCIÓN */}
             <div className="p-8 rounded-3xl bg-[#161210] border border-[#26201D] shadow-2xl space-y-4">
               <div>
-                <h2 className="font-serif text-sm text-[#F4F0EB]">1. Crear Sección del Menú</h2>
+                <h2 className="font-serif text-sm text-[#F4F0EB]">Crear Sección del Menú</h2>
                 <p className="text-xs text-[#9C9289] font-light">Ej: Entradas, Principales, Coctelería.</p>
               </div>
               
@@ -508,7 +513,6 @@ export default function HauteCuisineAdminPanel() {
               </form>
             </div>
 
-            {/* CREAR PLATO */}
             <div className="p-8 rounded-3xl bg-[#161210] border border-[#26201D] shadow-2xl space-y-4">
               <div>
                 <h2 className="font-serif text-sm text-[#F4F0EB]">2. Agregar Plato o Creación</h2>
@@ -589,10 +593,8 @@ export default function HauteCuisineAdminPanel() {
                 </div>
               </form>
             </div>
-
           </div>
 
-          {/* VISTA EN VIVO Y GESTIÓN DE PLATOS (5 COLUMNAS) */}
           <div className="lg:col-span-5">
             <div className="sticky top-24 space-y-4">
               <div className="p-6 rounded-3xl bg-[#161210] border border-[#26201D] shadow-2xl">
@@ -658,7 +660,6 @@ export default function HauteCuisineAdminPanel() {
                     ))
                   )}
                 </div>
-
               </div>
             </div>
           </div>

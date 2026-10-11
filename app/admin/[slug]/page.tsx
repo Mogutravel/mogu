@@ -28,6 +28,7 @@ interface Profile {
   avatar_url?: string | null
   theme_color?: string | null
   has_menu?: boolean
+  has_catalogo?: boolean // <-- Añadido para controlar el módulo de tienda
 }
 
 interface LinkItem {
@@ -47,7 +48,6 @@ const COLOR_OPTIONS = [
   { name: 'Púrpura Cyber', value: 'from-purple-500 to-violet-600', hex: '#8B5CF6', border: 'border-purple-500' },
 ]
 
-// OPCIONES DE ICONOS CON COLORES OFICIALES Y VIBRANTES
 const SOCIAL_OPTIONS = [
   { key: "whatsapp", emoji: "💬", label: "💬 WhatsApp", icon: <FaWhatsapp style={{ color: "#25D366" }} className="text-xl" /> },
   { key: "instagram", emoji: "📸", label: "📸 Instagram", icon: <FaInstagram style={{ color: "#E4405F" }} className="text-xl" /> },
@@ -61,7 +61,6 @@ const SOCIAL_OPTIONS = [
   { key: "booking", emoji: "📅", label: "📅 Reservas", icon: <FaCalendarAlt style={{ color: "#60A5FA" }} className="text-xl" /> },
 ]
 
-// Helper para renderizar iconos oficiales con sus colores originales
 function renderLinkIcon(keyOrEmoji?: string) {
   if (!keyOrEmoji) return <FaGlobe style={{ color: "#38BDF8" }} className="text-xl" />
   const found = SOCIAL_OPTIONS.find(
@@ -122,7 +121,6 @@ export default function AdvancedClientDashboard() {
     loadData()
   }, [])
 
-  // Guardar perfil y colores
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!profile) return
@@ -150,7 +148,6 @@ export default function AdvancedClientDashboard() {
     }
   }
 
-  // Cambio de contraseña
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setPasswordMessage('')
@@ -183,7 +180,6 @@ export default function AdvancedClientDashboard() {
     }
   }
 
-  // Subir imagen a Supabase Storage
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !profile) return
@@ -198,9 +194,7 @@ export default function AdvancedClientDashboard() {
         .from('avatars')
         .upload(filePath, file, { upsert: true })
 
-      if (uploadError) {
-        throw uploadError
-      }
+      if (uploadError) throw uploadError
 
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
@@ -211,17 +205,13 @@ export default function AdvancedClientDashboard() {
       setTimeout(() => setMessage(''), 4000)
     } catch (error: any) {
       console.error('Error al subir imagen:', error)
-      setMessage(`❌ Error al subir imagen: ${error.message || 'Verifica los permisos del Storage Bucket'}`)
+      setMessage(`❌ Error al subir imagen: ${error.message || 'Verifica los permisos'}`)
     }
   }
 
-  // Agregar enlace
   const handleAddLink = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!profile) {
-      alert('Perfil no cargado aún.')
-      return
-    }
+    if (!profile) return
     if (!newTitle.trim() || !newUrl.trim()) {
       alert('Por favor ingresa un título y una URL válida para el enlace.')
       return
@@ -251,7 +241,6 @@ export default function AdvancedClientDashboard() {
     setAddingLink(false)
 
     if (error) {
-      console.error('Error al insertar enlace:', error)
       alert(`No se pudo añadir el enlace: ${error.message}`)
     } else if (data && data.length > 0) {
       setLinks([...links, data[0]])
@@ -261,7 +250,6 @@ export default function AdvancedClientDashboard() {
     }
   }
 
-  // Manejar Drag & Drop y actualizar Supabase
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return
 
@@ -285,11 +273,10 @@ export default function AdvancedClientDashboard() {
       )
       await Promise.all(updates)
     } catch (error) {
-      console.error('Error al actualizar las posiciones en Supabase:', error)
+      console.error('Error al actualizar posiciones:', error)
     }
   }
 
-  // Eliminar enlace
   const handleDeleteLink = async (id: string) => {
     const { error } = await supabase.from('links').delete().eq('id', id)
     if (!error) {
@@ -314,7 +301,7 @@ export default function AdvancedClientDashboard() {
       <header className="border-b border-neutral-800 bg-[#0A0A0C]/90 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="text-xl font-black tracking-wider text-white">
-            MOGU<span className="text-emerald-500">.</span> <span className="text-xs font-normal text-neutral-400 ml-2">Estudio de Personalización PyME</span>
+            MOGU<span className="text-emerald-500">.</span> <span className="text-xs font-normal text-neutral-400 ml-2">Panel de Administración</span>
           </Link>
 
           {profile && (
@@ -329,7 +316,7 @@ export default function AdvancedClientDashboard() {
         </div>
       </header>
 
-      {/* CONTENIDO CON GRID DE EDICIÓN Y PREVISUALIZACIÓN */}
+      {/* CONTENIDO PRINCIPAL */}
       <main className="max-w-6xl mx-auto px-6 pt-10 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* COLUMNA IZQUIERDA: CONTROLES DE EDICIÓN */}
@@ -340,9 +327,9 @@ export default function AdvancedClientDashboard() {
               <span className="inline-block px-3 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold uppercase tracking-wider rounded-full mb-1">
                 Estado: Activo ⚡
               </span>
-              <h2 className="text-lg font-black text-white">¡Bienvenido a tu panel Mogu, {profile?.full_name || 'Emprendedor'}!</h2>
+              <h2 className="text-lg font-black text-white">¡Bienvenido, {profile?.full_name || 'Emprendedor'}!</h2>
               <p className="text-xs text-neutral-400">
-                Personaliza tu tarjeta arriba y blinda tu cuenta cambiando tu contraseña genérica abajo del todo.
+                Personaliza tu información y administra tus enlaces exclusivos.
               </p>
             </div>
           </div>
@@ -350,7 +337,7 @@ export default function AdvancedClientDashboard() {
           <div className="p-8 rounded-3xl bg-neutral-900/40 border border-neutral-800 backdrop-blur-xl shadow-2xl">
             <h1 className="text-2xl font-black text-white mb-2">Personaliza tu Negocio 🎨</h1>
             <p className="text-xs text-neutral-400 mb-6">
-              Modifica la identidad visual, colores y enlaces de tu tarjeta Mogu en tiempo real.
+              Modifica la identidad visual, colores y datos de tu tarjeta Mogu.
             </p>
 
             {message && (
@@ -361,7 +348,6 @@ export default function AdvancedClientDashboard() {
 
             {profile && (
               <form onSubmit={handleSaveProfile} className="space-y-6">
-                
                 <div>
                   <label className="block text-xs font-semibold text-neutral-300 mb-2">Logotipo / Foto de Perfil</label>
                   <div className="flex items-center gap-4">
@@ -429,7 +415,7 @@ export default function AdvancedClientDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-400 mb-1">Teléfono / WhatsApp de Pedidos</label>
+                  <label className="block text-xs font-semibold text-neutral-400 mb-1">Teléfono / WhatsApp de Contacto</label>
                   <input
                     type="text"
                     value={profile.phone || ''}
@@ -493,15 +479,10 @@ export default function AdvancedClientDashboard() {
               </button>
             </div>
 
-            {/* LISTA DRAG & DROP DE ENLACES */}
             <DragDropContext onDragEnd={handleDragEnd}>
               <Droppable droppableId="dashboard-links">
                 {(provided) => (
-                  <div
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                    className="space-y-3"
-                  >
+                  <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3">
                     {links.length === 0 ? (
                       <p className="text-xs text-neutral-500 text-center py-4">No hay enlaces agregados todavía.</p>
                     ) : (
@@ -518,7 +499,6 @@ export default function AdvancedClientDashboard() {
                               }`}
                             >
                               <div className="flex items-center space-x-3 overflow-hidden pr-2">
-                                {/* MANIJA DE ARRASTRE */}
                                 <div
                                   {...provided.dragHandleProps}
                                   className="cursor-grab active:cursor-grabbing text-neutral-500 hover:text-white p-1 rounded transition"
@@ -555,59 +535,67 @@ export default function AdvancedClientDashboard() {
             </DragDropContext>
           </div>
 
-          {/* BANNER DE ACCESO AL EDITOR DE MENÚ (DINÁMICO CON EL SLUG) */}
+          {/* ========================================================= */}
+          {/* RENDERIZADO CONDICIONAL EXCLUSIVO: MENÚ DIGITAL VS TIENDA  */}
+          {/* ========================================================= */}
+          
+          {/* 1. SI TIENE MENÚ DIGITAL ACTIVO */}
           {profile?.has_menu && (
-            <div className="space-y-3.5">
-              <div className="p-8 rounded-3xl bg-gradient-to-r from-amber-500/10 via-neutral-900/60 to-neutral-900/40 border border-amber-500/30 backdrop-blur-xl shadow-2xl">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div className="space-y-1">
-                    <span className="inline-block px-3 py-1 bg-amber-500/20 text-amber-400 text-[10px] font-extrabold uppercase tracking-wider rounded-full mb-1">
-                      Plan Pro / Carta Digital 🍽️
-                    </span>
-                    <h2 className="text-lg font-black text-white">Editor de Menú y Catálogo</h2>
-                    <p className="text-xs text-neutral-400 max-w-sm">
-                      Gestiona tus categorías, platos, precios y elige entre los 3 diseños visuales de tu carta.
-                    </p>
-                  </div>
-                  
-                  <Link
-                    href={`/panel/menu/${profile?.slug}`}
-                    className="px-5 py-3 bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl transition shadow-lg flex items-center gap-2 flex-shrink-0 cursor-pointer"
-                  >
-                    <span>Editar Menú ↗</span>
-                  </Link>
+            <div className="p-8 rounded-3xl bg-gradient-to-r from-amber-500/10 via-neutral-900/60 to-neutral-900/40 border border-amber-500/30 backdrop-blur-xl shadow-2xl">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="space-y-1">
+                  <span className="inline-block px-3 py-1 bg-amber-500/20 text-amber-400 text-[10px] font-extrabold uppercase tracking-wider rounded-full mb-1">
+                    Módulo Gastronomía 🍽️
+                  </span>
+                  <h2 className="text-lg font-black text-white">Editor de Menú y Carta Digital</h2>
+                  <p className="text-xs text-neutral-400 max-w-sm">
+                    Gestiona tus categorías, platos, precios y diseños visuales de tu carta.
+                  </p>
                 </div>
+                
+                <Link
+                  href={`/panel/menu/${profile?.slug}`}
+                  className="px-5 py-3 bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl transition shadow-lg flex items-center gap-2 flex-shrink-0 cursor-pointer"
+                >
+                  <span>Editar Menú ↗</span>
+                </Link>
               </div>
-
-              {/* BOTÓN PLATEADO / SILVER: EDITAR TIENDA ONLINE (APUNTA AL PANEL DE GESTIÓN) */}
-              <Link
-                href={`/panel/tienda/${profile?.slug}`}
-                className="group relative flex items-center justify-between p-4 bg-gradient-to-r from-neutral-900 via-slate-800/40 to-neutral-900 hover:from-neutral-800 hover:to-neutral-900 border border-slate-400/40 hover:border-slate-300 rounded-3xl shadow-xl transition-all duration-300 active:scale-[0.99] overflow-hidden"
-              >
-                <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-slate-200/10 to-transparent group-hover:left-[100%] transition-all duration-1000 ease-in-out pointer-events-none" />
-
-                <div className="flex items-center space-x-3.5 z-10">
-                  <div className="w-11 h-11 rounded-xl bg-slate-700/30 border border-slate-400/30 flex items-center justify-center text-lg shadow-inner group-hover:scale-105 transition-transform">
-                    🛍️
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-100 group-hover:text-white transition-colors">
-                      Editar Tienda Online
-                    </h3>
-                    <p className="text-[10px] text-slate-400 font-normal mt-0.5">
-                      Gestión de catálogo, productos y stock
-                    </p>
-                  </div>
-                </div>
-                <div className="text-slate-300 group-hover:text-white group-hover:translate-x-1 transition-transform z-10">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </div>
-              </Link>
             </div>
           )}
 
+          {/* 2. SI TIENE CATÁLOGO / TIENDA ACTIVO */}
+          {profile?.has_catalogo && (
+            <Link
+              href={`/panel/tienda/${profile?.slug}`}
+              className="group relative flex items-center justify-between p-6 bg-gradient-to-r from-neutral-900 via-slate-800/40 to-neutral-900 hover:from-neutral-800 hover:to-neutral-900 border border-slate-400/40 hover:border-slate-300 rounded-3xl shadow-xl transition-all duration-300 active:scale-[0.99] overflow-hidden"
+            >
+              <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-slate-200/10 to-transparent group-hover:left-[100%] transition-all duration-1000 ease-in-out pointer-events-none" />
+
+              <div className="flex items-center space-x-4 z-10">
+                <div className="w-12 h-12 rounded-2xl bg-slate-700/30 border border-slate-400/30 flex items-center justify-center text-xl shadow-inner group-hover:scale-105 transition-transform">
+                  🛍️
+                </div>
+                <div>
+                  <span className="inline-block px-3 py-1 bg-purple-500/20 text-purple-400 text-[10px] font-extrabold uppercase tracking-wider rounded-full mb-1">
+                    Módulo E-commerce 🛒
+                  </span>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-100 group-hover:text-white transition-colors">
+                    Editor de Tienda Online
+                  </h3>
+                  <p className="text-xs text-slate-400 font-normal mt-0.5">
+                    Gestión de catálogo, productos físicos y control de stock.
+                  </p>
+                </div>
+              </div>
+              <div className="text-slate-300 group-hover:text-white group-hover:translate-x-1 transition-transform z-10">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </div>
+            </Link>
+          )}
+
+          {/* SECCIÓN DE SEGURIDAD */}
           <div className="p-8 rounded-3xl bg-neutral-900/40 border border-neutral-800 backdrop-blur-xl shadow-2xl">
             <h2 className="text-lg font-bold text-white mb-2">Seguridad de la Cuenta 🔒</h2>
             <p className="text-xs text-neutral-400 mb-6">Reemplaza tu contraseña temporal por una definitiva y segura.</p>
@@ -701,17 +689,11 @@ export default function AdvancedClientDashboard() {
                           </div>
                           <span className="text-[10px] font-bold text-white truncate">{l.title}</span>
                         </div>
-                        <span className="text-[10px] text-neutral-500">→</span>
                       </div>
                     ))
                   )}
                 </div>
               </div>
-
-              <div className="text-center pt-4 border-t border-neutral-900 z-10">
-                <span className="text-[9px] font-bold text-neutral-500 tracking-wider">POWERED BY MOGU</span>
-              </div>
-
             </div>
           </div>
         </div>

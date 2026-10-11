@@ -96,14 +96,17 @@ export default function ProductDetailPage() {
     setSubmitting(true)
 
     try {
-      // Enviamos explícitamente la bandera de selección exclusiva
+      // Validamos estrictamente si es un Plan Pro (Software Cloud + nombre contiene 'pro')
+      const isProPlan = product.category === 'Software Cloud' && product.name.toLowerCase().includes('pro')
+
       const result = await processTransferCheckout({
         fullName: cardName,
         email,
         phone,
         productId: product.id,
-        hasCatalogo: product.category === 'Software Cloud' ? selectedModule === 'catalogo' : false,
-        hasMenu: product.category === 'Software Cloud' ? selectedModule === 'menu' : false,
+        // Si es Pro, manda la selección del usuario. Si es Básico u otro, manda false a ambos.
+        hasCatalogo: isProPlan ? selectedModule === 'catalogo' : false,
+        hasMenu: isProPlan ? selectedModule === 'menu' : false,
       })
 
       if (result.success && result.slug && result.email && result.tempPassword) {
@@ -197,6 +200,7 @@ export default function ProductDetailPage() {
   }
 
   const totalPrice = product.price * quantity
+  const isProPlan = product.category === 'Software Cloud' && product.name.toLowerCase().includes('pro')
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -220,19 +224,21 @@ export default function ProductDetailPage() {
                   <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold uppercase tracking-wider rounded-full">
                     Suscripción Cloud ☁️
                   </span>
-                  <span className="text-xs font-mono text-neutral-400">MOGU PRO</span>
+                  <span className="text-xs font-mono text-neutral-400">{product.name.toUpperCase()}</span>
                 </div>
                 <div className="space-y-2">
                   <h2 className="text-xl font-black text-white">{product.name}</h2>
                   <p className="text-xs text-neutral-400 leading-relaxed">
-                    Acceso completo e inmediato a tu perfil digital personalizado, enlaces ilimitados y tu plataforma elegida en <strong className="text-white">mogu.cl/tu-negocio</strong>.
+                    Acceso completo e inmediato a tu perfil digital personalizado y enlaces en <strong className="text-white">mogu.cl/tu-negocio</strong>.
                   </p>
                 </div>
                 <div className="p-4 rounded-2xl bg-black/60 border border-neutral-800 space-y-2 text-xs">
-                  <div className="flex justify-between text-neutral-300">
-                    <span className="text-neutral-500">Módulo Seleccionado:</span>
-                    <span className="text-emerald-400 font-bold uppercase">{selectedModule === 'catalogo' ? 'Catálogo / Tienda' : 'Menú Digital'}</span>
-                  </div>
+                  {isProPlan && (
+                    <div className="flex justify-between text-neutral-300">
+                      <span className="text-neutral-500">Módulo Seleccionado:</span>
+                      <span className="text-emerald-400 font-bold uppercase">{selectedModule === 'catalogo' ? 'Catálogo / Tienda' : 'Menú Digital'}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-neutral-300">
                     <span className="text-neutral-500">Activación:</span>
                     <span className="text-emerald-400 font-bold">Inmediata ⚡</span>
@@ -271,7 +277,7 @@ export default function ProductDetailPage() {
             {step === 'form' ? (
               <form onSubmit={handleInitialSubmit} className="space-y-6">
                 <div className="space-y-4">
-                  <h2 className="text-sm font-semibold text-neutral-300 tracking-wide uppercase">1. Datos para tu cuenta</h2>
+                  <h2 className="text-sm font-semibold text-neutral-300 tracking-wide uppercase">Datos para tu cuenta</h2>
                   
                   <div>
                     <label className="block text-xs text-neutral-400 mb-1">Nombre Completo / Nombre de tu Negocio *</label>
@@ -309,8 +315,8 @@ export default function ProductDetailPage() {
                     />
                   </div>
 
-                  {/* BLOQUE DE SELECCIÓN EXCLUSIVA (CATÁLOGO VS MENÚ) */}
-                  {product.category === 'Software Cloud' && (
+                  {/* BLOQUE DE SELECCIÓN EXCLUSIVA: SOLO APARECE SI ES PLAN PRO */}
+                  {isProPlan && (
                     <div className="space-y-3 pt-2">
                       <label className="block text-xs font-semibold text-neutral-300 uppercase tracking-wide">
                         Selecciona el tipo de solución para tu negocio *
