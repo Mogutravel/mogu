@@ -26,6 +26,16 @@ export async function processTransferCheckout(data: CheckoutData) {
       return { success: false, message: 'Faltan datos obligatorios para procesar la compra.' }
     }
 
+    // 0. Verificar si el productId corresponde a un plan activo en la tabla 'plans'
+    const { data: planFound } = await supabaseAdmin
+      .from('plans')
+      .select('id')
+      .eq('id', productId)
+      .maybeSingle()
+
+    // Si coincide con un plan, guardamos su ID; de lo contrario, es null (tarjeta física u otro)
+    const planIdToAssign = planFound ? planFound.id : null
+
     let userId: string
     const tempPassword = Math.random().toString(36).slice(-8) + 'Mogu2026!'
 
@@ -68,16 +78,21 @@ export async function processTransferCheckout(data: CheckoutData) {
     if (existingProfile && existingProfile.slug) {
       profileSlug = existingProfile.slug
       
-      // Si el perfil ya existía (ej. venía de un trial gratuito y ahora pagó), 
-      // lo actualizamos a definitivo 'active'
+      // Si el perfil ya existía, actualizamos sus datos y LE ASIGNAMOS EL PLAN_ID
+      const updatePayload: Record<string, any> = {
+        status: 'active',
+        trial_ends_at: null,
+        full_name: fullName.trim(),
+        phone: phone.trim(),
+      }
+
+      if (planIdToAssign) {
+        updatePayload.plan_id = planIdToAssign // <--- ASIGNA EL PLAN AL ACTUALIZAR
+      }
+
       await supabaseAdmin
         .from('profiles')
-        .update({
-          status: 'active',
-          trial_ends_at: null,
-          full_name: fullName.trim(),
-          phone: phone.trim(),
-        })
+        .update(updatePayload)
         .eq('user_id', userId)
 
     } else {
@@ -95,7 +110,6 @@ export async function processTransferCheckout(data: CheckoutData) {
           .maybeSingle()
 
         if (!checkSlug) {
-          candidateSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`
           break
         } else {
           candidateSlug = `${baseSlug}-${counter}`
@@ -103,7 +117,7 @@ export async function processTransferCheckout(data: CheckoutData) {
         }
       }
 
-      // Crear el perfil directamente como ACTIVO/DEFINITIVO por pago de transferencia
+      // Crear el perfil directamente como ACTIVO/DEFINITIVO por pago e incluir el PLAN_ID
       const { data: newProfile, error: profileError } = await supabaseAdmin
         .from('profiles')
         .insert({
@@ -114,6 +128,7 @@ export async function processTransferCheckout(data: CheckoutData) {
           theme_color: 'from-emerald-500 to-teal-400',
           status: 'active',       // <-- Cuenta definitiva al pagar por transferencia
           trial_ends_at: null,    // <-- Sin caducidad
+          plan_id: planIdToAssign // <--- ASIGNA EL PLAN AL CREAR (¡DISPARA EL TRIGGER SQL!)
         })
         .select('slug')
         .single()
