@@ -7,6 +7,8 @@ interface CheckoutData {
   email: string
   phone: string
   productId: string
+  hasCatalogo?: boolean
+  hasMenu?: boolean
 }
 
 function limpiarSlug(texto: string) {
@@ -20,28 +22,24 @@ function limpiarSlug(texto: string) {
 
 export async function processTransferCheckout(data: CheckoutData) {
   try {
-    const { fullName, email, phone, productId } = data
+    const { fullName, email, phone, productId, hasCatalogo = false, hasMenu = false } = data
 
     if (!email || !fullName || !productId) {
       return { success: false, message: 'Faltan datos obligatorios para procesar la compra.' }
     }
 
-    // 0. Verificar si el productId corresponde a un plan activo en la tabla 'plans'
     const { data: planFound } = await supabaseAdmin
       .from('plans')
       .select('id')
       .eq('id', productId)
       .maybeSingle()
 
-    // Si coincide con un plan, guardamos su ID; de lo contrario, es null (tarjeta física u otro)
     const planIdToAssign = planFound ? planFound.id : null
 
     let userId: string
     const tempPassword = Math.random().toString(36).slice(-8) + 'Mogu2026!'
 
-    // 1. Verificar si el usuario ya existe en Supabase Auth por su email
     const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers()
-    
     if (listError) throw listError
 
     const existingUser = listData.users.find(
@@ -52,7 +50,6 @@ export async function processTransferCheckout(data: CheckoutData) {
       userId = existingUser.id
       await supabaseAdmin.auth.admin.updateUserById(userId, { password: tempPassword })
     } else {
-      // 2. Si no existe, crear la cuenta automáticamente
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email: email.trim(),
         password: tempPassword,
@@ -66,7 +63,6 @@ export async function processTransferCheckout(data: CheckoutData) {
       userId = newUser.user.id
     }
 
-    // 3. Verificar o crear explícitamente el perfil digital en la tabla 'profiles'
     let profileSlug = ''
     
     const { data: existingProfile } = await supabaseAdmin
@@ -78,7 +74,6 @@ export async function processTransferCheckout(data: CheckoutData) {
     if (existingProfile && existingProfile.slug) {
       profileSlug = existingProfile.slug
       
-      // Si el perfil ya existía, actualizamos sus datos y LE ASIGNAMOS EL PLAN_ID
       const updatePayload: Record<string, any> = {
         status: 'active',
         trial_ends_at: null,
@@ -87,7 +82,9 @@ export async function processTransferCheckout(data: CheckoutData) {
       }
 
       if (planIdToAssign) {
-        updatePayload.plan_id = planIdToAssign // <--- ASIGNA EL PLAN AL ACTUALIZAR
+        updatePayload.plan_id = planIdToAssign
+        updatePayload.has_catalogo = hasCatalogo
+        updatePayload.has_menu = hasMenu
       }
 
       await supabaseAdmin
@@ -96,12 +93,10 @@ export async function processTransferCheckout(data: CheckoutData) {
         .eq('user_id', userId)
 
     } else {
-      // Generar un slug único basado en el nombre
       let baseSlug = limpiarSlug(fullName) || 'usuario'
       let candidateSlug = baseSlug
       let counter = 1
 
-      // Comprobamos si el slug ya está ocupado
       while (true) {
         const { data: checkSlug } = await supabaseAdmin
           .from('profiles')
@@ -117,7 +112,6 @@ export async function processTransferCheckout(data: CheckoutData) {
         }
       }
 
-      // Crear el perfil directamente como ACTIVO/DEFINITIVO por pago e incluir el PLAN_ID
       const { data: newProfile, error: profileError } = await supabaseAdmin
         .from('profiles')
         .insert({
@@ -126,9 +120,11 @@ export async function processTransferCheckout(data: CheckoutData) {
           full_name: fullName.trim(),
           phone: phone.trim(),
           theme_color: 'from-emerald-500 to-teal-400',
-          status: 'active',       // <-- Cuenta definitiva al pagar por transferencia
-          trial_ends_at: null,    // <-- Sin caducidad
-          plan_id: planIdToAssign // <--- ASIGNA EL PLAN AL CREAR (¡DISPARA EL TRIGGER SQL!)
+          status: 'active',
+          trial_ends_at: null,
+          plan_id: planIdToAssign,
+          has_catalogo: planIdToAssign ? hasCatalogo : false, // Guarda la selección del usuario
+          has_menu: planIdToAssign ? hasMenu : false,         // Guarda la selección del usuario
         })
         .select('slug')
         .single()
@@ -140,7 +136,6 @@ export async function processTransferCheckout(data: CheckoutData) {
       profileSlug = newProfile.slug
     }
 
-    // 4. Registrar la orden de compra
     try {
       await supabaseAdmin.from('orders').insert([
         {
