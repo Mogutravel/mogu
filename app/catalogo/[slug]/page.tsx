@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { FiArrowRight, FiHeart, FiShoppingBag, FiX, FiMessageCircle, FiLayers } from 'react-icons/fi'
+import { FiArrowRight, FiHeart, FiShoppingBag, FiX, FiMessageCircle } from 'react-icons/fi'
 
 interface Profile {
   id: string
@@ -124,7 +124,6 @@ export default function LightEditorialCatalogPage() {
     )
   }
 
-  // Filtrado de ítems según la categoría seleccionada
   const filteredItems = selectedCategory === 'all' 
     ? items 
     : items.filter(i => i.category_id === selectedCategory)
@@ -179,29 +178,30 @@ export default function LightEditorialCatalogPage() {
         </div>
       </header>
 
-      {/* HERO EDITORIAL CLARO Y EDITABLE */}
+      {/* HERO EDITORIAL CORREGIDO (IMAGEN NÍTIDA Y BUEN CONTRASTE) */}
       <section className="relative h-screen w-full flex flex-col justify-end p-6 lg:p-16 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
             src={heroImage} 
             alt="Hero background" 
-            className="w-full h-full object-cover opacity-85 scale-105 transition-transform duration-1000"
+            className="w-full h-full object-cover opacity-100 scale-105 transition-transform duration-1000"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#F9F8F6] via-[#F9F8F6]/50 to-transparent" />
+          {/* Degradado oscuro sutil para dar elegancia y legibilidad sin blanquear la imagen */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         </div>
 
         <div className="relative z-10 max-w-5xl space-y-4 pb-12">
           {/* Subtítulo Editable */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-md border border-[#E8E4DF] text-[10px] uppercase tracking-[0.3em] text-[#A37B4C] shadow-sm">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 backdrop-blur-md border border-white/20 text-[10px] uppercase tracking-[0.3em] text-[#A37B4C] shadow-sm">
             {heroSubtitle}
           </div>
 
           {/* Título Principal Editable */}
-          <h1 className="text-5xl sm:text-7xl lg:text-8xl font-serif font-light text-[#1C1917] tracking-wide leading-none whitespace-pre-line">
+          <h1 className="text-5xl sm:text-7xl lg:text-8xl font-serif font-light text-white tracking-wide leading-none whitespace-pre-line drop-shadow-sm">
             {heroTitle.includes('\n') ? (
               <>
                 {heroTitle.split('\n')[0]} <br />
-                <span className="italic text-[#A37B4C]">{heroTitle.split('\n')[1]}</span>
+                <span className="italic text-[#E5D2B8]">{heroTitle.split('\n')[1]}</span>
               </>
             ) : (
               heroTitle
@@ -209,14 +209,14 @@ export default function LightEditorialCatalogPage() {
           </h1>
 
           {/* Descripción Editable */}
-          <p className="text-sm sm:text-base text-[#78716C] font-light max-w-lg leading-relaxed pt-2">
+          <p className="text-sm sm:text-base text-white/90 font-light max-w-lg leading-relaxed pt-2 drop-shadow-sm">
             {heroDescription}
           </p>
         </div>
 
-        <div className="absolute bottom-6 right-6 lg:right-12 z-10 hidden sm:flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-[#78716C]">
+        <div className="absolute bottom-6 right-6 lg:right-12 z-10 hidden sm:flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-white/80">
           <span>Desliza para explorar</span>
-          <FiArrowRight className="text-[#A37B4C] animate-pulse" />
+          <FiArrowRight className="text-[#E5D2B8] animate-pulse" />
         </div>
       </section>
 
