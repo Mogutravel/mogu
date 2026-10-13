@@ -3,12 +3,14 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { FiShoppingBag, FiPlus, FiMinus, FiTrash2, FiMessageCircle } from 'react-icons/fi'
 
 interface Profile {
   id: string
   slug: string
   full_name?: string
   name?: string
+  phone?: string | null
   has_menu?: boolean
   menu_style?: 'modern' | 'classic' | 'cards'
   menu_theme?: 'dark' | 'light'
@@ -33,6 +35,11 @@ interface MenuCategory {
   items: MenuItem[]
 }
 
+interface CartItem {
+  item: MenuItem
+  quantity: number
+}
+
 export default function MoguSubtleAmbientMenu() {
   const params = useParams()
   const slug = params?.slug as string
@@ -44,6 +51,9 @@ export default function MoguSubtleAmbientMenu() {
   
   const [searchTerm, setSearchTerm] = useState('')
   const [activeCategory, setActiveCategory] = useState<string>('all')
+
+  const [cart, setCart] = useState<CartItem[]>([])
+  const [showCartDrawer, setShowCartDrawer] = useState(false)
 
   const [activeImageModal, setActiveImageModal] = useState<{
     url: string
@@ -111,6 +121,59 @@ export default function MoguSubtleAmbientMenu() {
     loadMenuData()
   }, [slug])
 
+  // Lógica del Carrito
+  const addToCart = (item: MenuItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setCart((prev) => {
+      const existing = prev.find((ci) => ci.item.id === item.id)
+      if (existing) {
+        return prev.map((ci) =>
+          ci.item.id === item.id ? { ...ci, quantity: ci.quantity + 1 } : ci
+        )
+      }
+      return [...prev, { item, quantity: 1 }]
+    })
+  }
+
+  const decreaseQuantity = (itemId: string) => {
+    setCart((prev) => {
+      const existing = prev.find((ci) => ci.item.id === itemId)
+      if (existing && existing.quantity > 1) {
+        return prev.map((ci) =>
+          ci.item.id === itemId ? { ...ci, quantity: ci.quantity - 1 } : ci
+        )
+      }
+      return prev.filter((ci) => ci.item.id !== itemId)
+    })
+  }
+
+  const removeFromCart = (itemId: string) => {
+    setCart((prev) => prev.filter((ci) => ci.item.id !== itemId))
+  }
+
+  const totalCartItems = useMemo(() => {
+    return cart.reduce((sum, ci) => sum + ci.quantity, 0)
+  }, [cart])
+
+  const handleWhatsAppCheckout = () => {
+    if (cart.length === 0 || !profile) return
+
+    let text = `Hola *${profile.full_name || profile.name || 'Local'}*, me gustaría realizar el siguiente pedido desde su carta digital:\n\n`
+    
+    cart.forEach((ci) => {
+      text += `• *${ci.quantity}x* ${ci.item.name} ${ci.item.price ? `(${ci.item.price})` : ''}\n`
+    })
+
+    text += `\n¡Quedo atento/a para coordinar el pago y entrega!`
+
+    const rawPhone = profile.phone ? profile.phone.replace(/\D/g, '') : ''
+    const whatsappUrl = rawPhone
+      ? `https://wa.me/${rawPhone}?text=${encodeURIComponent(text)}`
+      : `https://wa.me/?text=${encodeURIComponent(text)}`
+
+    window.open(whatsappUrl, '_blank')
+  }
+
   const filteredCategories = useMemo(() => {
     return categories
       .map((cat) => {
@@ -152,7 +215,6 @@ export default function MoguSubtleAmbientMenu() {
   const menuStyle = profile.menu_style || 'modern'
   const isLight = profile.menu_theme === 'light'
 
-  // Paleta dinámica con el tono Blanco Arena personalizado (#D1C7B8)
   const theme = {
     bg: isLight ? 'bg-[#D1C7B8] text-[#1C1815]' : 'bg-[#0E0C0A] text-[#D4CEC7]',
     headerBg: isLight ? 'bg-[#D1C7B8]/95 border-[#BCB1A1]' : 'bg-[#0E0C0A]/90 border-[#211C18]/60',
@@ -172,14 +234,35 @@ export default function MoguSubtleAmbientMenu() {
   }
 
   return (
-    <div className={`min-h-screen font-sans selection:bg-[#8C7A6B]/25 relative overflow-hidden flex flex-col justify-between transition-colors duration-500 ${theme.bg}`}>
+    <div className={`min-h-screen font-sans selection:bg-[#8C7A6B]/25 relative overflow-hidden flex flex-col justify-between transition-colors duration-500 pb-20 ${theme.bg}`}>
       
-      {/* Halo de luz ambiental difuminado sutil en el fondo */}
       <div className={`absolute top-[-10%] left-1/2 -translate-x-1/2 w-[700px] h-[350px] ${theme.halo} blur-[140px] rounded-full pointer-events-none`} />
 
-      {/* ==========================================
-          ESTILO 1: CLÁSICO (Alta Gama / Fine Dining)
-         ========================================== */}
+      {/* BOTÓN FLOTANTE DEL CARRITO */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <button
+          onClick={() => setShowCartDrawer(true)}
+          className={`flex items-center gap-3 px-6 py-3.5 rounded-full shadow-2xl transition-all duration-300 cursor-pointer border ${
+            isLight 
+              ? 'bg-[#1C1815] text-[#D1C7B8] border-[#1C1815] hover:bg-[#38312B]' 
+              : 'bg-[#26211D] text-[#EFECE6] border-[#38312B] hover:bg-[#38312B]'
+          }`}
+        >
+          <div className="relative">
+            <FiShoppingBag className="text-lg" />
+            {totalCartItems > 0 && (
+              <span className="absolute -top-2 -right-2 w-4 h-4 bg-amber-600 text-white font-bold text-[9px] rounded-full flex items-center justify-center shadow">
+                {totalCartItems}
+              </span>
+            )}
+          </div>
+          <span className="text-xs font-serif uppercase tracking-widest font-medium">
+            {totalCartItems > 0 ? `Ver Pedido (${totalCartItems})` : 'Mi Carrito'}
+          </span>
+        </button>
+      </div>
+
+      {/* ================= ESTILO 1: CLÁSICO ================= */}
       {menuStyle === 'classic' && (
         <div className="flex-1 flex flex-col justify-between relative z-10">
           <header className={`pt-16 pb-10 px-6 text-center relative border-b backdrop-blur-xl space-y-6 ${theme.headerBg}`}>
@@ -243,6 +326,13 @@ export default function MoguSubtleAmbientMenu() {
                           </p>
                         )}
                       </div>
+                      <button
+                        onClick={(e) => addToCart(item, e)}
+                        className={`p-2 rounded-full transition cursor-pointer border ${isLight ? 'bg-[#C5BBB0] border-[#B2A79C] hover:bg-[#1C1815] hover:text-[#D1C7B8]' : 'bg-[#161311] border-[#26211D] hover:bg-[#38312B] text-[#D4CEC7]'}`}
+                        title="Agregar al pedido"
+                      >
+                        <FiPlus className="text-xs" />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -252,9 +342,7 @@ export default function MoguSubtleAmbientMenu() {
         </div>
       )}
 
-      {/* ==========================================
-          ESTILO 2: MODERNO
-         ========================================== */}
+      {/* ================= ESTILO 2: MODERNO ================= */}
       {menuStyle === 'modern' && (
         <div className="flex-1 flex flex-col justify-between relative z-10">
           <header className={`sticky top-0 z-30 backdrop-blur-xl border-b px-6 py-4 space-y-3 ${theme.headerBg}`}>
@@ -301,10 +389,18 @@ export default function MoguSubtleAmbientMenu() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {cat.items.map((item) => (
                     <div key={item.id} className={`rounded-2xl p-4 flex items-center justify-between gap-4 transition-all duration-500 shadow-sm border ${theme.cardBg}`}>
-                      <div className="space-y-1 overflow-hidden">
+                      <div className="space-y-1 overflow-hidden flex-1">
                         <h3 className={`text-xs font-serif font-medium transition truncate ${theme.itemTitle}`}>{item.name}</h3>
                         {item.description && <p className={`text-[11px] font-light line-clamp-2 leading-relaxed ${theme.itemDesc}`}>{item.description}</p>}
-                        <span className={`inline-block text-xs font-serif font-medium pt-1 ${theme.itemPrice}`}>{item.price}</span>
+                        <div className="flex items-center justify-between pt-1">
+                          <span className={`text-xs font-serif font-medium ${theme.itemPrice}`}>{item.price}</span>
+                          <button
+                            onClick={(e) => addToCart(item, e)}
+                            className={`px-3 py-1 rounded-lg text-[10px] font-serif uppercase tracking-wider transition cursor-pointer border ${isLight ? 'bg-[#C5BBB0] border-[#B2A79C] text-[#1C1815] hover:bg-[#1C1815] hover:text-[#D1C7B8]' : 'bg-[#1A1613] border-[#26211D] text-[#D4CEC7] hover:bg-[#38312B]'}`}
+                          >
+                            + Agregar
+                          </button>
+                        </div>
                       </div>
                       {item.image_url && (
                         <div 
@@ -323,9 +419,7 @@ export default function MoguSubtleAmbientMenu() {
         </div>
       )}
 
-      {/* ==========================================
-          ESTILO 3: TARJETAS EDITORIAL
-         ========================================== */}
+      {/* ================= ESTILO 3: TARJETAS EDITORIAL ================= */}
       {menuStyle === 'cards' && (
         <div className="flex-1 flex flex-col justify-between relative z-10">
           <header className={`backdrop-blur-xl border-b sticky top-0 z-30 px-6 py-5 space-y-4 ${theme.headerBg}`}>
@@ -391,7 +485,7 @@ export default function MoguSubtleAmbientMenu() {
                           />
                         </div>
                       )}
-                      <div className="p-6 space-y-2 flex-1 flex flex-col justify-between">
+                      <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
                         <div className="space-y-1.5">
                           <div className="flex justify-between items-baseline gap-2">
                             <h3 className={`font-serif text-sm font-medium transition ${theme.itemTitle}`}>{item.name}</h3>
@@ -401,6 +495,12 @@ export default function MoguSubtleAmbientMenu() {
                             <p className={`text-xs font-light leading-relaxed ${theme.itemDesc}`}>{item.description}</p>
                           )}
                         </div>
+                        <button
+                          onClick={(e) => addToCart(item, e)}
+                          className={`w-full py-2.5 rounded-xl font-serif text-xs uppercase tracking-widest transition cursor-pointer border ${isLight ? 'bg-[#C5BBB0] border-[#B2A79C] text-[#1C1815] hover:bg-[#1C1815] hover:text-[#D1C7B8]' : 'bg-[#161311] border-[#26211D] text-[#D4CEC7] hover:bg-[#38312B]'}`}
+                        >
+                          Agregar al Pedido
+                        </button>
                       </div>
                     </article>
                   ))}
@@ -411,9 +511,7 @@ export default function MoguSubtleAmbientMenu() {
         </div>
       )}
 
-      {/* ==========================================
-          BANNER DE CONVERSIÓN COMERCIAL MOGU
-         ========================================== */}
+      {/* BANNER MOGU */}
       <section className={`relative z-10 border-t py-16 px-6 text-center ${isLight ? 'bg-gradient-to-b from-[#C5BBB0]/50 to-[#B2A79C]/80 border-[#B2A79C]' : 'bg-gradient-to-b from-transparent via-[#120F0D] to-[#0A0807] border-[#211C18]/60'}`}>
         <div className="max-w-md mx-auto space-y-3">
           <span className={`text-[9px] font-serif uppercase tracking-[0.35em] ${theme.subtitle}`}>Plataforma Mogu</span>
@@ -432,9 +530,96 @@ export default function MoguSubtleAmbientMenu() {
         CURATED BY <span className={`font-medium ${isLight ? 'text-[#1C1815]' : 'text-[#A8988C]'}`}>MOGU DIGITAL</span>
       </footer>
 
-      {/* ==========================================
-          MODAL DIFUMINADO INMERSIVO
-         ========================================== */}
+      {/* ================= DRAWER DEL CARRITO ================= */}
+      {showCartDrawer && (
+        <div 
+          onClick={() => setShowCartDrawer(false)}
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex justify-end transition-all"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className={`w-full max-w-md h-full p-6 sm:p-8 flex flex-col justify-between shadow-2xl border-l ${isLight ? 'bg-[#D1C7B8] border-[#BCB1A1] text-[#1C1815]' : 'bg-[#13100E] border-[#26211D] text-[#D4CEC7]'}`}
+          >
+            <div className="space-y-6">
+              <div className="flex items-center justify-between border-b pb-4 border-current/20">
+                <div className="flex items-center gap-2.5">
+                  <FiShoppingBag className="text-amber-600 text-lg" />
+                  <h2 className="text-sm font-serif uppercase tracking-[0.2em] font-semibold">Tu Pedido</h2>
+                </div>
+                <button 
+                  onClick={() => setShowCartDrawer(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center transition border border-current/20 hover:bg-current/10 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-3 overflow-y-auto max-h-[55vh] pr-1">
+                {cart.length === 0 ? (
+                  <div className="text-center py-16 text-xs font-serif italic opacity-70">
+                    Tu carrito está vacío. Agrega platos o preparaciones desde el menú.
+                  </div>
+                ) : (
+                  cart.map((ci) => (
+                    <div key={ci.item.id} className={`flex items-center justify-between gap-3 p-3.5 rounded-2xl border shadow-sm ${isLight ? 'bg-[#DDD4C6] border-[#C2B7A8]' : 'bg-[#191512] border-[#26211D]'}`}>
+                      <div className="flex items-center gap-3.5 flex-1 overflow-hidden">
+                        {ci.item.image_url ? (
+                          <img src={ci.item.image_url} alt="" className="w-12 h-12 rounded-xl object-cover" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-xl bg-black/20 flex items-center justify-center text-lg">🛍️</div>
+                        )}
+                        <div className="overflow-hidden">
+                          <h4 className="text-xs font-serif font-medium truncate">{ci.item.name}</h4>
+                          <span className="text-[11px] opacity-80">{ci.item.price || 'A convenir'}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => decreaseQuantity(ci.item.id)}
+                          className="w-7 h-7 rounded-full flex items-center justify-center border border-current/20 hover:bg-current/10 cursor-pointer"
+                        >
+                          <FiMinus className="text-[10px]" />
+                        </button>
+                        <span className="text-xs font-bold w-4 text-center">{ci.quantity}</span>
+                        <button 
+                          onClick={() => addToCart(ci.item)}
+                          className="w-7 h-7 rounded-full flex items-center justify-center border border-current/20 hover:bg-current/10 cursor-pointer"
+                        >
+                          <FiPlus className="text-[10px]" />
+                        </button>
+                        <button 
+                          onClick={() => removeFromCart(ci.item.id)}
+                          className="text-rose-500 hover:text-rose-700 p-1.5 ml-1 transition cursor-pointer"
+                        >
+                          <FiTrash2 className="text-xs" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-current/20">
+              <button
+                onClick={handleWhatsAppCheckout}
+                disabled={cart.length === 0}
+                className={`w-full py-4 px-6 rounded-full font-serif text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2.5 shadow-xl transition-all cursor-pointer ${
+                  cart.length > 0
+                    ? 'bg-emerald-700 hover:bg-emerald-800 text-white font-medium shadow-emerald-900/30'
+                    : 'bg-current/10 opacity-50 cursor-not-allowed'
+                }`}
+              >
+                <FiMessageCircle className="text-base" />
+                <span>Enviar pedido por WhatsApp</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE IMAGEN */}
       {activeImageModal && (
         <div 
           onClick={() => setActiveImageModal(null)}
