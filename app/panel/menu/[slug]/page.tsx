@@ -54,6 +54,9 @@ export default function HauteCuisineAdminPanel() {
   const [itemImageFile, setItemImageFile] = useState<File | null>(null)
   const [submittingItem, setSubmittingItem] = useState(false)
 
+  // Estado para controlar qué plato está procesando imagen actualmente
+  const [uploadingItemId, setUploadingItemId] = useState<string | null>(null)
+
   useEffect(() => {
     async function loadAdminData() {
       if (!slug) return
@@ -87,7 +90,6 @@ export default function HauteCuisineAdminPanel() {
           return
         }
 
-        // 🛡️ GUARDIA DE SEGURIDAD: Si no tiene el módulo de menú activo, bloquear acceso
         if (!profileData.has_menu) {
           alert('No tienes acceso autorizado a este módulo de Menú Digital.')
           router.push(`/admin/${profileData.slug}`)
@@ -100,7 +102,6 @@ export default function HauteCuisineAdminPanel() {
           menu_style: profileData.menu_style || 'modern',
         })
 
-        // Cargar categorías
         const { data: catsData } = await supabase
           .from('menu_categories')
           .select('*')
@@ -133,7 +134,6 @@ export default function HauteCuisineAdminPanel() {
     loadAdminData()
   }, [slug, router])
 
-  // Guardar configuración general, estilo y tema en Supabase
   const handleSaveAllChanges = async () => {
     if (!profile) return
     setSavingGlobal(true)
@@ -158,7 +158,6 @@ export default function HauteCuisineAdminPanel() {
     }
   }
 
-  // Crear Categoría / Sección
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!profile || !newCategoryName.trim()) return
@@ -183,7 +182,39 @@ export default function HauteCuisineAdminPanel() {
     }
   }
 
-  // Crear Plato con gestión de imagen y almacenamiento
+  // FUNCIÓN NUEVA: ELIMINAR SECCIÓN COMPLETA
+  const handleDeleteCategory = async (catId: string, catName: string) => {
+    if (!confirm(`¿Estás seguro de eliminar la sección "${catName}"? Se borrarán todos los platos contenidos en ella.`)) return
+
+    try {
+      // 1. Eliminar platos pertenecientes a la categoría
+      await supabase
+        .from('menu_items')
+        .delete()
+        .eq('category_id', catId)
+
+      // 2. Eliminar la categoría
+      const { error } = await supabase
+        .from('menu_categories')
+        .delete()
+        .eq('id', catId)
+
+      if (error) throw error
+
+      const updatedCategories = categories.filter((c) => c.id !== catId)
+      setCategories(updatedCategories)
+
+      if (selectedCategoryId === catId) {
+        setSelectedCategoryId(updatedCategories[0]?.id || '')
+      }
+
+      setMessage(`🗑️ Sección "${catName}" eliminada correctamente.`)
+      setTimeout(() => setMessage(''), 3000)
+    } catch (err: any) {
+      alert(`Error al eliminar la sección: ${err.message}`)
+    }
+  }
+
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedCategoryId || !itemName.trim()) {
@@ -255,7 +286,97 @@ export default function HauteCuisineAdminPanel() {
     }
   }
 
-  // Alternar visibilidad (Visible / Oculto)
+  const handleUpdateItemImage = async (e: React.ChangeEvent<HTMLInputElement>, itemId: string, catId: string) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingItemId(itemId)
+    setMessage('Actualizando fotografía del plato...')
+
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `dish-${itemId}-${Date.now()}.${fileExt}`
+
+      let newImageUrl = null
+
+      const { error: uploadError } = await supabase.storage
+        .from('menu-images')
+        .upload(fileName, file, { upsert: true })
+
+      if (uploadError) {
+        const { error: fallbackError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, file, { upsert: true })
+        
+        if (!fallbackError) {
+          const { data: pub } = supabase.storage.from('avatars').getPublicUrl(fileName)
+          newImageUrl = pub.publicUrl
+        } else {
+          throw uploadError
+        }
+      } else {
+        const { data: pub } = supabase.storage.from('menu-images').getPublicUrl(fileName)
+        newImageUrl = pub.publicUrl
+      }
+
+      const { error: updateError } = await supabase
+        .from('menu_items')
+        .update({ image_url: newImageUrl })
+        .eq('id', itemId)
+
+      if (updateError) throw updateError
+
+      setCategories(categories.map((cat) => {
+        if (cat.id === catId) {
+          return {
+            ...cat,
+            items: cat.items.map((i) => i.id === itemId ? { ...i, image_url: newImageUrl } : i),
+          }
+        }
+        return cat
+      }))
+
+      setMessage('✨ ¡Fotografía del plato actualizada con éxito!')
+      setTimeout(() => setMessage(''), 3000)
+    } catch (err: any) {
+      alert(`Error al actualizar la imagen: ${err.message}`)
+    } finally {
+      setUploadingItemId(null)
+    }
+  }
+
+  const handleDeleteItemImage = async (itemId: string, catId: string) => {
+    if (!confirm('¿Deseas quitar la fotografía de este plato?')) return
+
+    setUploadingItemId(itemId)
+
+    try {
+      const { error } = await supabase
+        .from('menu_items')
+        .update({ image_url: null })
+        .eq('id', itemId)
+
+      if (error) throw error
+
+      setCategories(categories.map((cat) => {
+        if (cat.id === catId) {
+          return {
+            ...cat,
+            items: cat.items.map((i) => i.id === itemId ? { ...i, image_url: null } : i),
+          }
+        }
+        return cat
+      }))
+
+      setMessage('🖼️ Fotografía removida del plato.')
+      setTimeout(() => setMessage(''), 3000)
+    } catch (err: any) {
+      alert(`Error al eliminar la imagen: ${err.message}`)
+    } finally {
+      setUploadingItemId(null)
+    }
+  }
+
   const handleToggleActive = async (itemId: string, currentActive: boolean, catId: string) => {
     const { error } = await supabase
       .from('menu_items')
@@ -278,7 +399,6 @@ export default function HauteCuisineAdminPanel() {
     }))
   }
 
-  // Eliminar plato permanentemente
   const handleDeleteItem = async (itemId: string, catId: string) => {
     if (!confirm('¿Estás seguro de eliminar este plato? Se removerá permanentemente de la carta.')) return
     
@@ -326,7 +446,6 @@ export default function HauteCuisineAdminPanel() {
   return (
     <div className="min-h-screen bg-[#110E0D] text-[#E8E2D9] font-sans selection:bg-[#B08968]/30 pb-32">
       
-      {/* NAVBAR SUPERIOR */}
       <header className="border-b border-[#26201D] bg-[#110E0D]/90 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
           <div>
@@ -353,7 +472,6 @@ export default function HauteCuisineAdminPanel() {
           </div>
         )}
 
-        {/* SECCIÓN DE CONFIGURACIÓN Y SELECTOR DE TEMA / ESTILOS */}
         <div className="p-8 rounded-3xl bg-[#161210] border border-[#26201D] shadow-2xl space-y-8">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[#26201D] pb-6">
             <div>
@@ -383,7 +501,6 @@ export default function HauteCuisineAdminPanel() {
             </div>
           </div>
 
-          {/* SELECTOR DE TEMA: OSCURO VS CLARO */}
           <div className="space-y-3">
             <label className="block text-[10px] font-serif uppercase tracking-widest text-[#B08968]">1. Tono de Fondo de la Carta (Tema)</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -419,7 +536,6 @@ export default function HauteCuisineAdminPanel() {
             </div>
           </div>
 
-          {/* Selector Visual de 3 Estilos */}
           <div className="space-y-3 pt-2">
             <label className="block text-[10px] font-serif uppercase tracking-widest text-[#B08968]">2. Estilo de Maquetación de la Carta</label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -489,7 +605,6 @@ export default function HauteCuisineAdminPanel() {
           </div>
         </div>
 
-        {/* GRID DE GESTIÓN DE SECCIONES Y PLATOS */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           <div className="lg:col-span-7 space-y-8">
@@ -609,7 +724,21 @@ export default function HauteCuisineAdminPanel() {
                   ) : (
                     categories.map((cat) => (
                       <div key={cat.id} className="space-y-3">
-                        <h4 className="text-[11px] font-serif uppercase tracking-widest text-[#B08968] px-1">{cat.name}</h4>
+                        
+                        {/* CABECERA DE LA SECCIÓN CON BOTÓN DE ELIMINAR */}
+                        <div className="flex items-center justify-between px-1">
+                          <h4 className="text-[11px] font-serif uppercase tracking-widest text-[#B08968]">{cat.name}</h4>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                            className="text-[10px] font-serif text-red-400/80 hover:text-red-400 transition cursor-pointer flex items-center gap-1"
+                            title="Eliminar esta sección"
+                          >
+                            <span>Eliminar Sección</span>
+                            <span>🗑️</span>
+                          </button>
+                        </div>
+
                         {cat.items.length === 0 ? (
                           <p className="text-[10px] text-[#7A7067] pl-1 italic">Sin platos en esta sección.</p>
                         ) : (
@@ -620,11 +749,57 @@ export default function HauteCuisineAdminPanel() {
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex items-center gap-3">
-                                  {item.image_url ? (
-                                    <img src={item.image_url} alt="" className="w-12 h-12 rounded-xl object-cover border border-[#382F2A] flex-shrink-0" />
-                                  ) : (
-                                    <div className="w-12 h-12 rounded-xl bg-[#110E0D] border border-[#26201D] flex items-center justify-center text-sm flex-shrink-0">🍽️</div>
-                                  )}
+                                  
+                                  <div className="relative w-12 h-12 rounded-xl overflow-hidden group border border-[#382F2A] bg-[#110E0D] flex-shrink-0">
+                                    {item.image_url ? (
+                                      <img 
+                                        src={item.image_url} 
+                                        alt={item.name} 
+                                        className="w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-30" 
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-sm font-serif text-[#8C7A6B]">
+                                        🍽️
+                                      </div>
+                                    )}
+                                    
+                                    <div className="absolute inset-0 bg-black/75 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-around px-1">
+                                      {uploadingItemId === item.id ? (
+                                        <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                      ) : (
+                                        <>
+                                          <label 
+                                            htmlFor={`edit-img-${item.id}`} 
+                                            className="p-1.5 text-white hover:text-[#B08968] cursor-pointer text-xs"
+                                            title="Cambiar fotografía"
+                                          >
+                                            📷
+                                          </label>
+                                          
+                                          {item.image_url && (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleDeleteItemImage(item.id, cat.id)}
+                                              className="p-1.5 text-red-400 hover:text-red-300 text-xs cursor-pointer"
+                                              title="Eliminar fotografía"
+                                            >
+                                              ❌
+                                            </button>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+
+                                    <input 
+                                      id={`edit-img-${item.id}`}
+                                      type="file" 
+                                      accept="image/*" 
+                                      className="hidden" 
+                                      onChange={(e) => handleUpdateItemImage(e, item.id, cat.id)}
+                                      disabled={uploadingItemId === item.id}
+                                    />
+                                  </div>
+
                                   <div>
                                     <h5 className="font-serif text-xs text-[#F4F0EB]">{item.name}</h5>
                                     <p className="text-[10px] text-[#9C9289] line-clamp-1 mt-0.5">{item.description || 'Sin descripción'}</p>
