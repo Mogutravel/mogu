@@ -734,7 +734,7 @@ export default function MoguSubtleAmbientMenu() {
             <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
               <div>
                 <span className={`text-[9px] font-serif uppercase tracking-[0.3em] block ${theme.subtitle}`}>
-                  Café de Especialidad
+                  
                 </span>
 
                 <h1 className={`text-sm font-serif font-medium tracking-wide mt-0.5 ${theme.titleMain}`}>
