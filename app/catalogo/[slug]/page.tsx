@@ -1,86 +1,135 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
-import Link from 'next/link'
+import React, { useEffect, useState, useMemo } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { FiArrowRight, FiHeart, FiShoppingBag, FiX, FiMessageCircle } from 'react-icons/fi'
+import Link from 'next/link'
+import { 
+  FiSearch, 
+  FiShoppingBag, 
+  FiX, 
+  FiPlus, 
+  FiMinus, 
+  FiArrowRight, 
+  FiPhoneCall,
+  FiCheck,
+  FiShare2
+} from 'react-icons/fi'
 
 interface Profile {
   id: string
   slug: string
-  full_name: string
-  phone?: string | null
-  has_catalogo?: boolean
-  catalog_hero_title?: string | null
-  catalog_hero_subtitle?: string | null
-  catalog_hero_description?: string | null
+  full_name?: string
+  bio?: string
+  phone?: string
+  avatar_url?: string | null
   catalog_hero_image?: string | null
+  menu_theme?: 'dark' | 'light'
+  menu_style?: 'modern' | 'classic' | 'cards'
 }
 
-interface Category {
-  id: string
-  name: string
-  position: number
-}
-
-interface Item {
+interface CatalogoItem {
   id: string
   category_id: string
   name: string
   description: string | null
-  price: string | null
+  price: string | number | null
   image_url: string | null
   active: boolean
+  position: number
 }
 
-export default function LightEditorialCatalogPage() {
+interface CatalogoCategory {
+  id: string
+  name: string
+  position: number
+  items: CatalogoItem[]
+}
+
+interface CartItem {
+  product: CatalogoItem
+  quantity: number
+}
+
+export default function AppleStylePublicCatalog() {
   const params = useParams()
+  const router = useRouter()
   const slug = params?.slug as string
 
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [categories, setCategories] = useState<Category[]>([])
-  const [items, setItems] = useState<Item[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all')
+  const [categories, setCategories] = useState<CatalogoCategory[]>([])
   const [loading, setLoading] = useState(true)
 
-  const [wishlist, setWishlist] = useState<string[]>([])
-  const [showDrawer, setShowDrawer] = useState(false)
+  // Filtros y Búsqueda
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCatId, setSelectedCatId] = useState<string>('all')
 
+  // Carrito de Compras (Drawer)
+  const [cart, setCart] = useState<CartItem[]>([])
+  const [isCartOpen, setIsCartOpen] = useState(false)
+
+  // Modal Detalle de Producto
+  const [selectedProduct, setSelectedProduct] = useState<CatalogoItem | null>(null)
+  const [detailQuantity, setDetailQuantity] = useState(1)
+
+  // Mensaje flotante de notificación
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+
+  // Carga de Datos desde Supabase
   useEffect(() => {
-    async function loadCatalogData() {
+    async function loadCatalog() {
       if (!slug) return
       setLoading(true)
 
       try {
-        const { data: profileData } = await supabase
+        let { data: profileData } = await supabase
           .from('profiles')
           .select('*')
           .eq('slug', slug)
           .maybeSingle()
 
-        if (profileData && profileData.has_catalogo) {
-          setProfile(profileData)
-
-          const { data: catsData } = await supabase
-            .from('catalogo_categories')
+        if (!profileData) {
+          const { data: fallback } = await supabase
+            .from('profiles')
             .select('*')
-            .eq('profile_id', profileData.id)
+            .ilike('full_name', `%${slug}%`)
+            .maybeSingle()
+          profileData = fallback
+        }
+
+        if (!profileData) {
+          setLoading(false)
+          return
+        }
+
+        setProfile({
+          ...profileData,
+          menu_theme: profileData.menu_theme || 'dark',
+          menu_style: profileData.menu_style || 'modern',
+        })
+
+        // Cargar Categorías del Catálogo
+        const { data: catsData } = await supabase
+          .from('catalogo_categories')
+          .select('*')
+          .eq('profile_id', profileData.id)
+          .order('position', { ascending: true })
+
+        if (catsData && catsData.length > 0) {
+          const catIds = catsData.map((c) => c.id)
+          const { data: itemsData } = await supabase
+            .from('catalogo_items')
+            .select('*')
+            .in('category_id', catIds)
+            .eq('active', true)
             .order('position', { ascending: true })
 
-          if (catsData && catsData.length > 0) {
-            setCategories(catsData)
+          const catsWithItems = catsData.map((cat) => ({
+            ...cat,
+            items: itemsData?.filter((i) => i.category_id === cat.id) || [],
+          }))
 
-            const catIds = catsData.map((c) => c.id)
-            const { data: itemsData } = await supabase
-              .from('catalogo_items')
-              .select('*')
-              .in('category_id', catIds)
-              .eq('active', true)
-              .order('position', { ascending: true })
-
-            setItems(itemsData || [])
-          }
+          setCategories(catsWithItems)
         }
       } catch (err) {
         console.error('Error al cargar catálogo:', err)
@@ -89,351 +138,522 @@ export default function LightEditorialCatalogPage() {
       }
     }
 
-    loadCatalogData()
+    loadCatalog()
   }, [slug])
 
-  const toggleWishlist = (id: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation()
-    setWishlist(prev => 
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    )
+  // --- LÓGICA DEL CARRITO ---
+  const addToCart = (product: CatalogoItem, qtyToAdd: number = 1) => {
+    setCart((prevCart) => {
+      const existingIndex = prevCart.findIndex((item) => item.product.id === product.id)
+      if (existingIndex > -1) {
+        const updated = [...prevCart]
+        updated[existingIndex].quantity += qtyToAdd
+        return updated
+      } else {
+        return [...prevCart, { product, quantity: qtyToAdd }]
+      }
+    })
+
+    setToastMessage(`Añadido: ${product.name}`)
+    setTimeout(() => setToastMessage(null), 2500)
   }
+
+  const updateQuantity = (productId: string, delta: number) => {
+    setCart((prevCart) => {
+      return prevCart
+        .map((item) => {
+          if (item.product.id === productId) {
+            const newQty = item.quantity + delta
+            return newQty > 0 ? { ...item, quantity: newQty } : null
+          }
+          return item
+        })
+        .filter(Boolean) as CartItem[]
+    })
+  }
+
+  const parsePrice = (priceVal: string | number | null): number => {
+    if (!priceVal) return 0
+    const cleaned = String(priceVal).replace(/[^0-9]/g, '')
+    return parseInt(cleaned, 10) || 0
+  }
+
+  const formatCLP = (amount: number): string => {
+    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount)
+  }
+
+  const cartTotal = useMemo(() => {
+    return cart.reduce((sum, item) => sum + parsePrice(item.product.price) * item.quantity, 0)
+  }, [cart])
+
+  const cartCount = useMemo(() => {
+    return cart.reduce((sum, item) => sum + item.quantity, 0)
+  }, [cart])
+
+  // Enviar Pedido a WhatsApp
+  const handleSendWhatsAppOrder = () => {
+    if (cart.length === 0 || !profile) return
+
+    const phone = profile.phone || '56912345678'
+    const cleanPhone = phone.replace(/[^0-9]/g, '')
+
+    let text = `✨ *Nuevo Pedido desde Catálogo MOGU*\n`
+    text += `*Cliente / Tienda:* ${profile.full_name || slug}\n`
+    text += `──────────────\n`
+
+    cart.forEach((item) => {
+      const pPrice = parsePrice(item.product.price)
+      text += `• *${item.quantity}x* ${item.product.name} — ${formatCLP(pPrice * item.quantity)}\n`
+    })
+
+    text += `──────────────\n`
+    text += `*TOTAL ESTIMADO:* ${formatCLP(cartTotal)}\n\n`
+    text += `Por favor confirma la disponibilidad y métodos de pago. ¡Gracias!`
+
+    const encodedText = encodeURIComponent(text)
+    window.open(`https://wa.me/${cleanPhone}?text=${encodedText}`, '_blank')
+  }
+
+  // Filtrado de Productos en Tiempo Real
+  const filteredProducts = useMemo(() => {
+    return categories.flatMap((cat) => {
+      if (selectedCatId !== 'all' && cat.id !== selectedCatId) return []
+
+      return cat.items
+        .filter((item) => {
+          const query = searchQuery.toLowerCase()
+          return item.name.toLowerCase().includes(query) || (item.description && item.description.toLowerCase().includes(query))
+        })
+        .map((item) => ({ ...item, categoryName: cat.name }))
+    })
+  }, [categories, searchQuery, selectedCatId])
+
+  const isDarkMode = profile?.menu_theme !== 'light'
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9F8F6] text-[#1C1917] flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-2 border-[#A37B4C]/20 border-t-[#A37B4C] animate-spin" />
+      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-[#0A0A0C] text-white' : 'bg-[#F5F5F7] text-neutral-900'}`}>
+        <div className="w-8 h-8 border-2 border-neutral-400/30 border-t-neutral-800 dark:border-t-white rounded-full animate-spin" />
       </div>
     )
   }
-
-  if (!profile) {
-    return (
-      <div className="min-h-screen bg-[#F9F8F6] text-[#1C1917] flex flex-col items-center justify-center p-6 text-center space-y-4">
-        <h1 className="font-serif text-2xl font-light">Catálogo no disponible</h1>
-        <p className="text-xs text-[#78716C] max-w-sm">
-          Este perfil no existe o no tiene activo el módulo de tienda/catálogo.
-        </p>
-        <Link 
-          href="/" 
-          className="px-6 py-2.5 rounded-full bg-[#1C1917] text-white font-serif text-xs uppercase tracking-widest"
-        >
-          Volver al Inicio
-        </Link>
-      </div>
-    )
-  }
-
-  const filteredItems = selectedCategory === 'all' 
-    ? items 
-    : items.filter(i => i.category_id === selectedCategory)
-
-  const handleWhatsAppConsult = () => {
-    const selectedItems = items.filter(i => wishlist.includes(i.id))
-    if (selectedItems.length === 0) return
-
-    let text = `Hola *${profile.full_name}*, me interesa consultar sobre la siguiente selección de tu catálogo:\n\n`
-    selectedItems.forEach(item => {
-      text += `• *${item.name}* ${item.price ? `(${item.price})` : ''}\n`
-    })
-
-    const rawPhone = profile.phone ? profile.phone.replace(/\D/g, '') : ''
-    const whatsappUrl = rawPhone 
-      ? `https://wa.me/${rawPhone}?text=${encodeURIComponent(text)}`
-      : `https://wa.me/?text=${encodeURIComponent(text)}`
-
-    window.open(whatsappUrl, '_blank')
-  }
-
-  // Textos editables del Hero con Fallbacks
-  const heroSubtitle = profile.catalog_hero_subtitle || `✦ ${profile.full_name.toUpperCase()} COLLECTION ✦`
-  const heroTitle = profile.catalog_hero_title || 'Curaduría\nExclusiva'
-  const heroDescription = profile.catalog_hero_description || 'Una selección donde la luz, las texturas y el espacio dialogan en perfecta armonía.'
-  const heroImage = profile.catalog_hero_image || "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?q=80&w=1600&auto=format&fit=crop"
 
   return (
-    <div className="bg-[#F9F8F6] text-[#1C1917] font-sans selection:bg-[#B88E56]/20 selection:text-[#1C1917] min-h-screen relative">
+    <div className={`min-h-screen font-sans selection:bg-neutral-200 dark:selection:bg-neutral-800 ${isDarkMode ? 'bg-[#0A0A0C] text-[#F5F5F7]' : 'bg-[#F9F9FB] text-neutral-900'} pb-32`}>
       
-      {/* NAVBAR FLOTANTE ILUMINADA */}
-      <header className="fixed top-0 left-0 w-full z-50 px-6 lg:px-12 py-5 flex items-center justify-between backdrop-blur-md bg-[#F9F8F6]/80 border-b border-[#E8E4DF]">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-serif font-bold tracking-[0.3em] uppercase text-[#A37B4C]">{profile.full_name}</span>
-          <span className="text-[#D6D0C7]">/</span>
-          <span className="text-xs font-medium tracking-widest uppercase text-[#78716C]">Editorial Collection</span>
+      {/* HEADER / HERO ESTILO APPLE EDITORIAL */}
+      <header className="relative w-full overflow-hidden">
+        {/* Banner de Portada (catalog_hero_image) */}
+        <div className="relative w-full h-72 md:h-96 bg-neutral-900">
+          <img
+            src={
+              profile?.catalog_hero_image ||
+              'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1600&auto=format&fit=crop'
+            }
+            alt="Hero Background"
+            className="w-full h-full object-cover opacity-85 dark:opacity-70 transition-all duration-700"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0C] via-[#0A0A0C]/40 to-transparent" />
         </div>
 
-        <div className="flex items-center gap-6">
-          <button 
-            onClick={() => setShowDrawer(true)}
-            className="relative px-5 py-2 rounded-full bg-white border border-[#E8E4DF] hover:border-[#A37B4C] text-xs font-serif tracking-wider text-[#1C1917] transition-all shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer"
-          >
-            <FiShoppingBag className="text-[#A37B4C]" />
-            <span>Selección</span>
-            {wishlist.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-[#A37B4C] text-white font-bold text-[9px] flex items-center justify-center shadow-sm">
-                {wishlist.length}
-              </span>
-            )}
-          </button>
+        {/* Tarjeta de Identidad del Negocio */}
+        <div className="max-w-5xl mx-auto px-6 -mt-24 relative z-10">
+          <div className={`p-8 rounded-3xl border shadow-2xl backdrop-blur-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 ${
+            isDarkMode 
+              ? 'bg-[#121215]/90 border-neutral-800/80' 
+              : 'bg-white/90 border-neutral-200/80 shadow-neutral-200/50'
+          }`}>
+            <div className="flex items-center gap-5">
+              {profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={profile.full_name}
+                  className="w-20 h-20 rounded-2xl object-cover border-2 border-white/20 shadow-lg"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-neutral-800 to-neutral-600 flex items-center justify-center text-2xl font-serif text-white shadow-lg">
+                  M
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase tracking-[0.25em] text-neutral-400 font-semibold block">
+                  ✦ Mogu Collection ✦
+                </span>
+                <h1 className="text-2xl md:text-3xl tracking-tight font-bold">
+                  {profile?.full_name || slug}
+                </h1>
+                <p className="text-xs text-neutral-400 font-light max-w-md line-clamp-2">
+                  {profile?.bio || 'Una selección curada donde el diseño, las texturas y el detalle dialogan en perfecta armonía.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Acciones de Cabecera */}
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              {profile?.phone && (
+                <a
+                  href={`tel:${profile.phone}`}
+                  className="p-3 rounded-2xl border border-neutral-700/60 hover:bg-neutral-800/40 transition text-xs font-medium flex items-center justify-center gap-2"
+                  title="Llamar directamente"
+                >
+                  <FiPhoneCall className="text-sm" />
+                </a>
+              )}
+
+              <button
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({ title: profile?.full_name, url: window.location.href })
+                  }
+                }}
+                className="p-3 rounded-2xl border border-neutral-700/60 hover:bg-neutral-800/40 transition text-xs font-medium flex items-center justify-center gap-2"
+                title="Compartir catálogo"
+              >
+                <FiShare2 className="text-sm" />
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* HERO EDITORIAL CORREGIDO (IMAGEN NÍTIDA Y BUEN CONTRASTE) */}
-      <section className="relative h-screen w-full flex flex-col justify-end p-6 lg:p-16 overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img 
-            src={heroImage} 
-            alt="Hero background" 
-            className="w-full h-full object-cover opacity-100 scale-105 transition-transform duration-1000"
-          />
-          {/* Degradado oscuro sutil para dar elegancia y legibilidad sin blanquear la imagen */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-        </div>
+      {/* CONTENIDO PRINCIPAL */}
+      <main className="max-w-5xl mx-auto px-6 pt-10 space-y-8">
 
-        <div className="relative z-10 max-w-5xl space-y-4 pb-12">
-          {/* Subtítulo Editable */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 backdrop-blur-md border border-white/20 text-[10px] uppercase tracking-[0.3em] text-[#A37B4C] shadow-sm">
-            {heroSubtitle}
+        {/* BUSCADOR Y SELECCIÓN DE CATEGORÍAS */}
+        <div className="space-y-6">
+          
+          {/* Buscador Inteligente */}
+          <div className="relative max-w-xl mx-auto">
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-sm" />
+            <input
+              type="text"
+              placeholder="Buscar piezas, colecciones o productos..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={`w-full pl-11 pr-10 py-3.5 rounded-2xl border text-xs font-medium outline-none transition shadow-sm ${
+                isDarkMode 
+                  ? 'bg-[#121215] border-neutral-800/80 text-white placeholder-neutral-500 focus:border-neutral-600' 
+                  : 'bg-white border-neutral-200 text-neutral-900 placeholder-neutral-400 focus:border-neutral-400'
+              }`}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-neutral-400 hover:text-neutral-200"
+              >
+                <FiX className="text-xs" />
+              </button>
+            )}
           </div>
 
-          {/* Título Principal Editable */}
-          <h1 className="text-5xl sm:text-7xl lg:text-8xl font-serif font-light text-white tracking-wide leading-none whitespace-pre-line drop-shadow-sm">
-            {heroTitle.includes('\n') ? (
-              <>
-                {heroTitle.split('\n')[0]} <br />
-                <span className="italic text-[#E5D2B8]">{heroTitle.split('\n')[1]}</span>
-              </>
-            ) : (
-              heroTitle
-            )}
-          </h1>
-
-          {/* Descripción Editable */}
-          <p className="text-sm sm:text-base text-white/90 font-light max-w-lg leading-relaxed pt-2 drop-shadow-sm">
-            {heroDescription}
-          </p>
-        </div>
-
-        <div className="absolute bottom-6 right-6 lg:right-12 z-10 hidden sm:flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-white/80">
-          <span>Desliza para explorar</span>
-          <FiArrowRight className="text-[#E5D2B8] animate-pulse" />
-        </div>
-      </section>
-
-      {/* NAVEGACIÓN SUPERIOR POR CATEGORÍAS */}
-      {categories.length > 0 && (
-        <div className="sticky top-[73px] z-40 bg-[#F9F8F6]/90 backdrop-blur-md border-y border-[#E8E4DF] py-4 px-6 lg:px-16 overflow-x-auto no-scrollbar">
-          <div className="max-w-7xl mx-auto flex items-center justify-start sm:justify-center gap-3">
+          {/* Navegación por Categorías (Carrusel Horizontal) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none justify-start md:justify-center">
             <button
-              onClick={() => setSelectedCategory('all')}
-              className={`px-5 py-2 rounded-full font-serif text-xs uppercase tracking-widest transition-all cursor-pointer whitespace-nowrap border ${
-                selectedCategory === 'all'
-                  ? 'bg-[#1C1917] text-white border-[#1C1917] shadow-sm'
-                  : 'bg-white text-[#78716C] border-[#E8E4DF] hover:border-[#A37B4C] hover:text-[#1C1917]'
+              onClick={() => setSelectedCatId('all')}
+              className={`px-5 py-2.5 rounded-2xl text-xs font-medium transition-all flex-shrink-0 border ${
+                selectedCatId === 'all'
+                  ? isDarkMode 
+                    ? 'bg-white text-black border-white shadow-lg' 
+                    : 'bg-neutral-900 text-white border-neutral-900 shadow-lg'
+                  : isDarkMode
+                    ? 'bg-[#121215] border-neutral-800 text-neutral-400 hover:border-neutral-700'
+                    : 'bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300'
               }`}
             >
-              Todas las Piezas
+              Ver Todo
             </button>
 
             {categories.map((cat) => (
               <button
                 key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-5 py-2 rounded-full font-serif text-xs uppercase tracking-widest transition-all cursor-pointer whitespace-nowrap border ${
-                  selectedCategory === cat.id
-                    ? 'bg-[#A37B4C] text-white border-[#A37B4C] shadow-sm'
-                    : 'bg-white text-[#78716C] border-[#E8E4DF] hover:border-[#A37B4C] hover:text-[#1C1917]'
+                onClick={() => setSelectedCatId(cat.id)}
+                className={`px-5 py-2.5 rounded-2xl text-xs font-medium transition-all flex-shrink-0 border ${
+                  selectedCatId === cat.id
+                    ? isDarkMode 
+                      ? 'bg-white text-black border-white shadow-lg' 
+                      : 'bg-neutral-900 text-white border-neutral-900 shadow-lg'
+                    : isDarkMode
+                      ? 'bg-[#121215] border-neutral-800 text-neutral-400 hover:border-neutral-700'
+                      : 'bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300'
                 }`}
               >
-                {cat.name}
+                {cat.name} ({cat.items.length})
               </button>
             ))}
           </div>
         </div>
-      )}
 
-      {/* GALERÍA DE ESCENAS EDITORIALES */}
-      <div className="space-y-32 py-20 px-6 lg:px-16 max-w-7xl mx-auto">
-        {filteredItems.length === 0 ? (
-          <div className="text-center py-20 text-[#78716C] font-serif text-sm italic">
-            No hay productos disponibles en esta categoría por el momento.
-          </div>
-        ) : (
-          filteredItems.map((item, index) => {
-            const isLiked = wishlist.includes(item.id)
-            const isEven = index % 2 === 1
-            const categoryObj = categories.find(c => c.id === item.category_id)
+        {/* GRILLA DE PRODUCTOS ESTILO APPLE */}
+        <div>
+          {filteredProducts.length === 0 ? (
+            <div className={`p-16 rounded-3xl border text-center space-y-3 ${isDarkMode ? 'bg-[#121215] border-neutral-800/80' : 'bg-white border-neutral-200'}`}>
+              <FiShoppingBag className="mx-auto w-10 h-10 text-neutral-400 opacity-50" />
+              <p className="text-xs font-medium text-neutral-400">No encontramos productos con los criterios seleccionados.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProducts.map((item) => {
+                const itemPrice = parsePrice(item.price)
 
-            return (
-              <article 
-                key={item.id}
-                className={`flex flex-col lg:flex-row items-center gap-12 lg:gap-20 ${
-                  isEven ? 'lg:flex-row-reverse' : ''
-                }`}
-              >
-                {/* TARJETA FOTOGRÁFICA DE ALTA DEFINICIÓN */}
-                <div 
-                  className="w-full lg:w-7/12 relative group cursor-pointer overflow-hidden rounded-[32px] border border-[#E8E4DF] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] transition-all duration-700 hover:shadow-[0_25px_60px_rgba(163,123,76,0.12)] hover:border-[#A37B4C]/40"
-                  onClick={() => toggleWishlist(item.id)}
-                >
-                  <div className="relative h-[480px] sm:h-[620px] w-full overflow-hidden bg-[#F2EFF9]">
-                    {item.image_url ? (
-                      <img 
-                        src={item.image_url} 
-                        alt={item.name}
-                        className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105" 
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-6xl">🛍️</div>
-                    )}
-                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
-                    
-                    {/* BOTÓN FAVORITO */}
-                    <button 
-                      onClick={(e) => toggleWishlist(item.id, e)}
-                      className={`absolute top-6 right-6 w-12 h-12 rounded-full backdrop-blur-md flex items-center justify-center transition-all shadow-md border ${
-                        isLiked 
-                          ? 'bg-[#A37B4C] border-[#A37B4C] text-white' 
-                          : 'bg-white/80 border-white text-[#1C1917] hover:border-[#A37B4C]'
-                      }`}
+                return (
+                  <div
+                    key={item.id}
+                    className={`group relative rounded-3xl border p-4 transition-all duration-500 hover:-translate-y-1 flex flex-col justify-between space-y-4 shadow-sm hover:shadow-2xl ${
+                      isDarkMode 
+                        ? 'bg-[#121215] border-neutral-800/80 hover:border-neutral-700' 
+                        : 'bg-white border-neutral-200/80 hover:border-neutral-300'
+                    }`}
+                  >
+                    <div 
+                      className="cursor-pointer space-y-4"
+                      onClick={() => {
+                        setSelectedProduct(item)
+                        setDetailQuantity(1)
+                      }}
                     >
-                      <FiHeart className={`text-base ${isLiked ? 'fill-current' : ''}`} />
-                    </button>
+                      {/* Imagen Protagonista Ratio 4:3 */}
+                      <div className="relative w-full h-56 rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-800/40">
+                        <img
+                          src={item.image_url || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=400&auto=format&fit=crop'}
+                          alt={item.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                        />
+                        <div className="absolute top-3 left-3">
+                          <span className="px-3 py-1 rounded-full text-[10px] font-semibold bg-black/60 text-white backdrop-blur-md">
+                            {item.categoryName}
+                          </span>
+                        </div>
+                      </div>
 
-                    <div className="absolute bottom-6 left-6 px-4 py-2 rounded-full bg-white/80 backdrop-blur-md border border-white/60 text-xs font-serif tracking-widest text-[#1C1917] shadow-sm">
-                      Pieza 0{index + 1} {item.price ? `— ${item.price}` : ''}
+                      {/* Detalles del Producto */}
+                      <div className="space-y-1.5 px-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="text-sm font-bold tracking-tight line-clamp-1">
+                            {item.name}
+                          </h3>
+                          <span className="text-sm font-bold text-emerald-500 whitespace-nowrap">
+                            {formatCLP(itemPrice)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-neutral-400 font-light line-clamp-2 leading-relaxed">
+                          {item.description || 'Edición limitada elaborada con altos estándares de calidad.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Botón de Agregar al Carrito */}
+                    <div className="pt-2">
+                      <button
+                        onClick={() => addToCart(item)}
+                        className={`w-full py-3 rounded-2xl text-xs font-semibold transition active:scale-[0.98] flex items-center justify-center gap-2 ${
+                          isDarkMode 
+                            ? 'bg-white text-black hover:bg-neutral-200' 
+                            : 'bg-neutral-900 text-white hover:bg-neutral-800'
+                        }`}
+                      >
+                        <FiPlus className="text-sm" />
+                        <span>Agregar al Carrito</span>
+                      </button>
                     </div>
                   </div>
-                </div>
-
-                {/* INFORMACIÓN EDITORIAL */}
-                <div className="w-full lg:w-5/12 space-y-6">
-                  <span className="text-[10px] uppercase font-serif tracking-[0.3em] font-semibold text-[#A37B4C]">
-                    {categoryObj?.name || 'Colección Exclusiva'}
-                  </span>
-
-                  <h2 className="text-3xl sm:text-5xl font-serif font-light text-[#1C1917] tracking-wide leading-tight">
-                    {item.name}
-                  </h2>
-
-                  <div className="flex items-center gap-2 py-1">
-                    <div className="w-8 h-[1px] bg-[#D6D0C7]" />
-                    <span className="text-[#A8A096] text-[10px]">•••</span>
-                    <div className="w-8 h-[1px] bg-[#D6D0C7]" />
-                  </div>
-
-                  <p className="text-sm text-[#78716C] font-light leading-relaxed">
-                    {item.description || 'Diseño y calidad excepcional seleccionada especialmente para ti.'}
-                  </p>
-
-                  <div className="pt-4">
-                    <button
-                      onClick={() => toggleWishlist(item.id)}
-                      className={`px-6 py-3.5 rounded-full font-serif text-xs uppercase tracking-[0.2em] transition-all flex items-center gap-2.5 cursor-pointer shadow-sm ${
-                        isLiked 
-                          ? 'bg-[#A37B4C] text-white font-medium shadow-md' 
-                          : 'bg-white border border-[#E8E4DF] text-[#1C1917] hover:border-[#A37B4C] hover:bg-[#F4F1EA]'
-                      }`}
-                    >
-                      <FiHeart className={isLiked ? 'fill-current' : ''} />
-                      <span>{isLiked ? 'Añadido a tu Selección' : 'Agregar a la Selección'}</span>
-                    </button>
-                  </div>
-                </div>
-              </article>
-            )
-          })
-        )}
-      </div>
-
-      {/* FOOTER SOBRIO Y MINIMALISTA */}
-      <footer className="border-t border-[#E8E4DF] bg-[#F2EFF9] py-20 px-6 lg:px-12 mt-20">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
-          <div className="space-y-2">
-            <span className="text-xs uppercase font-serif font-bold tracking-[0.3em] text-[#A37B4C]">{profile.full_name}</span>
-            <h3 className="text-2xl font-serif font-light text-[#1C1917]">Curaduría digital y diseño inmersivo.</h3>
-          </div>
-          <div className="flex items-center gap-6">
-            <button 
-              onClick={() => setShowDrawer(true)}
-              className="px-6 py-3 rounded-full bg-[#A37B4C] text-white font-serif text-xs uppercase tracking-wider font-medium hover:bg-[#8B673E] transition-all shadow-md"
-            >
-              Ver Selección ({wishlist.length})
-            </button>
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
-      </footer>
 
-      {/* DRAWER LATERAL EN FONDO CLARO */}
-      {showDrawer && (
-        <div 
-          onClick={() => setShowDrawer(false)}
-          className="fixed inset-0 z-50 bg-[#1C1917]/40 backdrop-blur-sm flex justify-end transition-opacity"
-        >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-[#F9F8F6] border-l border-[#E8E4DF] h-full p-6 sm:p-8 flex flex-col justify-between shadow-2xl"
+      </main>
+
+      {/* BOTÓN FLOTANTE DEL CARRITO */}
+      {cartCount > 0 && (
+        <div className="fixed bottom-6 right-6 z-40 animate-fade-in">
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="px-6 py-4 bg-neutral-900 dark:bg-white text-white dark:text-black font-semibold text-xs rounded-full shadow-2xl flex items-center gap-3 hover:scale-105 transition-all duration-300 active:scale-95 border border-white/20"
           >
-            <div className="space-y-6">
-              <div className="flex items-center justify-between border-b border-[#E8E4DF] pb-4">
-                <div className="flex items-center gap-2.5">
-                  <FiShoppingBag className="text-[#A37B4C] text-lg" />
-                  <h2 className="text-sm font-serif uppercase tracking-[0.2em] font-semibold text-[#1C1917]">Tu Selección</h2>
+            <div className="relative">
+              <FiShoppingBag className="text-lg" />
+              <span className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-emerald-500 text-white text-[9px] font-bold flex items-center justify-center">
+                {cartCount}
+              </span>
+            </div>
+            <span>Ver Selección</span>
+            <span className="font-bold border-l border-neutral-700 dark:border-neutral-300 pl-3">
+              {formatCLP(cartTotal)}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* DRAWER / PANEL SLIDE-OVER DEL CARRITO */}
+      {isCartOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className={`w-full max-w-md h-full flex flex-col justify-between p-6 shadow-2xl border-l ${
+            isDarkMode ? 'bg-[#121215] border-neutral-800 text-white' : 'bg-white border-neutral-200 text-neutral-900'
+          }`}>
+            <div className="space-y-6 overflow-y-auto pr-1">
+              
+              {/* Encabezado Carrito */}
+              <div className="flex items-center justify-between border-b border-neutral-800/80 pb-4">
+                <div className="flex items-center gap-2">
+                  <FiShoppingBag className="text-lg text-emerald-500" />
+                  <h2 className="text-sm font-bold tracking-tight">Tu Selección ({cartCount})</h2>
                 </div>
-                <button 
-                  onClick={() => setShowDrawer(false)}
-                  className="w-8 h-8 rounded-full bg-white text-[#78716C] hover:text-[#1C1917] flex items-center justify-center transition border border-[#E8E4DF]"
+                <button
+                  onClick={() => setIsCartOpen(false)}
+                  className="p-2 rounded-full hover:bg-neutral-800 transition"
                 >
-                  <FiX className="text-xs" />
+                  <FiX className="text-base" />
                 </button>
               </div>
 
-              <div className="space-y-3 overflow-y-auto max-h-[60vh] pr-1">
-                {wishlist.length === 0 ? (
-                  <div className="text-center py-16 text-[#78716C] text-xs font-serif italic">
-                    Tu selección está vacía. Haz clic en el ícono de favorito ❤️ en las piezas que desees destacar.
-                  </div>
-                ) : (
-                  items.filter(item => wishlist.includes(item.id)).map(item => (
-                    <div key={item.id} className="flex items-center justify-between gap-3 p-3.5 bg-white border border-[#E8E4DF] rounded-2xl shadow-sm">
-                      <div className="flex items-center gap-3.5">
-                        {item.image_url ? (
-                          <img src={item.image_url} alt="" className="w-12 h-12 rounded-xl object-cover" />
-                        ) : (
-                          <div className="w-12 h-12 rounded-xl bg-[#F2EFF9] flex items-center justify-center text-lg">🛍️</div>
-                        )}
-                        <div>
-                          <h4 className="text-xs font-serif font-light text-[#1C1917] line-clamp-1">{item.name}</h4>
-                          <span className="text-[11px] text-[#A37B4C] font-medium">{item.price || 'Sin precio'}</span>
+              {/* Lista de Ítems */}
+              {cart.length === 0 ? (
+                <div className="text-center py-20 space-y-3">
+                  <FiShoppingBag className="mx-auto w-10 h-10 opacity-30" />
+                  <p className="text-xs text-neutral-400 font-light">Tu carrito está vacío actualmente.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {cart.map((item) => {
+                    const price = parsePrice(item.product.price)
+                    return (
+                      <div
+                        key={item.product.id}
+                        className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 ${
+                          isDarkMode ? 'bg-[#18181D] border-neutral-800' : 'bg-neutral-50 border-neutral-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={item.product.image_url || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=400&auto=format&fit=crop'}
+                            alt={item.product.name}
+                            className="w-12 h-12 rounded-xl object-cover border border-neutral-800"
+                          />
+                          <div>
+                            <h4 className="text-xs font-bold line-clamp-1">{item.product.name}</h4>
+                            <span className="text-xs text-emerald-500 font-semibold">{formatCLP(price * item.quantity)}</span>
+                          </div>
+                        </div>
+
+                        {/* Controles de Cantidad */}
+                        <div className="flex items-center gap-2 bg-neutral-900/60 dark:bg-neutral-800 px-2.5 py-1.5 rounded-xl border border-neutral-700/50">
+                          <button
+                            onClick={() => updateQuantity(item.product.id, -1)}
+                            className="text-xs text-neutral-400 hover:text-white"
+                          >
+                            <FiMinus />
+                          </button>
+                          <span className="text-xs font-bold px-1">{item.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(item.product.id, 1)}
+                            className="text-xs text-neutral-400 hover:text-white"
+                          >
+                            <FiPlus />
+                          </button>
                         </div>
                       </div>
-                      <button 
-                        onClick={() => toggleWishlist(item.id)}
-                        className="text-[#78716C] hover:text-rose-500 p-2 transition cursor-pointer"
-                      >
-                        <FiX className="text-sm" />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
-            <div className="pt-4 border-t border-[#E8E4DF]">
+            {/* Subtotal y Envío a WhatsApp */}
+            {cart.length > 0 && (
+              <div className="pt-6 border-t border-neutral-800/80 space-y-4">
+                <div className="flex items-center justify-between text-sm font-bold">
+                  <span>Subtotal Estimado</span>
+                  <span className="text-emerald-500 text-lg">{formatCLP(cartTotal)}</span>
+                </div>
+
+                <button
+                  onClick={handleSendWhatsAppOrder}
+                  className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-2xl transition shadow-xl flex items-center justify-center gap-2 active:scale-[0.98]"
+                >
+                  <span>Enviar Pedido por WhatsApp</span>
+                  <FiArrowRight className="text-sm" />
+                </button>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DETALLE DE PRODUCTO */}
+      {selectedProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className={`w-full max-w-lg rounded-3xl border p-6 space-y-6 shadow-2xl overflow-hidden ${
+            isDarkMode ? 'bg-[#121215] border-neutral-800 text-white' : 'bg-white border-neutral-200 text-neutral-900'
+          }`}>
+            <div className="flex items-center justify-between border-b border-neutral-800/80 pb-4">
+              <span className="text-[10px] uppercase tracking-widest text-neutral-400 font-semibold">Detalle del Producto</span>
               <button
-                onClick={handleWhatsAppConsult}
-                disabled={wishlist.length === 0}
-                className={`w-full py-4 px-6 rounded-full font-serif text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2.5 shadow-md transition-all ${
-                  wishlist.length > 0
-                    ? 'bg-[#A37B4C] text-white font-medium hover:bg-[#8B673E] cursor-pointer'
-                    : 'bg-[#E8E4DF] text-[#78716C] cursor-not-allowed'
-                }`}
+                onClick={() => setSelectedProduct(null)}
+                className="p-1.5 rounded-full hover:bg-neutral-800 transition"
               >
-                <FiMessageCircle className="text-base" />
-                <span>Consultar por WhatsApp</span>
+                <FiX className="text-base" />
+              </button>
+            </div>
+
+            <div className="relative w-full h-64 rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-800">
+              <img
+                src={selectedProduct.image_url || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=400&auto=format&fit=crop'}
+                alt={selectedProduct.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="text-lg font-bold tracking-tight">{selectedProduct.name}</h3>
+                <span className="text-lg font-bold text-emerald-500 whitespace-nowrap">
+                  {formatCLP(parsePrice(selectedProduct.price))}
+                </span>
+              </div>
+              <p className="text-xs text-neutral-400 font-light leading-relaxed">
+                {selectedProduct.description || 'Detalles cuidados y acabado de alta gama.'}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-neutral-800/80 gap-4">
+              <div className="flex items-center gap-3 bg-neutral-800/60 px-4 py-2.5 rounded-2xl border border-neutral-700/50">
+                <button
+                  onClick={() => setDetailQuantity(Math.max(1, detailQuantity - 1))}
+                  className="text-xs text-neutral-400 hover:text-white"
+                >
+                  <FiMinus />
+                </button>
+                <span className="text-xs font-bold">{detailQuantity}</span>
+                <button
+                  onClick={() => setDetailQuantity(detailQuantity + 1)}
+                  className="text-xs text-neutral-400 hover:text-white"
+                >
+                  <FiPlus />
+                </button>
+              </div>
+
+              <button
+                onClick={() => {
+                  addToCart(selectedProduct, detailQuantity)
+                  setSelectedProduct(null)
+                }}
+                className="flex-1 py-3.5 bg-white dark:bg-white text-black font-bold text-xs uppercase tracking-wider rounded-2xl transition shadow-xl hover:opacity-90 active:scale-[0.98]"
+              >
+                Agregar al Carrito
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* NOTIFICACIÓN TOAST FLOTANTE */}
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-50 px-5 py-3 rounded-2xl bg-emerald-500 text-white text-xs font-semibold shadow-2xl flex items-center gap-2 animate-bounce">
+          <FiCheck />
+          <span>{toastMessage}</span>
         </div>
       )}
 
