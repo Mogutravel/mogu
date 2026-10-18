@@ -22,11 +22,7 @@ import {
   FiCamera, 
   FiCheck, 
   FiLoader, 
-  FiExternalLink, 
-  FiLock, 
-  FiUser, 
-  FiLayers,
-  FiShoppingBag as FiShop
+  FiExternalLink 
 } from 'react-icons/fi'
 
 interface Profile {
@@ -565,10 +561,8 @@ export default function AppleStyleAdvancedClientDashboard() {
           </div>
 
           {/* ========================================================= */}
-          {/* RENDERIZADO CONDICIONAL EXCLUSIVO: MENÚ DIGITAL VS TIENDA  */}
+          {/* MÓDULO DE MENÚ DIGITAL                                    */}
           {/* ========================================================= */}
-          
-          {/* 1. SI TIENE MENÚ DIGITAL ACTIVO */}
           {profile?.has_menu && (
             <div className="p-6 rounded-3xl bg-white border border-[#E5E5EA] shadow-sm flex items-center justify-between flex-wrap gap-4">
               <div className="space-y-1">
@@ -591,7 +585,9 @@ export default function AppleStyleAdvancedClientDashboard() {
             </div>
           )}
 
-          {/* 2. SI TIENE CATÁLOGO / TIENDA ACTIVO */}
+          {/* ========================================================= */}
+          {/* MÓDULO DE TIENDA ONLINE (Ruta corregida)                    */}
+          {/* ========================================================= */}
           {profile?.has_catalogo && (
             <div className="p-6 rounded-3xl bg-white border border-[#E5E5EA] shadow-sm flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center space-x-3.5">
@@ -612,7 +608,7 @@ export default function AppleStyleAdvancedClientDashboard() {
               </div>
 
               <Link
-                href={`/catalogo/mogu/admin/${profile?.slug}`}
+                href={`/panel/tienda/${profile?.slug}`}
                 className="px-4 py-2.5 bg-[#1D1D1F] hover:bg-black text-white font-medium text-xs rounded-xl transition shadow-sm flex items-center gap-1.5 flex-shrink-0"
               >
                 <span>Editar Tienda</span>
