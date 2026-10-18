@@ -17,7 +17,10 @@ import {
   FiLoader,
   FiEdit3,
   FiLayers,
-  FiImage
+  FiImage,
+  FiLayout,
+  FiMoon,
+  FiSun
 } from 'react-icons/fi'
 
 interface Profile {
@@ -26,6 +29,8 @@ interface Profile {
   full_name?: string
   avatar_url?: string | null
   has_menu?: boolean
+  menu_style?: 'classic' | 'modern' | 'cards' | string
+  menu_theme?: 'light' | 'dark' | string
 }
 
 interface MenuItem {
@@ -55,6 +60,11 @@ export default function AppleStyleMenuAdminPanel() {
   const [categories, setCategories] = useState<MenuCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
+
+  // Preferencias de Menú
+  const [menuStyle, setMenuStyle] = useState<'classic' | 'modern' | 'cards'>('modern')
+  const [menuTheme, setMenuTheme] = useState<'light' | 'dark'>('light')
+  const [savingSettings, setSavingSettings] = useState(false)
 
   // Carga de Avatar / Logo
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
@@ -115,6 +125,8 @@ export default function AppleStyleMenuAdminPanel() {
         }
 
         setProfile(profileData)
+        if (profileData.menu_style) setMenuStyle(profileData.menu_style as any)
+        if (profileData.menu_theme) setMenuTheme(profileData.menu_theme as any)
 
         // Cargar Categorías de Menú
         const { data: catsData } = await supabase
@@ -148,6 +160,37 @@ export default function AppleStyleMenuAdminPanel() {
 
     loadData()
   }, [slug, router])
+
+  // --- GUARDAR ESTILO Y FONDO DEL MENÚ ---
+  const handleUpdateMenuSettings = async (
+    newStyle: 'classic' | 'modern' | 'cards',
+    newTheme: 'light' | 'dark'
+  ) => {
+    if (!profile) return
+    setSavingSettings(true)
+    setMenuStyle(newStyle)
+    setMenuTheme(newTheme)
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          menu_style: newStyle,
+          menu_theme: newTheme
+        })
+        .eq('id', profile.id)
+
+      if (error) throw error
+
+      setProfile({ ...profile, menu_style: newStyle, menu_theme: newTheme })
+      setMessage('✨ Estilo y diseño del menú actualizados.')
+      setTimeout(() => setMessage(''), 3000)
+    } catch (err: any) {
+      alert(`Error al guardar configuración del menú: ${err.message}`)
+    } finally {
+      setSavingSettings(false)
+    }
+  }
 
   // --- LOGO / AVATAR DEL LOCAL ---
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -350,7 +393,7 @@ export default function AppleStyleMenuAdminPanel() {
     }
   }
 
-  // Eliminar únicamente la foto del producto (conservando el plato)
+  // Eliminar únicamente la foto del producto
   const handleDeleteProductImageOnly = async (itemId: string) => {
     if (!confirm('¿Eliminar únicamente la fotografía de este plato?')) return
 
@@ -423,7 +466,7 @@ export default function AppleStyleMenuAdminPanel() {
     }
   }
 
-  // Cambiar Visibilidad (Activo/Oculto)
+  // Cambiar Visibilidad
   const handleToggleActive = async (itemId: string, currentActive: boolean) => {
     const newStatus = !currentActive
     try {
@@ -517,51 +560,154 @@ export default function AppleStyleMenuAdminPanel() {
           </div>
         )}
 
-        {/* TARJETA DE IDENTIDAD Y LOGOTIPO DEL LOCAL (SIN PORTADA) */}
-        <div className="p-6 rounded-3xl bg-white dark:bg-[#121215] border border-neutral-200/80 dark:border-neutral-800/80 shadow-sm flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="relative w-16 h-16 rounded-2xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden group flex-shrink-0">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="Logo" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center font-bold text-lg text-neutral-400">
-                  🍽️
-                </div>
-              )}
-
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-1">
-                <label 
-                  htmlFor="avatar-file-input" 
-                  className="p-1.5 text-white hover:text-emerald-400 cursor-pointer text-xs"
-                >
-                  {uploadingAvatar ? <FiLoader className="animate-spin text-xs" /> : <FiCamera className="text-xs" />}
-                </label>
-
-                {profile?.avatar_url && (
-                  <button
-                    type="button"
-                    onClick={handleDeleteAvatar}
-                    className="p-1.5 text-rose-400 hover:text-rose-300 text-xs cursor-pointer"
-                  >
-                    <FiX className="text-xs" />
-                  </button>
+        {/* TARJETA DE IDENTIDAD Y CONFIGURACIÓN DE ESTILO DEL MENÚ */}
+        <div className="p-6 rounded-3xl bg-white dark:bg-[#121215] border border-neutral-200/80 dark:border-neutral-800/80 shadow-sm space-y-6">
+          
+          <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800/60 pb-5">
+            <div className="flex items-center gap-4">
+              <div className="relative w-16 h-16 rounded-2xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden group flex-shrink-0">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center font-bold text-lg text-neutral-400">
+                    🍽️
+                  </div>
                 )}
+
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-1">
+                  <label 
+                    htmlFor="avatar-file-input" 
+                    className="p-1.5 text-white hover:text-emerald-400 cursor-pointer text-xs"
+                  >
+                    {uploadingAvatar ? <FiLoader className="animate-spin text-xs" /> : <FiCamera className="text-xs" />}
+                  </label>
+
+                  {profile?.avatar_url && (
+                    <button
+                      type="button"
+                      onClick={handleDeleteAvatar}
+                      className="p-1.5 text-rose-400 hover:text-rose-300 text-xs cursor-pointer"
+                    >
+                      <FiX className="text-xs" />
+                    </button>
+                  )}
+                </div>
+
+                <input 
+                  id="avatar-file-input" 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={handleAvatarChange}
+                  disabled={uploadingAvatar}
+                />
               </div>
 
-              <input 
-                id="avatar-file-input" 
-                type="file" 
-                accept="image/*" 
-                className="hidden" 
-                onChange={handleAvatarChange}
-                disabled={uploadingAvatar}
-              />
+              <div>
+                <h2 className="text-sm font-bold text-neutral-900 dark:text-white tracking-tight">{profile?.full_name || slug}</h2>
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400">Personaliza la presentación pública de tu carta</p>
+              </div>
+            </div>
+          </div>
+
+          {/* SELECCIÓN DE 3 ESTILOS DE MENÚ Y MODO COLOR */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* ESTILO DE MENÚ (Classic, Modern, Cards) */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <FiLayout className="text-sm text-neutral-500" />
+                <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                  Estilo de Disposición (Layout)
+                </label>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleUpdateMenuSettings('classic', menuTheme)}
+                  className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition ${
+                    menuStyle === 'classic'
+                      ? 'border-neutral-900 dark:border-white bg-neutral-900 dark:bg-white text-white dark:text-black shadow-sm'
+                      : 'border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 text-neutral-700 dark:text-neutral-300 hover:border-neutral-400'
+                  }`}
+                >
+                  <span className="text-xs font-bold">Clásico</span>
+                  <span className="text-[10px] opacity-70 mt-1">Lista limpia de texto y precios</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleUpdateMenuSettings('modern', menuTheme)}
+                  className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition ${
+                    menuStyle === 'modern'
+                      ? 'border-neutral-900 dark:border-white bg-neutral-900 dark:bg-white text-white dark:text-black shadow-sm'
+                      : 'border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 text-neutral-700 dark:text-neutral-300 hover:border-neutral-400'
+                  }`}
+                >
+                  <span className="text-xs font-bold">Moderno</span>
+                  <span className="text-[10px] opacity-70 mt-1">Miniauturas horizontales pulidas</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleUpdateMenuSettings('cards', menuTheme)}
+                  className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition ${
+                    menuStyle === 'cards'
+                      ? 'border-neutral-900 dark:border-white bg-neutral-900 dark:bg-white text-white dark:text-black shadow-sm'
+                      : 'border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 text-neutral-700 dark:text-neutral-300 hover:border-neutral-400'
+                  }`}
+                >
+                  <span className="text-xs font-bold">Tarjetas</span>
+                  <span className="text-[10px] opacity-70 mt-1">Grilla visual estilo Instagram</span>
+                </button>
+              </div>
             </div>
 
-            <div>
-              <h2 className="text-sm font-bold text-neutral-900 dark:text-white tracking-tight">{profile?.full_name || slug}</h2>
-              <p className="text-[11px] text-neutral-500 dark:text-neutral-400">Logotipo y configuración de la carta</p>
+            {/* COLOR DE FONDO (Light vs Dark) */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                {menuTheme === 'dark' ? <FiMoon className="text-sm text-neutral-500" /> : <FiSun className="text-sm text-neutral-500" />}
+                <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                  Tema Visual de Fondo
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleUpdateMenuSettings(menuStyle, 'light')}
+                  className={`p-3 rounded-2xl border text-left flex items-center justify-between transition ${
+                    menuTheme === 'light'
+                      ? 'border-neutral-900 dark:border-white bg-white text-black shadow-sm ring-2 ring-neutral-900/20'
+                      : 'border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 text-neutral-700 dark:text-neutral-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <FiSun className="text-amber-500 text-sm" />
+                    <span className="text-xs font-bold">Claro (Light)</span>
+                  </div>
+                  {menuTheme === 'light' && <FiCheck className="text-xs" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleUpdateMenuSettings(menuStyle, 'dark')}
+                  className={`p-3 rounded-2xl border text-left flex items-center justify-between transition ${
+                    menuTheme === 'dark'
+                      ? 'border-neutral-900 dark:border-white bg-neutral-950 text-white shadow-sm ring-2 ring-white/20'
+                      : 'border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 text-neutral-700 dark:text-neutral-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <FiMoon className="text-indigo-400 text-sm" />
+                    <span className="text-xs font-bold">Oscuro (Dark)</span>
+                  </div>
+                  {menuTheme === 'dark' && <FiCheck className="text-xs" />}
+                </button>
+              </div>
             </div>
+
           </div>
         </div>
 
@@ -791,92 +937,93 @@ export default function AppleStyleMenuAdminPanel() {
 
             <form onSubmit={handleSaveProduct} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">Nombre del Plato</label>
+                <label className="block text-xs font-semibold text-neutral-500 mb-1">Categoría</label>
+                <select
+                  value={formCategoryId}
+                  onChange={(e) => setFormCategoryId(e.target.value)}
+                  className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 dark:text-white outline-none cursor-pointer"
+                >
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-neutral-500 mb-1">Nombre del Plato</label>
                 <input
                   type="text"
                   required
-                  placeholder="Ej. Hamburguesa Wagyu Doble"
+                  placeholder="Ej. Lomo Saltado"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-100 dark:bg-neutral-900 text-xs text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-neutral-400"
+                  className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 dark:text-white outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">Categoría</label>
-                  <select
-                    value={formCategoryId}
-                    onChange={(e) => setFormCategoryId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-100 dark:bg-neutral-900 text-xs text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-neutral-400"
-                  >
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">Precio</label>
+                  <label className="block text-xs font-semibold text-neutral-500 mb-1">Precio ($)</label>
                   <input
                     type="text"
-                    placeholder="Ej. 9900"
+                    placeholder="9990"
                     value={formPrice}
                     onChange={(e) => setFormPrice(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-100 dark:bg-neutral-900 text-xs text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-neutral-400"
+                    className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 dark:text-white outline-none"
                   />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-500 mb-1">Fotografía</label>
+                  <label className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 border border-neutral-200 dark:border-neutral-800 text-xs font-medium text-neutral-900 dark:text-white rounded-xl cursor-pointer transition">
+                    <FiImage className="text-xs" />
+                    <span>Subir Foto</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          setFormImageFile(file)
+                          setFormImagePreview(URL.createObjectURL(file))
+                        }
+                      }} 
+                      className="hidden" 
+                    />
+                  </label>
                 </div>
               </div>
 
+              {formImagePreview && (
+                <div className="w-20 h-20 rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800 mx-auto relative">
+                  <img src={formImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+
               <div>
-                <label className="block text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">Descripción</label>
+                <label className="block text-xs font-semibold text-neutral-500 mb-1">Descripción / Ingredientes</label>
                 <textarea
-                  rows={3}
-                  placeholder="Ingredientes, alérgenos, notas..."
+                  rows={2}
+                  placeholder="Detalles del plato..."
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-100 dark:bg-neutral-900 text-xs text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-neutral-400 resize-none"
+                  className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 dark:text-white outline-none resize-none"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">Fotografía del Plato</label>
-                <div className="flex items-center gap-4">
-                  {formImagePreview && (
-                    <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-neutral-200 dark:border-neutral-800 flex-shrink-0">
-                      <img src={formImagePreview} alt="" className="w-full h-full object-cover" />
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        setFormImageFile(file)
-                        setFormImagePreview(URL.createObjectURL(file))
-                      }
-                    }}
-                    className="w-full text-xs text-neutral-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-medium file:bg-neutral-200 dark:file:bg-neutral-800 file:text-neutral-900 dark:file:text-white hover:file:opacity-80 cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-neutral-100 dark:border-neutral-800">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition"
+                  className="px-4 py-2.5 bg-neutral-100 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 text-xs font-medium rounded-xl transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submittingItem}
-                  className="px-5 py-2.5 rounded-xl bg-neutral-900 dark:bg-white text-white dark:text-black text-xs font-medium hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-black text-xs font-medium rounded-xl transition shadow-sm cursor-pointer disabled:opacity-50"
                 >
-                  {submittingItem && <FiLoader className="animate-spin text-xs" />}
-                  <span>{editingItem ? 'Guardar Cambios' : 'Publicar Plato'}</span>
+                  {submittingItem ? 'Guardando...' : 'Guardar Plato'}
                 </button>
               </div>
             </form>
