@@ -1,19 +1,19 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
-import { 
-  FaWhatsapp, 
-  FaInstagram, 
-  FaFacebook, 
-  FaGlobe, 
-  FaMapMarkerAlt, 
-  FaUtensils, 
-  FaPhone, 
-  FaStar, 
-  FaShoppingBag, 
+import {
+  FaWhatsapp,
+  FaInstagram,
+  FaFacebook,
+  FaGlobe,
+  FaMapMarkerAlt,
+  FaUtensils,
+  FaPhone,
+  FaStar,
+  FaShoppingBag,
   FaCalendarAlt 
 } from 'react-icons/fa'
 import { 
@@ -22,8 +22,11 @@ import {
   FiCamera, 
   FiCheck, 
   FiLoader, 
-  FiExternalLink 
+  FiExternalLink,
+  FiGift,
+  FiArrowRight
 } from 'react-icons/fi'
+import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
 
 interface Profile {
   id: string
@@ -37,6 +40,7 @@ interface Profile {
   theme_color?: string | null
   has_menu?: boolean
   has_catalogo?: boolean
+  has_loyalty?: boolean // 👈 Columna para verificar si cuenta con la tarjeta de fidelización
 }
 
 interface LinkItem {
@@ -304,6 +308,7 @@ export default function AppleStyleAdvancedClientDashboard() {
   }
 
   const activeTheme = COLOR_OPTIONS.find((c) => c.value === profile?.theme_color) || COLOR_OPTIONS[0]
+  const loyaltyEditRoute = profile?.has_menu ? `/panel/menu/${profile?.slug}/fidelizacion` : `/panel/tienda/${profile?.slug}/fidelizacion`
 
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] font-sans selection:bg-[#E8E8ED] pb-24">
@@ -560,9 +565,7 @@ export default function AppleStyleAdvancedClientDashboard() {
             </DragDropContext>
           </div>
 
-          {/* ========================================================= */}
-          {/* MÓDULO DE MENÚ DIGITAL                                    */}
-          {/* ========================================================= */}
+          {/* MÓDULO DE MENÚ DIGITAL */}
           {profile?.has_menu && (
             <div className="p-6 rounded-3xl bg-white border border-[#E5E5EA] shadow-sm flex items-center justify-between flex-wrap gap-4">
               <div className="space-y-1">
@@ -585,9 +588,7 @@ export default function AppleStyleAdvancedClientDashboard() {
             </div>
           )}
 
-          {/* ========================================================= */}
-          {/* MÓDULO DE TIENDA ONLINE (Ruta corregida)                    */}
-          {/* ========================================================= */}
+          {/* MÓDULO DE TIENDA ONLINE */}
           {profile?.has_catalogo && (
             <div className="p-6 rounded-3xl bg-white border border-[#E5E5EA] shadow-sm flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center space-x-3.5">
@@ -613,6 +614,36 @@ export default function AppleStyleAdvancedClientDashboard() {
               >
                 <span>Editar Tienda</span>
                 <FiExternalLink className="text-xs" />
+              </Link>
+            </div>
+          )}
+
+          {/* MÓDULO DE FIDELIZACIÓN DIGITAL (SÓLO SI HAS_LOYALTY ES TRUE) */}
+          {profile?.has_loyalty && (
+            <div className="p-6 rounded-3xl bg-white border border-[#E5E5EA] shadow-sm flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center space-x-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/60 flex items-center justify-center text-xl shadow-sm flex-shrink-0">
+                  <FiGift />
+                </div>
+                <div>
+                  <span className="inline-block px-2.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold uppercase tracking-wider rounded-full border border-emerald-200/60 mb-1">
+                    Módulo VIP 🎁
+                  </span>
+                  <h3 className="text-sm font-bold text-[#1D1D1F] tracking-tight">
+                    Tarjeta de Fidelización
+                  </h3>
+                  <p className="text-xs text-[#86868B] mt-0.5">
+                    Configura sellos, PIN de caja y recompensas para clientes frecuentes.
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                href={loyaltyEditRoute}
+                className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-medium text-xs rounded-xl transition shadow-sm flex items-center gap-1.5 flex-shrink-0"
+              >
+                <span>Editar Tarjeta</span>
+                <FiArrowRight className="text-xs" />
               </Link>
             </div>
           )}
@@ -711,18 +742,21 @@ export default function AppleStyleAdvancedClientDashboard() {
                           <div className="w-6 h-6 rounded-lg bg-[#F5F5F7] flex items-center justify-center flex-shrink-0">
                             {renderLinkIcon(l.emoji)}
                           </div>
-                          <span className="text-[10px] font-semibold text-[#1D1D1F] truncate">{l.title}</span>
+                          <span className="text-[11px] font-medium text-[#1D1D1F] truncate">{l.title}</span>
                         </div>
                       </div>
                     ))
                   )}
                 </div>
               </div>
+
             </div>
+
           </div>
         </div>
 
       </main>
+
     </div>
   )
 }

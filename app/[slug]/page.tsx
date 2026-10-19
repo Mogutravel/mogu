@@ -46,6 +46,12 @@ interface LinkItem {
   emoji?: string
 }
 
+interface LoyaltyProgram {
+  id: string
+  program_name: string
+  is_active: boolean
+}
+
 const getThemeGlowClass = (themeColor?: string | null) => {
   switch (themeColor) {
     case 'from-blue-500 to-indigo-500':
@@ -104,6 +110,7 @@ export default function AppleDynamicPublicProfilePage() {
 
   const [profile, setProfile] = useState<Profile | null>(null)
   const [links, setLinks] = useState<LinkItem[]>([])
+  const [loyaltyProgram, setLoyaltyProgram] = useState<LoyaltyProgram | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [expired, setExpired] = useState(false)
@@ -138,6 +145,7 @@ export default function AppleDynamicPublicProfilePage() {
 
       setProfile(profileData)
 
+      // Cargar Enlaces Activos
       const { data: linksData } = await supabase
         .from('links')
         .select('*')
@@ -146,6 +154,19 @@ export default function AppleDynamicPublicProfilePage() {
         .order('position', { ascending: true })
 
       if (linksData) setLinks(linksData)
+
+      // Cargar Programa de Fidelización Activo
+      const { data: loyaltyData } = await supabase
+        .from('loyalty_programs')
+        .select('*')
+        .eq('profile_id', profileData.id)
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (loyaltyData) {
+        setLoyaltyProgram(loyaltyData)
+      }
+
       setLoading(false)
     }
 
@@ -272,10 +293,14 @@ export default function AppleDynamicPublicProfilePage() {
   const themeGlowClass = getThemeGlowClass(profile.theme_color)
   const themeHex = getThemeHex(profile.theme_color)
 
+  // Determinar la ruta del pase según el tipo de catálogo o menú disponible
+  const passRoute = profile.has_catalogo 
+    ? `/catalogo/${profile.slug}/pass` 
+    : `/menu/${profile.slug}/pass`
+
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] font-sans selection:bg-[#E8E8ED] relative overflow-hidden flex flex-col justify-between">
       
-      {/* Luz ambiental sutil de profundidad y capas estilo Apple */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-emerald-500/10 via-teal-500/5 to-transparent blur-[120px] pointer-events-none" />
 
       {copied && (
@@ -285,7 +310,6 @@ export default function AppleDynamicPublicProfilePage() {
         </div>
       )}
 
-      {/* BOTÓN COMPARTIR FLOTANTE */}
       <button
         onClick={handleShare}
         className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/80 backdrop-blur-xl border border-[#E5E5EA] shadow-sm flex items-center justify-center text-[#1D1D1F] hover:bg-white hover:shadow transition-all duration-300 active:scale-95 cursor-pointer z-20"
@@ -296,7 +320,7 @@ export default function AppleDynamicPublicProfilePage() {
 
       <main className="relative z-10 max-w-md w-full mx-auto px-5 pt-12 pb-16 flex-1 flex flex-col justify-center animate-fade-in">
         
-        {/* TARJETA PRINCIPAL DE PERFIL CON EFECTO GLASSMORPHISM SUTIL */}
+        {/* TARJETA PRINCIPAL DE PERFIL */}
         <div className="bg-white/90 backdrop-blur-2xl border border-[#E5E5EA]/80 rounded-[36px] p-8 shadow-[0_10px_30px_rgba(0,0,0,0.04)] text-center space-y-4 mb-4 transition-all duration-500 hover:shadow-[0_15px_35px_rgba(0,0,0,0.06)]">
           <div className="relative w-24 h-24 rounded-full mx-auto overflow-hidden border-2 border-white shadow-md bg-[#F5F5F7] flex items-center justify-center group">
             {profile.avatar_url ? (
@@ -331,7 +355,6 @@ export default function AppleDynamicPublicProfilePage() {
             )}
           </div>
 
-          {/* ACCIÓN PRINCIPAL: GUARDAR CONTACTO */}
           <div className="pt-2">
             <button
               onClick={handleDownloadVCard}
@@ -406,7 +429,42 @@ export default function AppleDynamicPublicProfilePage() {
           </div>
         )}
 
-        {/* LISTA DE ENLACES CON MICROINTERACCIONES FLUIDAS */}
+        {/* 🎁 NUEVO: BOTÓN TARJETA DE FIDELIZACIÓN (SE MUESTRA SÓLO SI EL PROGRAMA ESTÁ ACTIVO) */}
+        {loyaltyProgram && (
+          <div className="mb-3">
+            <Link
+              href={passRoute}
+              className="group relative flex items-center justify-between p-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-2xl border border-emerald-400/30 shadow-md transition-all duration-300 active:scale-[0.99] overflow-hidden scale-[1.01]"
+            >
+              <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:left-[100%] transition-all duration-1000 ease-in-out pointer-events-none" />
+
+              <div className="flex items-center space-x-3.5 z-10">
+                <div className="w-10 h-10 rounded-xl bg-white/20 border border-white/20 flex items-center justify-center text-lg flex-shrink-0 backdrop-blur-md group-hover:scale-105 transition-transform">
+                  🎁
+                </div>
+                <div className="text-left overflow-hidden">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-bold text-white tracking-tight">
+                      {loyaltyProgram.program_name || 'Tarjeta de Fidelización'}
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-white text-emerald-700 shadow-sm">
+                      VIP
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-emerald-100 mt-0.5 truncate font-normal">
+                    Acumula sellos en cada visita y gana premios
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-white group-hover:translate-x-1 transition-all z-10 flex-shrink-0 ml-2">
+                <FaArrowRight className="text-sm" />
+              </div>
+            </Link>
+          </div>
+        )}
+
+        {/* LISTA DE ENLACES */}
         <div className="space-y-3">
           {links.length === 0 ? (
             <div className="p-6 bg-white/80 backdrop-blur-xl border border-[#E5E5EA] rounded-2xl text-center shadow-sm">
@@ -445,7 +503,7 @@ export default function AppleDynamicPublicProfilePage() {
           )}
         </div>
 
-        {/* BANNER DE CONVERSIÓN MOGU */}
+        {/* BANNER MOGU */}
         <div className="mt-8 p-6 rounded-[28px] bg-white/90 backdrop-blur-2xl border border-[#E5E5EA] text-center relative overflow-hidden shadow-sm hover:shadow transition-shadow duration-300">
           <span className="inline-block px-3 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-emerald-50 text-emerald-700 border border-emerald-200/60 mb-2">
             Tecnología MOGU
