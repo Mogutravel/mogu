@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { LoyaltyCard } from '@/components/LoyaltyCard'
 import Link from 'next/link'
-import { FiArrowLeft, FiLock, FiShield, FiCheckCircle } from 'react-icons/fi'
+import { FiArrowLeft, FiLock, FiShield, FiCheckCircle, FiUser, FiPhone } from 'react-icons/fi'
 
 function LoyaltyPassContent() {
   const params = useParams()
@@ -18,6 +18,13 @@ function LoyaltyPassContent() {
   const [profile, setProfile] = useState<any>(null)
   const [program, setProgram] = useState<any>(null)
   const [pass, setPass] = useState<any>(null)
+  
+  // Estados para el registro de nuevos clientes
+  const [needsRegistration, setNeedsRegistration] = useState(false)
+  const [regName, setRegName] = useState('')
+  const [regPhone, setRegPhone] = useState('')
+  const [registering, setRegistering] = useState(false)
+
   const [nfcSuccessMsg, setNfcSuccessMsg] = useState('')
 
   useEffect(() => {
@@ -43,12 +50,18 @@ function LoyaltyPassContent() {
           if (prog) {
             setProgram(prog)
             if (prog.is_active) {
-              const savedPhone = localStorage.getItem(`mogu_phone_${prof.id}`) || '+56912345678'
-              const currentPass = await fetchOrCreatePass(prog.id, savedPhone)
+              // Verificar si el cliente ya tiene un teléfono guardado en este dispositivo
+              const savedPhone = localStorage.getItem(`mogu_customer_phone_${prof.id}`)
 
-              // ⚡ PROCESAMIENTO AUTOMÁTICO DE NFC
-              if (nfcToken && currentPass) {
-                await handleNfcAutoStamp(prog, currentPass)
+              if (!savedPhone) {
+                // Si es nuevo y no está registrado, mostrar formulario de inscripción
+                setNeedsRegistration(true)
+              } else {
+                // Si ya está registrado, cargar su pase automáticamente
+                const currentPass = await fetchOrCreatePass(prog.id, savedPhone)
+                if (nfcToken && currentPass) {
+                  await handleNfcAutoStamp(prog, currentPass)
+                }
               }
             }
           }
@@ -62,7 +75,7 @@ function LoyaltyPassContent() {
     loadData()
   }, [slug])
 
-  async function fetchOrCreatePass(programId: string, phone: string) {
+  async function fetchOrCreatePass(programId: string, phone: string, customerName?: string) {
     try {
       let { data: passData } = await supabase
         .from('loyalty_passes')
@@ -74,7 +87,12 @@ function LoyaltyPassContent() {
       if (!passData) {
         const { data: newPass, error: insertErr } = await supabase
           .from('loyalty_passes')
-          .insert([{ program_id: programId, customer_phone: phone, current_stamps: 0 }])
+          .insert([{ 
+            program_id: programId, 
+            customer_phone: phone, 
+            customer_name: customerName || 'Socio Mogu',
+            current_stamps: 0 
+          }])
           .select()
           .single()
 
@@ -90,15 +108,41 @@ function LoyaltyPassContent() {
     }
   }
 
-  // LÓGICA DE VALIDACIÓN DEL NFC AUTOMÁTICO
+  // Manejar el registro del cliente nuevo
+  const handleRegisterClient = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!regName.trim() || !regPhone.trim() || !profile || !program) return
+
+    setRegistering(true)
+    try {
+      const cleanPhone = regPhone.trim()
+      const cleanName = regName.trim()
+
+      // Guardar en localStorage del dispositivo para futuras visitas automáticas
+      localStorage.setItem(`mogu_customer_phone_${profile.id}`, cleanPhone)
+
+      // Crear o recuperar el pase en Supabase
+      const currentPass = await fetchOrCreatePass(program.id, cleanPhone, cleanName)
+
+      // Si ingresó mediante NFC al inscribirse, aplicamos el sello de bienvenida/visita
+      if (nfcToken && currentPass) {
+        await handleNfcAutoStamp(program, currentPass)
+      }
+
+      setNeedsRegistration(false)
+    } catch (err) {
+      console.error('Error al registrar cliente:', err)
+    } finally {
+      setRegistering(false)
+    }
+  }
+
+  // Lógica de validación del NFC automático
   async function handleNfcAutoStamp(programData: any, passData: any) {
-    // 1. Validar que el token del NFC coincida con el nfc_secret_key del comercio
     if (!programData.nfc_secret_key || nfcToken !== programData.nfc_secret_key) {
-      console.warn('Token NFC inválido o no configurado')
       return
     }
 
-    // 2. Verificar que no haya acumulado ya hoy
     if (!String(passData.id).startsWith('demo-pass-')) {
       const todayStart = new Date()
       todayStart.setHours(0, 0, 0, 0)
@@ -110,13 +154,11 @@ function LoyaltyPassContent() {
         .gte('created_at', todayStart.toISOString())
 
       if (todayStamps && todayStamps.length > 0) {
-        alert('¡Sello NFC escaneado! Ya habías registrado tu visita de hoy.')
         window.history.replaceState({}, '', window.location.pathname)
         return
       }
     }
 
-    // 3. Otorgar sello automáticamente
     const newStamps = (passData.current_stamps || 0) + 1
 
     if (!String(passData.id).startsWith('demo-pass-')) {
@@ -141,7 +183,6 @@ function LoyaltyPassContent() {
     setNfcSuccessMsg('🎉 ¡Sello registrado exitosamente vía NFC!')
     setTimeout(() => setNfcSuccessMsg(''), 5000)
 
-    // Limpiar el parámetro URL para evitar duplicados
     window.history.replaceState({}, '', window.location.pathname)
   }
 
@@ -153,7 +194,7 @@ function LoyaltyPassContent() {
 
       let currentPass = pass
       if (!currentPass?.id && program?.id) {
-        const savedPhone = localStorage.getItem(`mogu_phone_${profile?.id}`) || '+56912345678'
+        const savedPhone = localStorage.getItem(`mogu_customer_phone_${profile?.id}`) || '+56912345678'
         currentPass = await fetchOrCreatePass(program.id, savedPhone)
       }
 
@@ -230,6 +271,82 @@ function LoyaltyPassContent() {
     )
   }
 
+  // ⚡ VISTA DE INSCRIPCIÓN PARA CLIENTES NUEVOS
+  if (needsRegistration) {
+    return (
+      <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] font-sans flex flex-col justify-between p-6 max-w-md mx-auto selection:bg-[#E8E8ED]">
+        <header className="flex items-center justify-between pt-2">
+          <Link href={`/${slug}`} className="w-10 h-10 rounded-2xl bg-white border border-[#E5E5EA] shadow-sm flex items-center justify-center text-[#1D1D1F] hover:bg-[#F0F0F2] transition">
+            <FiArrowLeft className="text-sm" />
+          </Link>
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-white/85 backdrop-blur-md border border-[#E5E5EA] rounded-full shadow-2xs">
+            <FiShield className="text-xs text-emerald-600" />
+            <span className="text-[11px] font-semibold tracking-tight text-[#1D1D1F]">Inscripción VIP</span>
+          </div>
+          <div className="w-10" />
+        </header>
+
+        <main className="my-auto py-8 space-y-6">
+          <div className="bg-white/90 backdrop-blur-2xl border border-[#E5E5EA] rounded-[32px] p-7 shadow-sm text-center space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/60 mx-auto flex items-center justify-center text-xl shadow-2xs">
+              🎁
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-[#1D1D1F] tracking-tight">Únete al Club de Fidelización</h2>
+              <p className="text-xs text-[#86868B] mt-1 leading-relaxed">
+                Inscríbete por única vez con tu nombre y teléfono para activar tu tarjeta y empezar a acumular sellos.
+              </p>
+            </div>
+
+            <form onSubmit={handleRegisterClient} className="space-y-4 pt-3">
+              <div className="space-y-1 text-left">
+                <label className="block text-[11px] font-semibold text-[#86868B]">Tu Nombre</label>
+                <div className="relative flex items-center">
+                  <FiUser className="absolute left-3.5 text-[#86868B]" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. Juan Pérez"
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    className="w-full bg-[#F5F5F7] border border-[#E5E5EA] rounded-2xl pl-10 pr-4 py-3 text-xs text-[#1D1D1F] focus:ring-2 focus:ring-[#86868B]/35 outline-none font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1 text-left">
+                <label className="block text-[11px] font-semibold text-[#86868B]">Número de Teléfono / WhatsApp</label>
+                <div className="relative flex items-center">
+                  <FiPhone className="absolute left-3.5 text-[#86868B]" />
+                  <input
+                    type="tel"
+                    required
+                    placeholder="Ej. +56912345678"
+                    value={regPhone}
+                    onChange={(e) => setRegPhone(e.target.value)}
+                    className="w-full bg-[#F5F5F7] border border-[#E5E5EA] rounded-2xl pl-10 pr-4 py-3 text-xs text-[#1D1D1F] focus:ring-2 focus:ring-[#86868B]/35 outline-none font-medium"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={registering}
+                className="w-full py-3.5 bg-[#1D1D1F] hover:bg-black text-white font-semibold text-xs rounded-2xl transition shadow-sm cursor-pointer disabled:opacity-50 mt-2"
+              >
+                {registering ? 'Activando tarjeta...' : 'Activar mi Tarjeta VIP 🚀'}
+              </button>
+            </form>
+          </div>
+        </main>
+
+        <footer className="text-center text-[10px] tracking-widest uppercase text-[#86868B] font-medium pb-2">
+          mogu.cl • Loyalty Registration
+        </footer>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] font-sans flex flex-col justify-between p-6 max-w-md mx-auto selection:bg-[#E8E8ED]">
       <header className="flex items-center justify-between pt-2">
@@ -254,13 +371,13 @@ function LoyaltyPassContent() {
         <LoyaltyCard
           businessName={profile?.full_name || 'Comercio Mogu'}
           programName={program?.collection_tag || 'Club Frecuente'}
-          categoryTitle="Membresía Exclusiva"
+          categoryTitle={`Socio: ${pass?.customer_name || 'VIP'}`}
           themeType="retail"
           currentStamps={pass?.current_stamps || 0}
           totalStamps={program?.stamps_required || 10}
           rewardTitle={program?.reward_title || 'Premio de fidelidad'}
           rewardDescription="Válida para canjear en tu próxima visita presencial"
-          membershipId={`ID: ${pass?.customer_phone || '+56912345678'}`}
+          membershipId={`Tel: ${pass?.customer_phone || ''}`}
           onValidatePin={handleValidatePin}
         />
       </main>
