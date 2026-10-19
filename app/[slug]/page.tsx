@@ -293,10 +293,8 @@ export default function AppleDynamicPublicProfilePage() {
   const themeGlowClass = getThemeGlowClass(profile.theme_color)
   const themeHex = getThemeHex(profile.theme_color)
 
-  // Determinar la ruta del pase según el tipo de catálogo o menú disponible
-  const passRoute = profile.has_catalogo 
-    ? `/catalogo/${profile.slug}/pass` 
-    : `/menu/${profile.slug}/pass`
+  // ⚡ Ruta universal unificada corregida
+  const passRoute = `/${profile.slug}/pass`
 
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] font-sans selection:bg-[#E8E8ED] relative overflow-hidden flex flex-col justify-between">
@@ -429,7 +427,7 @@ export default function AppleDynamicPublicProfilePage() {
           </div>
         )}
 
-        {/* 🎁 NUEVO: BOTÓN TARJETA DE FIDELIZACIÓN (SE MUESTRA SÓLO SI EL PROGRAMA ESTÁ ACTIVO) */}
+        {/* 🎁 BOTÓN TARJETA DE FIDELIZACIÓN (RUTA UNIVERSAL) */}
         {loyaltyProgram && (
           <div className="mb-3">
             <Link
