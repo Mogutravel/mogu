@@ -308,7 +308,7 @@ export default function AppleStyleAdvancedClientDashboard() {
   }
 
   const activeTheme = COLOR_OPTIONS.find((c) => c.value === profile?.theme_color) || COLOR_OPTIONS[0]
-  const loyaltyEditRoute = profile?.has_menu ? `/panel/menu/${profile?.slug}/fidelizacion` : `/panel/tienda/${profile?.slug}/fidelizacion`
+  const loyaltyEditRoute = `/panel/${profile?.slug}/fidelizacion`
 
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] font-sans selection:bg-[#E8E8ED] pb-24">
