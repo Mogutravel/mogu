@@ -221,6 +221,7 @@ function LoyaltyPassContent() {
 
       if (!currentPass?.id) return false
 
+      // 🛡️ LÍMITE DE 1 SELLO POR DÍA AL USAR EL PIN
       if (!String(currentPass.id).startsWith('demo-pass-')) {
         const todayStart = new Date()
         todayStart.setHours(0, 0, 0, 0)
@@ -232,7 +233,7 @@ function LoyaltyPassContent() {
           .gte('created_at', todayStart.toISOString())
 
         if (todayStamps && todayStamps.length > 0) {
-          alert('¡Ya registraste tu sello de hoy! Te esperamos mañana.')
+          alert('⚠️ ¡Ya registraste tu sello de hoy! Te esperamos mañana.')
           return false
         }
       }
