@@ -207,19 +207,20 @@ function playCelebrationAudioSound() {
 }
 
 // ============================================================================
-// 2. INTERFAZ Y COMPONENTE PRINCIPAL (CORREGIDO PARA TYPESCRIPT)
+// 2. INTERFAZ Y COMPONENTE PRINCIPAL (CORREGIDO CON REWARDCODE)
 // ============================================================================
 
 interface LoyaltyCardProps {
   businessName: string
   programName: string
   categoryTitle: string
-  themeType?: string // 👈 SOPORTE OPCIONAL AGREGADO
+  themeType?: string
   currentStamps: number
   totalStamps: number
   rewardTitle: string
   rewardDescription: string
   membershipId: string
+  rewardCode?: string // 👈 SOPORTE PARA CÓDIGO VIP PERSISTENTE
   onValidatePin: (pin: string) => Promise<boolean>
 }
 
@@ -232,6 +233,7 @@ export function LoyaltyCard({
   rewardTitle,
   rewardDescription,
   membershipId,
+  rewardCode,
   onValidatePin,
 }: LoyaltyCardProps) {
   const [showPinModal, setShowPinModal] = useState(false)
@@ -495,16 +497,29 @@ export function LoyaltyCard({
             </span>
           </div>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setShowPinModal(true)
-            }}
-            className="px-5 py-3 bg-[#1D1D1F] hover:bg-black active:scale-95 text-white text-xs font-extrabold rounded-2xl shadow-[0_10px_20px_rgba(0,0,0,0.18)] transition-all flex items-center gap-2 shrink-0 cursor-pointer border border-neutral-800"
-          >
-            <FiShield className="text-xs text-emerald-400" />
-            <span>REGISTRAR SELLO</span>
-          </button>
+          {isRewardReady ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowRewardCelebrationModal(true)
+              }}
+              className="px-5 py-3 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-xs font-extrabold rounded-2xl shadow-[0_10px_20px_rgba(245,158,11,0.3)] transition-all flex items-center gap-2 shrink-0 cursor-pointer border border-amber-400 animate-bounce"
+            >
+              <FiGift className="text-xs" />
+              <span>VER CÓDIGO VIP</span>
+            </button>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowPinModal(true)
+              }}
+              className="px-5 py-3 bg-[#1D1D1F] hover:bg-black active:scale-95 text-white text-xs font-extrabold rounded-2xl shadow-[0_10px_20px_rgba(0,0,0,0.18)] transition-all flex items-center gap-2 shrink-0 cursor-pointer border border-neutral-800"
+            >
+              <FiShield className="text-xs text-emerald-400" />
+              <span>REGISTRAR SELLO</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -572,7 +587,7 @@ export function LoyaltyCard({
           <div className="w-full max-w-sm bg-gradient-to-b from-white via-[#FBFBFD] to-[#F2F2F7] rounded-[40px] p-8 text-center space-y-5 border border-white/80 shadow-[0_25px_70px_rgba(0,0,0,0.3)] relative overflow-hidden">
             <button
               onClick={() => setShowRewardCelebrationModal(false)}
-              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-[#EFECE6] flex items-center justify-center text-[#1D1D1F]"
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-[#EFECE6] flex items-center justify-center text-[#1D1D1F] cursor-pointer"
             >
               <FiX />
             </button>
@@ -599,13 +614,13 @@ export function LoyaltyCard({
                 Código VIP
               </span>
               <span className="text-lg font-mono font-black text-[#1D1D1F] tracking-widest">
-                REWARD-{Math.floor(1000 + Math.random() * 9000)}
+                {rewardCode || 'REWARD-VIP'}
               </span>
             </div>
 
             <button
               onClick={() => setShowRewardCelebrationModal(false)}
-              className="w-full py-4 bg-[#1D1D1F] hover:bg-black text-white font-extrabold text-xs rounded-2xl transition shadow-lg flex items-center justify-center gap-2"
+              className="w-full py-4 bg-[#1D1D1F] hover:bg-black text-white font-extrabold text-xs rounded-2xl transition shadow-lg flex items-center justify-center gap-2 cursor-pointer"
             >
               <FiStar className="text-amber-400 fill-current" />
               <span>Entendido, ¡gracias!</span>
