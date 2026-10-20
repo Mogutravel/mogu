@@ -1,16 +1,14 @@
 'use client'
 
 import React, { useEffect, useState, Suspense } from 'react'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { LoyaltyCard } from '@/components/LoyaltyCard'
 import Link from 'next/link'
-import { FiArrowLeft, FiLock, FiShield, FiCheckCircle, FiUser, FiPhone } from 'react-icons/fi'
+import { FiArrowLeft, FiLock, FiShield, FiUser, FiPhone } from 'react-icons/fi'
 
 function LoyaltyPassContent() {
   const params = useParams()
-  const searchParams = useSearchParams()
-  
   const slug = params?.slug as string
 
   const [loading, setLoading] = useState(true)
@@ -24,25 +22,13 @@ function LoyaltyPassContent() {
   const [regPhone, setRegPhone] = useState('')
   const [registering, setRegistering] = useState(false)
 
-  const [nfcSuccessMsg, setNfcSuccessMsg] = useState('')
-
   useEffect(() => {
-    async function loadAndProcessNfc() {
+    async function loadData() {
       if (!slug) return
       setLoading(true)
 
       try {
-        // 1. CAPTURA DIRECTA DEL NFC TOKEN (Evita pérdidas de parámetros)
-        const urlParams = new URLSearchParams(window.location.search)
-        const currentNfcToken = urlParams.get('nfc_token') || searchParams.get('nfc_token')
-
-        if (currentNfcToken) {
-          sessionStorage.setItem(`mogu_pending_nfc_${slug}`, currentNfcToken)
-        }
-
-        const activeToken = currentNfcToken || sessionStorage.getItem(`mogu_pending_nfc_${slug}`)
-
-        // 2. Obtener perfil del comercio
+        // 1. Obtener perfil del comercio por su slug
         const { data: prof } = await supabase
           .from('profiles')
           .select('*')
@@ -52,7 +38,7 @@ function LoyaltyPassContent() {
         if (prof) {
           setProfile(prof)
 
-          // 3. Obtener programa de fidelización
+          // 2. Obtener programa de fidelización del comercio
           const { data: prog } = await supabase
             .from('loyalty_programs')
             .select('*')
@@ -66,14 +52,11 @@ function LoyaltyPassContent() {
               const savedPhone = localStorage.getItem(`mogu_customer_phone_${prof.id}`)
 
               if (!savedPhone) {
-                // Cliente nuevo: solicitar inscripción
+                // Cliente nuevo: solicitar inscripción inicial
                 setNeedsRegistration(true)
               } else {
-                // Cliente existente: obtener pase y procesar NFC
-                const currentPass = await fetchOrCreatePass(prog.id, savedPhone)
-                if (activeToken && currentPass) {
-                  await handleNfcAutoStamp(prog, currentPass, activeToken)
-                }
+                // Cliente existente: cargar la tarjeta de inmediato
+                await fetchOrCreatePass(prog.id, savedPhone)
               }
             }
           }
@@ -85,7 +68,7 @@ function LoyaltyPassContent() {
       }
     }
 
-    loadAndProcessNfc()
+    loadData()
   }, [slug])
 
   async function fetchOrCreatePass(programId: string, phone: string, customerName?: string) {
@@ -109,7 +92,9 @@ function LoyaltyPassContent() {
           .select()
           .single()
 
-        passData = insertErr ? { id: 'demo-pass-' + Date.now(), program_id: programId, customer_phone: phone, current_stamps: 0 } : newPass
+        passData = insertErr 
+          ? { id: 'demo-pass-' + Date.now(), program_id: programId, customer_phone: phone, current_stamps: 0 } 
+          : newPass
       }
 
       setPass(passData)
@@ -121,65 +106,7 @@ function LoyaltyPassContent() {
     }
   }
 
-  // ⚡ LÓGICA DE ASIGNACIÓN AUTOMÁTICA
-  async function handleNfcAutoStamp(programData: any, passData: any, tokenToValidate: string) {
-    // A. Validar que exista la clave NFC y coincida exactamente
-    if (!programData.nfc_secret_key || tokenToValidate !== programData.nfc_secret_key) {
-      console.warn('Token NFC no coincide con nfc_secret_key')
-      return
-    }
-
-    // B. Validar si ya registró un sello el día de hoy
-    if (!String(passData.id).startsWith('demo-pass-')) {
-      const todayStart = new Date()
-      todayStart.setHours(0, 0, 0, 0)
-
-      const { data: todayStamps } = await supabase
-        .from('loyalty_stamps')
-        .select('id')
-        .eq('pass_id', passData.id)
-        .gte('created_at', todayStart.toISOString())
-
-      if (todayStamps && todayStamps.length > 0) {
-        setNfcSuccessMsg('⚠️ Ya registraste tu sello de hoy. ¡Te esperamos mañana!')
-        setTimeout(() => setNfcSuccessMsg(''), 4000)
-        sessionStorage.removeItem(`mogu_pending_nfc_${slug}`)
-        window.history.replaceState({}, '', window.location.pathname)
-        return
-      }
-    }
-
-    // C. Incrementar e insertar el sello automáticamente
-    const newStamps = (passData.current_stamps || 0) + 1
-
-    if (!String(passData.id).startsWith('demo-pass-')) {
-      await supabase.from('loyalty_stamps').insert([{
-        pass_id: passData.id,
-        action_type: 'NFC_AUTO',
-        created_at: new Date().toISOString()
-      }])
-
-      const { data: updated } = await supabase
-        .from('loyalty_passes')
-        .update({ current_stamps: newStamps, updated_at: new Date().toISOString() })
-        .eq('id', passData.id)
-        .select()
-        .single()
-
-      if (updated) setPass(updated)
-    } else {
-      setPass({ ...passData, current_stamps: newStamps })
-    }
-
-    // D. Notificar al usuario y limpiar el parámetro de la URL
-    setNfcSuccessMsg('🎉 ¡Sello sumado de inmediato vía NFC!')
-    setTimeout(() => setNfcSuccessMsg(''), 5000)
-
-    sessionStorage.removeItem(`mogu_pending_nfc_${slug}`)
-    window.history.replaceState({}, '', window.location.pathname)
-  }
-
-  // Registro del cliente nuevo + Asignación inmediata del sello pendiente
+  // Registro del cliente nuevo por única vez
   const handleRegisterClient = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!regName.trim() || !regPhone.trim() || !profile || !program) return
@@ -190,15 +117,7 @@ function LoyaltyPassContent() {
       const cleanName = regName.trim()
 
       localStorage.setItem(`mogu_customer_phone_${profile.id}`, cleanPhone)
-
-      const currentPass = await fetchOrCreatePass(program.id, cleanPhone, cleanName)
-
-      // Ejecutar el sello NFC retenido tras la inscripción
-      const pendingNfc = sessionStorage.getItem(`mogu_pending_nfc_${slug}`)
-      if (pendingNfc && currentPass) {
-        await handleNfcAutoStamp(program, currentPass, pendingNfc)
-      }
-
+      await fetchOrCreatePass(program.id, cleanPhone, cleanName)
       setNeedsRegistration(false)
     } catch (err) {
       console.error('Error al registrar cliente:', err)
@@ -207,11 +126,14 @@ function LoyaltyPassContent() {
     }
   }
 
-  // Respaldo manual con PIN (Sólo si el cliente toca el botón en la tarjeta)
+  // 🛡️ VALIDACIÓN PRESENCIAL CON LÍMITE DE 1 SELLO DIARIO Y ACCION_TYPE
   const handleValidatePin = async (pin: string): Promise<boolean> => {
     try {
       const expectedPin = program?.validation_pin || '1234'
-      if (pin !== expectedPin) return false
+      if (pin !== expectedPin) {
+        alert('❌ PIN incorrecto')
+        return false
+      }
 
       let currentPass = pass
       if (!currentPass?.id && program?.id) {
@@ -219,18 +141,27 @@ function LoyaltyPassContent() {
         currentPass = await fetchOrCreatePass(program.id, savedPhone)
       }
 
-      if (!currentPass?.id) return false
+      if (!currentPass?.id) {
+        alert('❌ No se encontró el pase del cliente.')
+        return false
+      }
 
-      // 🛡️ LÍMITE DE 1 SELLO POR DÍA AL USAR EL PIN
+      // 1. OBTENER FECHA DE HOY (UTC 00:00:00)
+      const now = new Date()
+      const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0)).toISOString()
+
+      // 2. VERIFICAR SI YA TIENE SELLO HOY EN SUPABASE
       if (!String(currentPass.id).startsWith('demo-pass-')) {
-        const todayStart = new Date()
-        todayStart.setHours(0, 0, 0, 0)
-
-        const { data: todayStamps } = await supabase
+        const { data: todayStamps, error: checkError } = await supabase
           .from('loyalty_stamps')
           .select('id')
           .eq('pass_id', currentPass.id)
-          .gte('created_at', todayStart.toISOString())
+          .gte('created_at', todayStart)
+
+        if (checkError) {
+          alert('⚠️ Error consultando sellos: ' + checkError.message)
+          console.error(checkError)
+        }
 
         if (todayStamps && todayStamps.length > 0) {
           alert('⚠️ ¡Ya registraste tu sello de hoy! Te esperamos mañana.')
@@ -245,25 +176,47 @@ function LoyaltyPassContent() {
         return true
       }
 
-      await supabase.from('loyalty_stamps').insert([{
-        pass_id: currentPass.id,
-        action_type: 'MANUAL_PIN',
-        created_at: new Date().toISOString()
-      }])
+      // 3. INSERTAR EN LA TABLA loyalty_stamps CON action_type REQUERIDO
+      const { error: stampError } = await supabase
+        .from('loyalty_stamps')
+        .insert([{
+          pass_id: currentPass.id,
+          action_type: 'MANUAL_PIN',
+          created_at: new Date().toISOString()
+        }])
 
-      const { data: updated } = await supabase
+      if (stampError) {
+        alert('❌ Error al guardar sello en loyalty_stamps: ' + stampError.message)
+        console.error(stampError)
+        return false
+      }
+
+      // 4. ACTUALIZAR CONTADOR EN loyalty_passes
+      const { data: updated, error: passError } = await supabase
         .from('loyalty_passes')
-        .update({ current_stamps: newStamps, updated_at: new Date().toISOString() })
+        .update({ 
+          current_stamps: newStamps, 
+          updated_at: new Date().toISOString() 
+        })
         .eq('id', currentPass.id)
         .select()
         .single()
+
+      if (passError) {
+        alert('❌ Error al actualizar loyalty_passes: ' + passError.message)
+        console.error(passError)
+        return false
+      }
 
       if (updated) {
         setPass(updated)
         return true
       }
+
       return false
-    } catch (err) {
+    } catch (err: any) {
+      alert('❌ Excepción general en PIN: ' + (err?.message || err))
+      console.error(err)
       return false
     }
   }
@@ -293,7 +246,7 @@ function LoyaltyPassContent() {
     )
   }
 
-  // Vista de inscripción para clientes por primera vez
+  // Vista de inscripción para clientes nuevos
   if (needsRegistration) {
     return (
       <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] font-sans flex flex-col justify-between p-6 max-w-md mx-auto selection:bg-[#E8E8ED]">
@@ -316,7 +269,7 @@ function LoyaltyPassContent() {
             <div>
               <h2 className="text-base font-bold text-[#1D1D1F] tracking-tight">¡Bienvenido a {profile?.full_name || 'Mogu'}!</h2>
               <p className="text-xs text-[#86868B] mt-1 leading-relaxed">
-                Inscríbete por única vez para activar tu tarjeta VIP y registrar tu sello de hoy al instante.
+                Inscríbete por única vez para activar tu tarjeta VIP y acumular tus sellos en caja.
               </p>
             </div>
 
@@ -356,7 +309,7 @@ function LoyaltyPassContent() {
                 disabled={registering}
                 className="w-full py-3.5 bg-[#1D1D1F] hover:bg-black text-white font-semibold text-xs rounded-2xl transition shadow-sm cursor-pointer disabled:opacity-50 mt-2"
               >
-                {registering ? 'Activando tarjeta...' : 'Activar mi Tarjeta y Sumar Sello 🚀'}
+                {registering ? 'Activando tarjeta...' : 'Activar mi Tarjeta VIP 🚀'}
               </button>
             </form>
           </div>
@@ -383,13 +336,6 @@ function LoyaltyPassContent() {
       </header>
 
       <main className="my-auto py-6">
-        {nfcSuccessMsg && (
-          <div className="mb-4 p-3.5 bg-emerald-50 border border-emerald-200/80 rounded-2xl text-xs font-semibold text-emerald-800 text-center flex items-center justify-center gap-2 shadow-2xs animate-bounce">
-            <FiCheckCircle className="text-sm text-emerald-600" />
-            <span>{nfcSuccessMsg}</span>
-          </div>
-        )}
-
         <LoyaltyCard
           businessName={profile?.full_name || 'Comercio Mogu'}
           programName={program?.collection_tag || 'Club Frecuente'}
