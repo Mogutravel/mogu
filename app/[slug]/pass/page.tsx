@@ -87,20 +87,21 @@ function LoyaltyPassContent() {
             program_id: programId, 
             customer_phone: phone, 
             customer_name: customerName || 'Socio Mogu',
-            current_stamps: 0 
+            current_stamps: 0,
+            reward_status: 'none'
           }])
           .select()
           .single()
 
         passData = insertErr 
-          ? { id: 'demo-pass-' + Date.now(), program_id: programId, customer_phone: phone, current_stamps: 0 } 
+          ? { id: 'demo-pass-' + Date.now(), program_id: programId, customer_phone: phone, current_stamps: 0, reward_status: 'none' } 
           : newPass
       }
 
       setPass(passData)
       return passData
     } catch (err) {
-      const fallbackPass = { id: 'demo-pass-' + Date.now(), program_id: programId, customer_phone: phone, current_stamps: 0 }
+      const fallbackPass = { id: 'demo-pass-' + Date.now(), program_id: programId, customer_phone: phone, current_stamps: 0, reward_status: 'none' }
       setPass(fallbackPass)
       return fallbackPass
     }
@@ -126,7 +127,7 @@ function LoyaltyPassContent() {
     }
   }
 
-  // 🛡️ VALIDACIÓN PRESENCIAL CON LÍMITE DE 1 SELLO DIARIO Y ACCION_TYPE
+  // 🛡️ VALIDACIÓN PRESENCIAL CON LÍMITE DIARIO Y GENERACIÓN DE CÓDIGO VIP
   const handleValidatePin = async (pin: string): Promise<boolean> => {
     try {
       const expectedPin = program?.validation_pin || '1234'
@@ -169,19 +170,36 @@ function LoyaltyPassContent() {
         }
       }
 
+      const totalRequired = program?.stamps_required || 10
       const newStamps = (currentPass.current_stamps || 0) + 1
+      const isCompleted = newStamps >= totalRequired
+
+      // Generar o mantener Código VIP si completó los sellos
+      let rewardCodeToSave = currentPass.reward_code
+      let rewardStatusToSave = currentPass.reward_status || 'none'
+
+      if (isCompleted && (!rewardCodeToSave || rewardStatusToSave !== 'pending')) {
+        const randomNum = Math.floor(1000 + Math.random() * 9000)
+        rewardCodeToSave = `REWARD-${randomNum}`
+        rewardStatusToSave = 'pending'
+      }
 
       if (String(currentPass.id).startsWith('demo-pass-')) {
-        setPass({ ...currentPass, current_stamps: newStamps })
+        setPass({ 
+          ...currentPass, 
+          current_stamps: newStamps,
+          reward_code: rewardCodeToSave,
+          reward_status: rewardStatusToSave
+        })
         return true
       }
 
-      // 3. INSERTAR EN LA TABLA loyalty_stamps CON action_type REQUERIDO
+      // 3. INSERTAR EN LA TABLA loyalty_stamps CON action_type 'pin'
       const { error: stampError } = await supabase
         .from('loyalty_stamps')
         .insert([{
           pass_id: currentPass.id,
-          action_type: 'MANUAL_PIN',
+          action_type: 'pin',
           created_at: new Date().toISOString()
         }])
 
@@ -191,11 +209,13 @@ function LoyaltyPassContent() {
         return false
       }
 
-      // 4. ACTUALIZAR CONTADOR EN loyalty_passes
+      // 4. ACTUALIZAR CONTADOR Y CÓDIGO RECOMPENSA EN loyalty_passes
       const { data: updated, error: passError } = await supabase
         .from('loyalty_passes')
         .update({ 
-          current_stamps: newStamps, 
+          current_stamps: newStamps,
+          reward_code: rewardCodeToSave,
+          reward_status: rewardStatusToSave,
           updated_at: new Date().toISOString() 
         })
         .eq('id', currentPass.id)
@@ -346,6 +366,7 @@ function LoyaltyPassContent() {
           rewardTitle={program?.reward_title || 'Premio de fidelidad'}
           rewardDescription="Válida para canjear en tu próxima visita presencial"
           membershipId={`Tel: ${pass?.customer_phone || ''}`}
+          rewardCode={pass?.reward_code}
           onValidatePin={handleValidatePin}
         />
       </main>

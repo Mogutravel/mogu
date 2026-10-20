@@ -65,108 +65,106 @@ export default function UniversalLoyaltyAdminPanelPage() {
   const [collectionTag, setCollectionTag] = useState('')
   const [isActive, setIsActive] = useState(false)
 
-  useEffect(() => {
-    async function loadAdminData() {
-      if (!slug) return
-      setLoading(true)
-      try {
-        const { data: prof } = await supabase
-          .from('profiles')
+  async function loadAdminData() {
+    if (!slug) return
+    setLoading(true)
+    try {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('slug', slug)
+        .maybeSingle()
+
+      if (prof) {
+        setProfile(prof)
+
+        let { data: prog } = await supabase
+          .from('loyalty_programs')
           .select('*')
-          .eq('slug', slug)
+          .eq('profile_id', prof.id)
           .maybeSingle()
 
-        if (prof) {
-          setProfile(prof)
+        if (prog) {
+          setProgram(prog)
+          setValidationPin(prog.validation_pin || '1234')
+          const defaultNfc = prog.nfc_secret_key || `${slug}_nfc_${Math.random().toString(36).substring(2, 8)}`
+          setNfcSecretKey(defaultNfc)
+          setStampsRequired(prog.stamps_required || 10)
+          setRewardTitle(prog.reward_title || '10% de descuento / Producto de regalo')
+          setCollectionTag(prog.collection_tag || 'Club Mogu')
+          setIsActive(prog.is_active ?? false)
 
-          let { data: prog } = await supabase
-            .from('loyalty_programs')
+          // 1. Obtener todos los pases/clientes del programa
+          const { data: passes } = await supabase
+            .from('loyalty_passes')
             .select('*')
-            .eq('profile_id', prof.id)
-            .maybeSingle()
+            .eq('program_id', prog.id)
+            .order('updated_at', { ascending: false })
 
-          if (prog) {
-            setProgram(prog)
-            setValidationPin(prog.validation_pin || '1234')
-            const defaultNfc = prog.nfc_secret_key || `${slug}_nfc_${Math.random().toString(36).substring(2, 8)}`
-            setNfcSecretKey(defaultNfc)
-            setStampsRequired(prog.stamps_required || 10)
-            setRewardTitle(prog.reward_title || '10% de descuento / Producto de regalo')
-            setCollectionTag(prog.collection_tag || 'Club Mogu')
-            setIsActive(prog.is_active ?? false)
+          const passesData = passes || []
+          setPassesList(passesData)
 
-            // 1. Obtener todos los pases/clientes del programa
-            const { data: passes } = await supabase
-              .from('loyalty_passes')
-              .select('*')
-              .eq('program_id', prog.id)
-              .order('updated_at', { ascending: false })
+          // 2. Obtener pases IDs para buscar sellos
+          const passIds = passesData.map((p) => p.id)
 
-            const passesData = passes || []
-            setPassesList(passesData)
+          let stampsData: any[] = []
+          if (passIds.length > 0) {
+            const { data: stamps } = await supabase
+              .from('loyalty_stamps')
+              .select('*, loyalty_passes(customer_phone, customer_name)')
+              .in('pass_id', passIds)
+              .order('created_at', { ascending: false })
+              .limit(50)
 
-            // 2. Obtener pases IDs para buscar sellos
-            const passIds = passesData.map((p) => p.id)
-
-            let stampsData: any[] = []
-            if (passIds.length > 0) {
-              const { data: stamps } = await supabase
-                .from('loyalty_stamps')
-                .select('*, loyalty_passes(customer_phone, customer_name)')
-                .in('pass_id', passIds)
-                .order('created_at', { ascending: false })
-                .limit(50)
-
-              stampsData = stamps || []
-              setRecentStampsList(stampsData)
-            }
-
-            // 3. CÁLCULO DE MÉTRICAS AVANZADAS
-            const totalRegistered = passesData.length
-
-            // Clientes activos en los últimos 30 días
-            const thirtyDaysAgo = new Date()
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-            const active30Days = passesData.filter(
-              (p) => new Date(p.updated_at || p.created_at) >= thirtyDaysAgo
-            ).length
-
-            // Total de sellos emitidos
-            const totalIssued = passesData.reduce((acc, p) => acc + (p.current_stamps || 0), 0)
-
-            // Recompensas pendientes (clientes que llegaron a la meta de sellos pero no han canjeado)
-            const pendingCount = passesData.filter((p) => (p.current_stamps || 0) >= (prog.stamps_required || 10)).length
-
-            // Recompensas utilizadas (estimación según reinicios/registros)
-            const totalRedeemedStamps = passesData.reduce((acc, p) => acc + (p.total_redeemed_rewards || 0) * (prog.stamps_required || 10), 0)
-            const usedCount = passesData.reduce((acc, p) => acc + (p.total_redeemed_rewards || 0), 0)
-
-            // Tasa de retención (% de clientes con más de 2 sellos)
-            const repeatCustomers = passesData.filter((p) => (p.current_stamps || 0) > 1).length
-            const retention = totalRegistered > 0 ? Math.round((repeatCustomers / totalRegistered) * 100) : 0
-
-            // Promedio de días entre visitas (estimación)
-            const avgDays = totalRegistered > 0 ? 5 : 0
-
-            setStats({
-              registeredCustomers: totalRegistered,
-              activeCustomers30Days: active30Days,
-              totalStampsIssued: totalIssued + totalRedeemedStamps,
-              totalStampsRedeemed: totalRedeemedStamps,
-              pendingRewards: pendingCount,
-              usedRewards: usedCount,
-              avgDaysBetweenVisits: avgDays,
-              retentionRate: retention
-            })
+            stampsData = stamps || []
+            setRecentStampsList(stampsData)
           }
-        }
-      } catch (err) {
-        console.error('Error cargando métricas de fidelización:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
 
+          // 3. CÁLCULO DE MÉTRICAS AVANZADAS
+          const totalRegistered = passesData.length
+
+          // Clientes activos en los últimos 30 días
+          const thirtyDaysAgo = new Date()
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+          const active30Days = passesData.filter(
+            (p) => new Date(p.updated_at || p.created_at) >= thirtyDaysAgo
+          ).length
+
+          // Total de sellos emitidos
+          const totalIssued = passesData.reduce((acc, p) => acc + (p.current_stamps || 0), 0)
+
+          // Recompensas pendientes (clientes que llegaron a la meta de sellos con estado pending)
+          const pendingCount = passesData.filter((p) => p.reward_status === 'pending' || (p.current_stamps || 0) >= (prog.stamps_required || 10)).length
+
+          const totalRedeemedStamps = passesData.reduce((acc, p) => acc + (p.total_redeemed_rewards || 0) * (prog.stamps_required || 10), 0)
+          const usedCount = passesData.reduce((acc, p) => acc + (p.total_redeemed_rewards || 0), 0)
+
+          // Tasa de retención (% de clientes con más de 2 sellos)
+          const repeatCustomers = passesData.filter((p) => (p.current_stamps || 0) > 1).length
+          const retention = totalRegistered > 0 ? Math.round((repeatCustomers / totalRegistered) * 100) : 0
+
+          const avgDays = totalRegistered > 0 ? 5 : 0
+
+          setStats({
+            registeredCustomers: totalRegistered,
+            activeCustomers30Days: active30Days,
+            totalStampsIssued: totalIssued + totalRedeemedStamps,
+            totalStampsRedeemed: totalRedeemedStamps,
+            pendingRewards: pendingCount,
+            usedRewards: usedCount,
+            avgDaysBetweenVisits: avgDays,
+            retentionRate: retention
+          })
+        }
+      }
+    } catch (err) {
+      console.error('Error cargando métricas de fidelización:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     loadAdminData()
   }, [slug])
 
@@ -193,6 +191,36 @@ export default function UniversalLoyaltyAdminPanelPage() {
       }
     } catch (err) {
       console.error('Error al ajustar sellos:', err)
+    }
+  }
+
+  // 🛡️ APROBAR CANJE Y REINICIAR TARJETA
+  const handleApproveRedemption = async (clientPass: any) => {
+    try {
+      const { data: updated, error } = await supabase
+        .from('loyalty_passes')
+        .update({
+          current_stamps: 0,
+          reward_code: null,
+          reward_status: 'none',
+          total_redeemed_rewards: (clientPass.total_redeemed_rewards || 0) + 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', clientPass.id)
+        .select()
+        .single()
+
+      if (error) {
+        alert('❌ Error al aprobar el canje: ' + error.message)
+        return
+      }
+
+      if (updated) {
+        alert('🎉 ¡Canje aprobado con éxito! La tarjeta se ha reiniciado a 0 sellos.')
+        loadAdminData() // Recargar datos del panel
+      }
+    } catch (err: any) {
+      alert('❌ Error inesperado: ' + (err?.message || err))
     }
   }
 
@@ -254,7 +282,8 @@ export default function UniversalLoyaltyAdminPanelPage() {
   const filteredPasses = passesList.filter(
     (p) =>
       (p.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.customer_phone || '').includes(searchTerm)
+      (p.customer_phone || '').includes(searchTerm) ||
+      (p.reward_code || '').toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   if (loading) {
@@ -352,11 +381,7 @@ export default function UniversalLoyaltyAdminPanelPage() {
         {/* 1. PESTAÑA: RESUMEN Y MÉTRICAS */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            
-            {/* GRILLA DE METRICAS PRINCIPALES */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              
-              {/* Clientes Inscritos */}
               <div className="p-5 rounded-3xl bg-white border border-[#E5E5EA] shadow-2xs space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-[#86868B]">Clientes Inscritos</span>
@@ -368,7 +393,6 @@ export default function UniversalLoyaltyAdminPanelPage() {
                 <p className="text-[10px] text-emerald-600 font-medium">Totales en plataforma</p>
               </div>
 
-              {/* Clientes Activos */}
               <div className="p-5 rounded-3xl bg-white border border-[#E5E5EA] shadow-2xs space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-[#86868B]">Clientes Activos (30 días)</span>
@@ -384,7 +408,6 @@ export default function UniversalLoyaltyAdminPanelPage() {
                 </p>
               </div>
 
-              {/* Puntos / Sellos Emitidos */}
               <div className="p-5 rounded-3xl bg-white border border-[#E5E5EA] shadow-2xs space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-[#86868B]">Sellos Emitidos</span>
@@ -396,7 +419,6 @@ export default function UniversalLoyaltyAdminPanelPage() {
                 <p className="text-[10px] text-[#86868B] font-medium">Acumulados por socios</p>
               </div>
 
-              {/* Tasa de Retención */}
               <div className="p-5 rounded-3xl bg-white border border-[#E5E5EA] shadow-2xs space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-[#86868B]">Tasa de Retención</span>
@@ -407,18 +429,13 @@ export default function UniversalLoyaltyAdminPanelPage() {
                 <p className="text-2xl font-bold tracking-tight text-[#1D1D1F]">{stats.retentionRate}%</p>
                 <p className="text-[10px] text-purple-600 font-medium">Clientes recurrentes (+2 sellos)</p>
               </div>
-
             </section>
 
-            {/* SEGUNDA FILA DE MÉTRICAS DETALLADAS */}
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* RECOMPENSAS */}
               <div className="p-6 rounded-3xl bg-white border border-[#E5E5EA] shadow-2xs space-y-4">
                 <h3 className="text-sm font-bold text-[#1D1D1F] flex items-center gap-2">
                   <FiGift className="text-emerald-600" /> Estado de Recompensas
                 </h3>
-
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="p-4 rounded-2xl bg-[#F5F5F7] border border-[#E5E5EA]">
                     <span className="text-[11px] font-semibold text-[#86868B] block mb-1">Pendientes de Canje</span>
@@ -434,12 +451,10 @@ export default function UniversalLoyaltyAdminPanelPage() {
                 </div>
               </div>
 
-              {/* FRECUENCIA DE VISITAS */}
               <div className="p-6 rounded-3xl bg-white border border-[#E5E5EA] shadow-2xs space-y-4">
                 <h3 className="text-sm font-bold text-[#1D1D1F] flex items-center gap-2">
                   <FiClock className="text-blue-600" /> Frecuencia de Visitas
                 </h3>
-
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="p-4 rounded-2xl bg-[#F5F5F7] border border-[#E5E5EA]">
                     <span className="text-[11px] font-semibold text-[#86868B] block mb-1">Frecuencia Promedio</span>
@@ -454,25 +469,24 @@ export default function UniversalLoyaltyAdminPanelPage() {
                   </div>
                 </div>
               </div>
-
             </section>
           </div>
         )}
 
-        {/* 2. PESTAÑA: CLIENTES INSCRITOS Y AJUSTES MANUALES */}
+        {/* 2. PESTAÑA: CLIENTES INSCRITOS Y VALIDACIÓN DE CÓDIGO VIP */}
         {activeTab === 'customers' && (
           <div className="p-6 rounded-3xl bg-white border border-[#E5E5EA] shadow-2xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E5E5EA] pb-4">
               <div>
-                <h2 className="text-sm font-bold text-[#1D1D1F]">Base de Clientes / Socios</h2>
-                <p className="text-xs text-[#86868B]">Consulta el progreso de cada cliente o ajusta sus sellos manualmente.</p>
+                <h2 className="text-sm font-bold text-[#1D1D1F]">Base de Clientes / Socios & Control de Canjes</h2>
+                <p className="text-xs text-[#86868B]">Verifica el Código VIP del cliente, aprueba su premio y reinicia su tarjeta.</p>
               </div>
 
-              <div className="relative w-full sm:w-64">
+              <div className="relative w-full sm:w-72">
                 <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#86868B] text-xs" />
                 <input
                   type="text"
-                  placeholder="Buscar por nombre o teléfono..."
+                  placeholder="Buscar por nombre, teléfono o código VIP..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full bg-[#F5F5F7] border border-[#E5E5EA] rounded-xl pl-9 pr-4 py-2 text-xs text-[#1D1D1F] outline-none"
@@ -487,7 +501,7 @@ export default function UniversalLoyaltyAdminPanelPage() {
                     <th className="py-3 px-2">Cliente / Socio</th>
                     <th className="py-3 px-2">Teléfono</th>
                     <th className="py-3 px-2">Sellos Actuales</th>
-                    <th className="py-3 px-2">Última Visita</th>
+                    <th className="py-3 px-2">Código VIP & Canje</th>
                     <th className="py-3 px-2 text-right">Ajuste Manual</th>
                   </tr>
                 </thead>
@@ -500,7 +514,7 @@ export default function UniversalLoyaltyAdminPanelPage() {
                     </tr>
                   ) : (
                     filteredPasses.map((p) => {
-                      const isReadyForReward = (p.current_stamps || 0) >= stampsRequired
+                      const isReadyForReward = (p.current_stamps || 0) >= stampsRequired || p.reward_status === 'pending'
                       return (
                         <tr key={p.id} className="hover:bg-[#F5F5F7]/60 transition">
                           <td className="py-3 px-2 font-semibold text-[#1D1D1F]">
@@ -513,24 +527,41 @@ export default function UniversalLoyaltyAdminPanelPage() {
                                 ? 'bg-amber-100 text-amber-800 border border-amber-300' 
                                 : 'bg-[#F5F5F7] text-[#1D1D1F]'
                             }`}>
-                              {p.current_stamps || 0} / {stampsRequired} {isReadyForReward && '🎉 ¡Premio listo!'}
+                              {p.current_stamps || 0} / {stampsRequired}
                             </span>
                           </td>
-                          <td className="py-3 px-2 text-[#86868B]">
-                            {p.updated_at ? new Date(p.updated_at).toLocaleDateString() : 'Reciente'}
+
+                          {/* COLUMNA DE CÓDIGO VIP Y BOTÓN DE APROBACIÓN */}
+                          <td className="py-3 px-2">
+                            {p.reward_status === 'pending' && p.reward_code ? (
+                              <div className="inline-flex items-center gap-2.5 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl shadow-2xs">
+                                <span className="text-xs font-bold text-amber-800 font-mono tracking-wider">
+                                  {p.reward_code}
+                                </span>
+                                <button
+                                  onClick={() => handleApproveRedemption(p)}
+                                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold rounded-lg transition shadow-2xs cursor-pointer flex items-center gap-1"
+                                >
+                                  <FiCheck className="text-xs" /> Aprobar Canje y Reiniciar
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-[#86868B] italic">Sin premios pendientes</span>
+                            )}
                           </td>
+
                           <td className="py-3 px-2 text-right">
                             <div className="flex items-center justify-end gap-1">
                               <button
                                 onClick={() => handleManualStampAdjust(p.id, p.current_stamps || 0, -1)}
-                                className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#E5E5EA] flex items-center justify-center text-[#1D1D1F] transition"
+                                className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#E5E5EA] flex items-center justify-center text-[#1D1D1F] transition cursor-pointer"
                                 title="Quitar 1 sello"
                               >
                                 <FiMinus className="text-xs" />
                               </button>
                               <button
                                 onClick={() => handleManualStampAdjust(p.id, p.current_stamps || 0, 1)}
-                                className="w-7 h-7 rounded-lg bg-[#1D1D1F] hover:bg-black text-white flex items-center justify-center transition"
+                                className="w-7 h-7 rounded-lg bg-[#1D1D1F] hover:bg-black text-white flex items-center justify-center transition cursor-pointer"
                                 title="Sumar 1 sello"
                               >
                                 <FiPlus className="text-xs" />
@@ -552,7 +583,7 @@ export default function UniversalLoyaltyAdminPanelPage() {
           <div className="p-6 rounded-3xl bg-white border border-[#E5E5EA] shadow-2xs space-y-4">
             <div>
               <h2 className="text-sm font-bold text-[#1D1D1F]">Historial Reciente de Sellos</h2>
-              <p className="text-xs text-[#86868B]">Registro en tiempo real de sellos otorgados vía NFC o PIN.</p>
+              <p className="text-xs text-[#86868B]">Registro en tiempo real de sellos otorgados vía PIN o NFC.</p>
             </div>
 
             <div className="space-y-2">
@@ -599,7 +630,7 @@ export default function UniversalLoyaltyAdminPanelPage() {
               <button
                 type="button"
                 onClick={() => setIsActive(!isActive)}
-                className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 border ${
+                className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 border cursor-pointer ${
                   isActive 
                     ? 'bg-emerald-500 text-white border-emerald-600 shadow-2xs' 
                     : 'bg-[#F5F5F7] text-[#86868B] border-[#E5E5EA]'
@@ -612,7 +643,6 @@ export default function UniversalLoyaltyAdminPanelPage() {
 
             <form onSubmit={handleSaveConfig} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {/* PIN DE CAJA */}
                 <div>
                   <label className="block text-xs font-semibold text-[#86868B] mb-1.5 flex items-center gap-1">
                     <FiKey className="text-xs" /> PIN de Validación (Caja)
@@ -629,7 +659,6 @@ export default function UniversalLoyaltyAdminPanelPage() {
                   <p className="text-[10px] text-[#86868B] mt-1">Clave de caja para autorizar sellos presenciales.</p>
                 </div>
 
-                {/* CANTIDAD DE SELLOS */}
                 <div>
                   <label className="block text-xs font-semibold text-[#86868B] mb-1.5 flex items-center gap-1">
                     <FiAward className="text-xs" /> Sellos Necesarios
@@ -647,7 +676,6 @@ export default function UniversalLoyaltyAdminPanelPage() {
                 </div>
               </div>
 
-              {/* MÓDULO NFC SEGURO */}
               <div className="p-5 rounded-2xl bg-[#F5F5F7] border border-[#E5E5EA] space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-[#1D1D1F] flex items-center gap-1.5">
@@ -666,7 +694,7 @@ export default function UniversalLoyaltyAdminPanelPage() {
                   <button
                     type="button"
                     onClick={copyNfcUrl}
-                    className="px-4 py-2 bg-white hover:bg-[#F0F0F2] border border-[#E5E5EA] text-xs font-semibold text-[#1D1D1F] rounded-xl transition flex items-center gap-1.5 shrink-0 shadow-2xs"
+                    className="px-4 py-2 bg-white hover:bg-[#F0F0F2] border border-[#E5E5EA] text-xs font-semibold text-[#1D1D1F] rounded-xl transition flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer"
                   >
                     {copiedNfc ? <FiCheck className="text-emerald-600" /> : <FiCopy />}
                     <span>{copiedNfc ? 'Copiado' : 'Copiar URL'}</span>
@@ -674,7 +702,6 @@ export default function UniversalLoyaltyAdminPanelPage() {
                 </div>
               </div>
 
-              {/* RECOMPENSA Y ETIQUETA */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-xs font-semibold text-[#86868B] mb-1.5 flex items-center gap-1">
@@ -698,32 +725,27 @@ export default function UniversalLoyaltyAdminPanelPage() {
                     type="text"
                     value={collectionTag}
                     onChange={(e) => setCollectionTag(e.target.value)}
-                    placeholder="Ej: Club Frecuente, Socio Black Tier"
+                    placeholder="Ej: Club Mogu"
                     className="w-full bg-[#F5F5F7] border border-[#E5E5EA] rounded-xl px-3.5 py-2.5 text-xs text-[#1D1D1F] outline-none font-medium"
+                    required
                   />
                 </div>
               </div>
 
-              {/* BOTÓN DE GUARDADO */}
-              <div className="flex justify-end pt-2">
+              <div className="flex items-center justify-between pt-4 border-t border-[#E5E5EA]">
+                {saveSuccess ? (
+                  <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                    <FiCheck /> ¡Configuración guardada correctamente!
+                  </span>
+                ) : <span />}
+
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2.5 bg-[#1D1D1F] hover:bg-black text-white font-medium text-xs rounded-xl transition shadow-2xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="px-6 py-3 bg-[#1D1D1F] hover:bg-black text-white text-xs font-semibold rounded-xl transition shadow-2xs cursor-pointer disabled:opacity-50 flex items-center gap-2 ml-auto"
                 >
-                  {saving ? (
-                    <>
-                      <FiRefreshCw className="animate-spin text-xs" /> Guardando...
-                    </>
-                  ) : saveSuccess ? (
-                    <>
-                      <FiCheck className="text-emerald-400 text-xs" /> ¡Cambios Aplicados!
-                    </>
-                  ) : (
-                    <>
-                      <FiSave className="text-xs" /> Guardar Cambios
-                    </>
-                  )}
+                  <FiSave className="text-sm" />
+                  <span>{saving ? 'Guardando...' : 'Guardar Cambios'}</span>
                 </button>
               </div>
             </form>
