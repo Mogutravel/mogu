@@ -207,13 +207,14 @@ function playCelebrationAudioSound() {
 }
 
 // ============================================================================
-// 2. INTERFAZ Y COMPONENTE PRINCIPAL
+// 2. INTERFAZ Y COMPONENTE PRINCIPAL (CORREGIDO PARA TYPESCRIPT)
 // ============================================================================
 
 interface LoyaltyCardProps {
   businessName: string
   programName: string
   categoryTitle: string
+  themeType?: string // 👈 SOPORTE OPCIONAL AGREGADO
   currentStamps: number
   totalStamps: number
   rewardTitle: string
