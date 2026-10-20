@@ -12,14 +12,13 @@ function LoyaltyPassContent() {
   const searchParams = useSearchParams()
   
   const slug = params?.slug as string
-  const urlNfcToken = searchParams.get('nfc_token')
 
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
   const [program, setProgram] = useState<any>(null)
   const [pass, setPass] = useState<any>(null)
   
-  // Estados para el registro de nuevos clientes
+  // Estados para registro de nuevos clientes
   const [needsRegistration, setNeedsRegistration] = useState(false)
   const [regName, setRegName] = useState('')
   const [regPhone, setRegPhone] = useState('')
@@ -28,16 +27,22 @@ function LoyaltyPassContent() {
   const [nfcSuccessMsg, setNfcSuccessMsg] = useState('')
 
   useEffect(() => {
-    async function loadData() {
+    async function loadAndProcessNfc() {
       if (!slug) return
       setLoading(true)
-      try {
-        // 1. Guardar token NFC en sessionStorage si viene en la URL (para persistirlo tras registro)
-        if (urlNfcToken) {
-          sessionStorage.setItem(`mogu_pending_nfc_${slug}`, urlNfcToken)
-        }
-        const activeNfcToken = urlNfcToken || sessionStorage.getItem(`mogu_pending_nfc_${slug}`)
 
+      try {
+        // 1. CAPTURA DIRECTA DEL NFC TOKEN (Evita pérdidas de parámetros)
+        const urlParams = new URLSearchParams(window.location.search)
+        const currentNfcToken = urlParams.get('nfc_token') || searchParams.get('nfc_token')
+
+        if (currentNfcToken) {
+          sessionStorage.setItem(`mogu_pending_nfc_${slug}`, currentNfcToken)
+        }
+
+        const activeToken = currentNfcToken || sessionStorage.getItem(`mogu_pending_nfc_${slug}`)
+
+        // 2. Obtener perfil del comercio
         const { data: prof } = await supabase
           .from('profiles')
           .select('*')
@@ -47,6 +52,7 @@ function LoyaltyPassContent() {
         if (prof) {
           setProfile(prof)
 
+          // 3. Obtener programa de fidelización
           const { data: prog } = await supabase
             .from('loyalty_programs')
             .select('*')
@@ -55,15 +61,18 @@ function LoyaltyPassContent() {
 
           if (prog) {
             setProgram(prog)
+
             if (prog.is_active) {
               const savedPhone = localStorage.getItem(`mogu_customer_phone_${prof.id}`)
 
               if (!savedPhone) {
+                // Cliente nuevo: solicitar inscripción
                 setNeedsRegistration(true)
               } else {
+                // Cliente existente: obtener pase y procesar NFC
                 const currentPass = await fetchOrCreatePass(prog.id, savedPhone)
-                if (activeNfcToken && currentPass) {
-                  await handleNfcAutoStamp(prog, currentPass, activeNfcToken)
+                if (activeToken && currentPass) {
+                  await handleNfcAutoStamp(prog, currentPass, activeToken)
                 }
               }
             }
@@ -75,8 +84,9 @@ function LoyaltyPassContent() {
         setLoading(false)
       }
     }
-    loadData()
-  }, [slug, urlNfcToken])
+
+    loadAndProcessNfc()
+  }, [slug])
 
   async function fetchOrCreatePass(programId: string, phone: string, customerName?: string) {
     try {
@@ -111,41 +121,15 @@ function LoyaltyPassContent() {
     }
   }
 
-  // Manejar el registro del cliente nuevo y aplicar el sello pendiente de inmediato
-  const handleRegisterClient = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!regName.trim() || !regPhone.trim() || !profile || !program) return
-
-    setRegistering(true)
-    try {
-      const cleanPhone = regPhone.trim()
-      const cleanName = regName.trim()
-
-      localStorage.setItem(`mogu_customer_phone_${profile.id}`, cleanPhone)
-
-      const currentPass = await fetchOrCreatePass(program.id, cleanPhone, cleanName)
-
-      // Recuperar token NFC pendiente
-      const pendingNfc = sessionStorage.getItem(`mogu_pending_nfc_${slug}`)
-      if (pendingNfc && currentPass) {
-        await handleNfcAutoStamp(program, currentPass, pendingNfc)
-        sessionStorage.removeItem(`mogu_pending_nfc_${slug}`)
-      }
-
-      setNeedsRegistration(false)
-    } catch (err) {
-      console.error('Error al registrar cliente:', err)
-    } finally {
-      setRegistering(false)
-    }
-  }
-
-  // Lógica de validación del NFC automático con suma inmediata
+  // ⚡ LÓGICA DE ASIGNACIÓN AUTOMÁTICA
   async function handleNfcAutoStamp(programData: any, passData: any, tokenToValidate: string) {
+    // A. Validar que exista la clave NFC y coincida exactamente
     if (!programData.nfc_secret_key || tokenToValidate !== programData.nfc_secret_key) {
+      console.warn('Token NFC no coincide con nfc_secret_key')
       return
     }
 
+    // B. Validar si ya registró un sello el día de hoy
     if (!String(passData.id).startsWith('demo-pass-')) {
       const todayStart = new Date()
       todayStart.setHours(0, 0, 0, 0)
@@ -157,7 +141,7 @@ function LoyaltyPassContent() {
         .gte('created_at', todayStart.toISOString())
 
       if (todayStamps && todayStamps.length > 0) {
-        setNfcSuccessMsg('⚠️ Ya habías registrado tu sello de hoy. ¡Vuelve mañana!')
+        setNfcSuccessMsg('⚠️ Ya registraste tu sello de hoy. ¡Te esperamos mañana!')
         setTimeout(() => setNfcSuccessMsg(''), 4000)
         sessionStorage.removeItem(`mogu_pending_nfc_${slug}`)
         window.history.replaceState({}, '', window.location.pathname)
@@ -165,12 +149,13 @@ function LoyaltyPassContent() {
       }
     }
 
+    // C. Incrementar e insertar el sello automáticamente
     const newStamps = (passData.current_stamps || 0) + 1
 
     if (!String(passData.id).startsWith('demo-pass-')) {
       await supabase.from('loyalty_stamps').insert([{
         pass_id: passData.id,
-        action_type: 'ADD',
+        action_type: 'NFC_AUTO',
         created_at: new Date().toISOString()
       }])
 
@@ -186,6 +171,7 @@ function LoyaltyPassContent() {
       setPass({ ...passData, current_stamps: newStamps })
     }
 
+    // D. Notificar al usuario y limpiar el parámetro de la URL
     setNfcSuccessMsg('🎉 ¡Sello sumado de inmediato vía NFC!')
     setTimeout(() => setNfcSuccessMsg(''), 5000)
 
@@ -193,7 +179,35 @@ function LoyaltyPassContent() {
     window.history.replaceState({}, '', window.location.pathname)
   }
 
-  // Validar con PIN (Fallback presencial)
+  // Registro del cliente nuevo + Asignación inmediata del sello pendiente
+  const handleRegisterClient = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!regName.trim() || !regPhone.trim() || !profile || !program) return
+
+    setRegistering(true)
+    try {
+      const cleanPhone = regPhone.trim()
+      const cleanName = regName.trim()
+
+      localStorage.setItem(`mogu_customer_phone_${profile.id}`, cleanPhone)
+
+      const currentPass = await fetchOrCreatePass(program.id, cleanPhone, cleanName)
+
+      // Ejecutar el sello NFC retenido tras la inscripción
+      const pendingNfc = sessionStorage.getItem(`mogu_pending_nfc_${slug}`)
+      if (pendingNfc && currentPass) {
+        await handleNfcAutoStamp(program, currentPass, pendingNfc)
+      }
+
+      setNeedsRegistration(false)
+    } catch (err) {
+      console.error('Error al registrar cliente:', err)
+    } finally {
+      setRegistering(false)
+    }
+  }
+
+  // Respaldo manual con PIN (Sólo si el cliente toca el botón en la tarjeta)
   const handleValidatePin = async (pin: string): Promise<boolean> => {
     try {
       const expectedPin = program?.validation_pin || '1234'
@@ -232,7 +246,7 @@ function LoyaltyPassContent() {
 
       await supabase.from('loyalty_stamps').insert([{
         pass_id: currentPass.id,
-        action_type: 'ADD',
+        action_type: 'MANUAL_PIN',
         created_at: new Date().toISOString()
       }])
 
@@ -278,7 +292,7 @@ function LoyaltyPassContent() {
     )
   }
 
-  // VISTA DE INSCRIPCIÓN PARA CLIENTES NUEVOS
+  // Vista de inscripción para clientes por primera vez
   if (needsRegistration) {
     return (
       <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] font-sans flex flex-col justify-between p-6 max-w-md mx-auto selection:bg-[#E8E8ED]">
