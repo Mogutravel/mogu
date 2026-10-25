@@ -42,6 +42,12 @@ interface MenuItem {
   image_url: string | null
   active: boolean
   position: number
+  has_sizes?: boolean
+  sizes_prices?: {
+    chico: number | string
+    mediano: number | string
+    grande: number | string
+  } | null
 }
 
 interface MenuCategory {
@@ -86,6 +92,12 @@ export default function AppleStyleMenuAdminPanel() {
   const [formImageFile, setFormImageFile] = useState<File | null>(null)
   const [formImagePreview, setFormImagePreview] = useState<string | null>(null)
   const [submittingItem, setSubmittingItem] = useState(false)
+
+  // Nuevos estados para tamaños opcionales
+  const [formHasSizes, setFormHasSizes] = useState(false)
+  const [formPriceChico, setFormPriceChico] = useState('')
+  const [formPriceMediano, setFormPriceMediano] = useState('')
+  const [formPriceGrande, setFormPriceGrande] = useState('')
 
   // Crear Categoría
   const [newCatName, setNewCatName] = useState('')
@@ -292,15 +304,24 @@ export default function AppleStyleMenuAdminPanel() {
       setEditingItem(item)
       setFormName(item.name)
       setFormDescription(item.description || '')
-      setFormPrice(item.price ? String(item.price) : '')
       setFormCategoryId(item.category_id)
       setFormImagePreview(item.image_url)
+
+      // Cargar configuración de tamaños si existe
+      setFormHasSizes(item.has_sizes || false)
+      setFormPriceChico(item.has_sizes && item.sizes_prices ? String(item.sizes_prices.chico || '') : String(item.price || ''))
+      setFormPriceMediano(item.has_sizes && item.sizes_prices ? String(item.sizes_prices.mediano || '') : '')
+      setFormPriceGrande(item.has_sizes && item.sizes_prices ? String(item.sizes_prices.grande || '') : '')
     } else {
       setEditingItem(null)
       setFormName('')
       setFormDescription('')
       setFormPrice('')
       setFormImagePreview(null)
+      setFormHasSizes(false)
+      setFormPriceChico('')
+      setFormPriceMediano('')
+      setFormPriceGrande('')
       if (categories.length > 0) setFormCategoryId(categories[0].id)
     }
     setFormImageFile(null)
@@ -333,16 +354,25 @@ export default function AppleStyleMenuAdminPanel() {
         }
       }
 
+      // Preparar datos según si tiene tamaños o precio único
+      const productPayload = {
+        name: formName.trim(),
+        description: formDescription.trim() || null,
+        price: formHasSizes ? Number(formPriceChico) : (formPrice.trim() ? Number(formPrice) : null),
+        category_id: formCategoryId,
+        image_url: finalImageUrl,
+        has_sizes: formHasSizes,
+        sizes_prices: formHasSizes ? {
+          chico: Number(formPriceChico),
+          mediano: Number(formPriceMediano),
+          grande: Number(formPriceGrande)
+        } : null
+      }
+
       if (editingItem) {
         const { error } = await supabase
           .from('menu_items')
-          .update({
-            name: formName.trim(),
-            description: formDescription.trim() || null,
-            price: formPrice.trim() || null,
-            category_id: formCategoryId,
-            image_url: finalImageUrl,
-          })
+          .update(productPayload)
           .eq('id', editingItem.id)
 
         if (error) throw error
@@ -351,7 +381,7 @@ export default function AppleStyleMenuAdminPanel() {
           ...cat,
           items: cat.items.map((i) => 
             i.id === editingItem.id 
-              ? { ...i, name: formName.trim(), description: formDescription.trim() || null, price: formPrice.trim() || null, category_id: formCategoryId, image_url: finalImageUrl } 
+              ? { ...i, ...productPayload } 
               : i
           )
         })))
@@ -361,11 +391,7 @@ export default function AppleStyleMenuAdminPanel() {
         const { data, error } = await supabase
           .from('menu_items')
           .insert([{
-            category_id: formCategoryId,
-            name: formName.trim(),
-            description: formDescription.trim() || null,
-            price: formPrice.trim() || null,
-            image_url: finalImageUrl,
+            ...productPayload,
             active: true,
             position: 99,
           }])
@@ -597,9 +623,9 @@ export default function AppleStyleMenuAdminPanel() {
                   id="avatar-file-input" 
                   type="file" 
                   accept="image/*" 
-                  className="hidden" 
                   onChange={handleAvatarChange}
                   disabled={uploadingAvatar}
+                  className="hidden" 
                 />
               </div>
 
@@ -884,7 +910,11 @@ export default function AppleStyleMenuAdminPanel() {
                           {item.name}
                         </h3>
                         <span className="text-sm font-bold text-neutral-900 dark:text-neutral-100 flex-shrink-0">
-                          {item.price ? (String(item.price).includes('$') ? item.price : `$${item.price}`) : 'Sin precio'}
+                          {item.has_sizes && item.sizes_prices ? (
+                            `$${item.sizes_prices.chico} (Chico)`
+                          ) : (
+                            item.price ? (String(item.price).includes('$') ? item.price : `$${item.price}`) : 'Sin precio'
+                          )}
                         </span>
                       </div>
                       <p className="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2 leading-relaxed">
@@ -921,7 +951,7 @@ export default function AppleStyleMenuAdminPanel() {
       {/* MODAL CREAR / EDITAR */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-[#121215] border border-neutral-200/80 dark:border-neutral-800 shadow-2xl p-6 space-y-6 overflow-hidden">
+          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-[#121215] border border-neutral-200/80 dark:border-neutral-800 shadow-2xl p-6 space-y-6 overflow-hidden max-h-[90vh] overflow-y-auto">
             
             <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-4">
               <h3 className="text-sm font-semibold tracking-tight text-neutral-900 dark:text-white">
@@ -954,24 +984,78 @@ export default function AppleStyleMenuAdminPanel() {
                 <input
                   type="text"
                   required
-                  placeholder="Ej. Lomo Saltado"
+                  placeholder="Ej. Lungo"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 dark:text-white outline-none"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-500 mb-1">Precio ($)</label>
+              {/* SECCIÓN DE TAMAÑOS OPCIONALES */}
+              <div className="space-y-3 p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-900/60 border border-neutral-200/60 dark:border-neutral-800">
+                <label className="flex items-center space-x-2 font-medium cursor-pointer">
                   <input
-                    type="text"
-                    placeholder="9990"
-                    value={formPrice}
-                    onChange={(e) => setFormPrice(e.target.value)}
-                    className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 dark:text-white outline-none"
+                    type="checkbox"
+                    checked={formHasSizes}
+                    onChange={(e) => setFormHasSizes(e.target.checked)}
+                    className="w-4 h-4 text-orange-600 rounded"
                   />
-                </div>
+                  <span className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">
+                    ¿Este producto tiene opciones de tamaño (Chico, Mediano, Grande)?
+                  </span>
+                </label>
+
+                {!formHasSizes ? (
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-500 mb-1">Precio Único ($)</label>
+                    <input
+                      type="text"
+                      placeholder="9990"
+                      value={formPrice}
+                      onChange={(e) => setFormPrice(e.target.value)}
+                      className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 dark:text-white outline-none"
+                    />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-3 pt-2">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-neutral-500 mb-1">Chico ($)</label>
+                      <input
+                        type="text"
+                        placeholder="2200"
+                        value={formPriceChico}
+                        onChange={(e) => setFormPriceChico(e.target.value)}
+                        className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-900 dark:text-white outline-none"
+                        required={formHasSizes}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-neutral-500 mb-1">Mediano ($)</label>
+                      <input
+                        type="text"
+                        placeholder="2800"
+                        value={formPriceMediano}
+                        onChange={(e) => setFormPriceMediano(e.target.value)}
+                        className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-900 dark:text-white outline-none"
+                        required={formHasSizes}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-neutral-500 mb-1">Grande ($)</label>
+                      <input
+                        type="text"
+                        placeholder="3800"
+                        value={formPriceGrande}
+                        onChange={(e) => setFormPriceGrande(e.target.value)}
+                        className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-900 dark:text-white outline-none"
+                        required={formHasSizes}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-neutral-500 mb-1">Fotografía</label>
                   <label className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 border border-neutral-200 dark:border-neutral-800 text-xs font-medium text-neutral-900 dark:text-white rounded-xl cursor-pointer transition">
@@ -991,13 +1075,13 @@ export default function AppleStyleMenuAdminPanel() {
                     />
                   </label>
                 </div>
-              </div>
 
-              {formImagePreview && (
-                <div className="w-20 h-20 rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800 mx-auto relative">
-                  <img src={formImagePreview} alt="Preview" className="w-full h-full object-cover" />
-                </div>
-              )}
+                {formImagePreview && (
+                  <div className="w-16 h-16 rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800 relative">
+                    <img src={formImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
 
               <div>
                 <label className="block text-xs font-semibold text-neutral-500 mb-1">Descripción / Ingredientes</label>

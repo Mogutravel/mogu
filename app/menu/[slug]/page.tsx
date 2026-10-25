@@ -34,6 +34,12 @@ interface MenuItem {
   image_url: string | null
   active: boolean
   position: number
+  has_sizes?: boolean
+  sizes_prices?: {
+    chico: number | string
+    mediano: number | string
+    grande: number | string
+  } | null
 }
 
 interface MenuCategory {
@@ -44,8 +50,11 @@ interface MenuCategory {
 }
 
 interface CartItem {
+  cartId: string // Identificador único para el carrito (permite distinguir tamaños)
   item: MenuItem
   quantity: number
+  selectedSize?: string
+  selectedPrice?: number
 }
 
 interface ImageModal {
@@ -72,6 +81,11 @@ export default function MoguMenu() {
 
   const [activeImageModal, setActiveImageModal] =
     useState<ImageModal | null>(null)
+
+  // Estados para el Modal de Selección de Tamaños
+  const [isSizeModalOpen, setIsSizeModalOpen] = useState(false)
+  const [productToSize, setProductToSize] = useState<MenuItem | null>(null)
+  const [selectedSizeKey, setSelectedSizeKey] = useState<'chico' | 'mediano' | 'grande'>('chico')
 
   // Cargar establecimiento, categorías y productos.
   useEffect(() => {
@@ -155,8 +169,6 @@ export default function MoguMenu() {
     loadMenuData()
   }, [slug])
 
-  // Convierte precios de texto o número a valores numéricos.
-  // Admite formatos como 5990, "5990", "$5.990" y "5.990 CLP".
   const parsePrice = (
     price: string | number | null | undefined
   ): number | null => {
@@ -170,19 +182,16 @@ export default function MoguMenu() {
       .replace(/\$/g, '')
       .replace(/CLP/gi, '')
 
-    // Formato chileno: 5.990 o 15.000.
     if (/^-?\d{1,3}(\.\d{3})+$/.test(cleaned)) {
       const value = Number(cleaned.replace(/\./g, ''))
       return Number.isFinite(value) ? value : null
     }
 
-    // Enteros sin separadores: 5990.
     if (/^-?\d+$/.test(cleaned)) {
       const value = Number(cleaned)
       return Number.isFinite(value) ? value : null
     }
 
-    // Formato decimal, por ejemplo 5990,50.
     const value = Number(cleaned.replace(',', '.'))
     return Number.isFinite(value) ? value : null
   }
@@ -194,21 +203,24 @@ export default function MoguMenu() {
       maximumFractionDigits: 0,
     })
 
-  const displayPrice = (
-    price: string | number | null | undefined
-  ): string => {
-    if (price === null || price === undefined || String(price).trim() === '') {
+  const displayPrice = (item: MenuItem): string => {
+    if (item.has_sizes && item.sizes_prices) {
+      const chicoPrice = parsePrice(item.sizes_prices.chico)
+      return chicoPrice !== null ? `Desde ${formatCLP(chicoPrice)}` : 'A convenir'
+    }
+
+    if (item.price === null || item.price === undefined || String(item.price).trim() === '') {
       return 'A convenir'
     }
 
-    const parsed = parsePrice(price)
-    return parsed === null ? String(price) : formatCLP(parsed)
+    const parsed = parsePrice(item.price)
+    return parsed === null ? String(item.price) : formatCLP(parsed)
   }
 
-  const getItemSubtotal = (item: MenuItem, quantity: number): number | null => {
-    const price = parsePrice(item.price)
+  const getItemSubtotal = (ci: CartItem): number | null => {
+    const price = ci.selectedPrice !== undefined ? ci.selectedPrice : parsePrice(ci.item.price)
     if (price === null) return null
-    return price * quantity
+    return price * ci.quantity
   }
 
   const totalCartItems = useMemo(
@@ -219,52 +231,84 @@ export default function MoguMenu() {
   const cartSubtotal = useMemo(
     () =>
       cart.reduce((total, ci) => {
-        const subtotal = getItemSubtotal(ci.item, ci.quantity)
+        const subtotal = getItemSubtotal(ci)
         return total + (subtotal ?? 0)
       }, 0),
     [cart]
   )
 
   const hasUnpricedItems = useMemo(
-    () => cart.some((ci) => parsePrice(ci.item.price) === null),
+    () => cart.some((ci) => (ci.selectedPrice !== undefined ? ci.selectedPrice : parsePrice(ci.item.price)) === null),
     [cart]
   )
 
-  const addToCart = (item: MenuItem, e?: React.MouseEvent) => {
+  // Manejador central para agregar al carrito (con o sin modal de tamaños)
+  const handleTriggerAdd = (item: MenuItem, e?: React.MouseEvent) => {
     e?.stopPropagation()
 
+    if (item.has_sizes && item.sizes_prices) {
+      setProductToSize(item)
+      setSelectedSizeKey('chico')
+      setIsSizeModalOpen(true)
+    } else {
+      addToCartDirect(item)
+    }
+  }
+
+  const addToCartDirect = (item: MenuItem, sizeKey?: string, customPrice?: number) => {
+    const cartId = sizeKey ? `${item.id}-${sizeKey}` : item.id
+    const finalPrice = customPrice !== undefined ? customPrice : parsePrice(item.price) ?? 0
+
     setCart((prev) => {
-      const existing = prev.find((ci) => ci.item.id === item.id)
+      const existing = prev.find((ci) => ci.cartId === cartId)
 
       if (existing) {
         return prev.map((ci) =>
-          ci.item.id === item.id ? { ...ci, quantity: ci.quantity + 1 } : ci
+          ci.cartId === cartId ? { ...ci, quantity: ci.quantity + 1 } : ci
         )
       }
 
-      return [...prev, { item, quantity: 1 }]
+      return [
+        ...prev,
+        {
+          cartId,
+          item,
+          quantity: 1,
+          selectedSize: sizeKey ? sizeKey.charAt(0).toUpperCase() + sizeKey.slice(1) : undefined,
+          selectedPrice: finalPrice,
+        },
+      ]
     })
   }
 
-  const decreaseQuantity = (itemId: string) => {
+  const decreaseQuantity = (cartId: string) => {
     setCart((prev) => {
-      const existing = prev.find((ci) => ci.item.id === itemId)
+      const existing = prev.find((ci) => ci.cartId === cartId)
 
       if (existing && existing.quantity > 1) {
         return prev.map((ci) =>
-          ci.item.id === itemId ? { ...ci, quantity: ci.quantity - 1 } : ci
+          ci.cartId === cartId ? { ...ci, quantity: ci.quantity - 1 } : ci
         )
       }
 
-      return prev.filter((ci) => ci.item.id !== itemId)
+      return prev.filter((ci) => ci.cartId !== cartId)
     })
   }
 
-  const removeFromCart = (itemId: string) => {
-    setCart((prev) => prev.filter((ci) => ci.item.id !== itemId))
+  const increaseQuantity = (ci: CartItem) => {
+    if (ci.item.has_sizes && ci.selectedSize) {
+      const sizeKey = ci.selectedSize.toLowerCase() as 'chico' | 'mediano' | 'grande'
+      const price = parsePrice(ci.item.sizes_prices?.[sizeKey]) ?? ci.selectedPrice ?? 0
+      addToCartDirect(ci.item, sizeKey, price)
+    } else {
+      addToCartDirect(ci.item)
+    }
   }
 
-  // Enviar pedido por WhatsApp con precios y subtotales.
+  const removeFromCart = (cartId: string) => {
+    setCart((prev) => prev.filter((ci) => ci.cartId !== cartId))
+  }
+
   const handleWhatsAppCheckout = () => {
     if (cart.length === 0 || !profile) return
 
@@ -273,10 +317,11 @@ export default function MoguMenu() {
       'me gustaría realizar el siguiente pedido desde su carta digital:\n\n'
 
     cart.forEach((ci) => {
-      const unitPrice = parsePrice(ci.item.price)
-      const subtotal = getItemSubtotal(ci.item, ci.quantity)
+      const unitPrice = ci.selectedPrice ?? parsePrice(ci.item.price)
+      const subtotal = getItemSubtotal(ci)
+      const sizeText = ci.selectedSize ? ` (${ci.selectedSize})` : ''
 
-      text += `• *${ci.quantity}x* ${ci.item.name}\n`
+      text += `• *${ci.quantity}x* ${ci.item.name}${sizeText}\n`
 
       if (unitPrice !== null && subtotal !== null) {
         text += `  Precio unitario: ${formatCLP(unitPrice)}\n`
@@ -332,7 +377,6 @@ export default function MoguMenu() {
       .filter(Boolean) as MenuCategory[]
   }, [categories, searchTerm, activeCategory])
 
-  // Pantalla de carga.
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0B0B0C] text-[#F2F2EE] flex flex-col items-center justify-center p-4">
@@ -344,7 +388,6 @@ export default function MoguMenu() {
     )
   }
 
-  // Pantalla de error.
   if (errorMsg || !profile) {
     return (
       <div className="min-h-screen bg-[#0B0B0C] text-[#F2F2EE] flex flex-col items-center justify-center p-6 text-center space-y-4">
@@ -368,7 +411,6 @@ export default function MoguMenu() {
   const menuStyle = profile.menu_style || 'modern'
   const isLight = profile.menu_theme === 'light'
 
-  // Paleta: neutros fríos + un solo acento (naranja quemado / coral).
   const t = {
     bg: isLight ? 'bg-[#FAFAF8] text-[#141414]' : 'bg-[#0B0B0C] text-[#F2F2EE]',
     surface: isLight ? 'bg-white' : 'bg-[#141416]',
@@ -409,7 +451,6 @@ export default function MoguMenu() {
 
   const hasQuery = searchTerm.trim().length > 0
 
-  // Buscador compartido por los tres estilos.
   const renderSearch = (placeholder: string, className = '') => (
     <div className={`relative ${className}`}>
       <FiSearch
@@ -433,7 +474,6 @@ export default function MoguMenu() {
     </div>
   )
 
-  // Pestañas de categorías: subrayado (clásico / moderno) o píldora (tarjetas).
   const renderCategoryTabs = (variant: 'underline' | 'pill') => {
     const base =
       'flex-shrink-0 whitespace-nowrap cursor-pointer transition text-sm'
@@ -502,7 +542,7 @@ export default function MoguMenu() {
       </div>
 
       {/* ============================================================ */}
-      {/* ESTILO CLÁSICO — carta tipográfica, secciones numeradas       */}
+      {/* ESTILO CLÁSICO                                               */}
       {/* ============================================================ */}
       {menuStyle === 'classic' && (
         <div className="flex-1 flex flex-col">
@@ -556,7 +596,11 @@ export default function MoguMenu() {
 
                 <div className="space-y-9">
                   {cat.items.map((item) => (
-                    <div key={item.id} className="flex items-start gap-4 group">
+                    <div 
+                      key={item.id} 
+                      onClick={() => handleTriggerAdd(item)}
+                      className="flex items-start gap-4 group cursor-pointer"
+                    >
                       <div className="flex-1 min-w-0 space-y-1.5">
                         <div className="flex items-baseline gap-3">
                           <h3
@@ -572,7 +616,7 @@ export default function MoguMenu() {
                           <span
                             className={`font-serif text-lg whitespace-nowrap ${t.accent}`}
                           >
-                            {displayPrice(item.price)}
+                            {displayPrice(item)}
                           </span>
                         </div>
 
@@ -585,7 +629,7 @@ export default function MoguMenu() {
                         )}
 
                         <button
-                          onClick={(e) => addToCart(item, e)}
+                          onClick={(e) => handleTriggerAdd(item, e)}
                           className={`mt-2 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] cursor-pointer transition ${t.accent} hover:opacity-70`}
                         >
                           <FiPlus /> Agregar
@@ -593,9 +637,11 @@ export default function MoguMenu() {
                       </div>
 
                       {item.image_url && (
-                        <button
-                          type="button"
-                          onClick={() => openImage(item)}
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openImage(item)
+                          }}
                           className={`w-20 h-20 flex-shrink-0 overflow-hidden rounded-sm border cursor-pointer ${t.line}`}
                         >
                           <img
@@ -603,7 +649,7 @@ export default function MoguMenu() {
                             alt={item.name}
                             className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition duration-500"
                           />
-                        </button>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -615,7 +661,7 @@ export default function MoguMenu() {
       )}
 
       {/* ============================================================ */}
-      {/* ESTILO MODERNO — lista limpia estilo app                      */}
+      {/* ESTILO MODERNO                                               */}
       {/* ============================================================ */}
       {menuStyle === 'modern' && (
         <div className="flex-1 flex flex-col">
@@ -661,7 +707,8 @@ export default function MoguMenu() {
                   {cat.items.map((item) => (
                     <article
                       key={item.id}
-                      className="flex items-center gap-4 py-5"
+                      onClick={() => handleTriggerAdd(item)}
+                      className="flex items-center gap-4 py-5 cursor-pointer group"
                     >
                       <div className="flex-1 min-w-0 space-y-1.5">
                         <h3
@@ -679,15 +726,17 @@ export default function MoguMenu() {
                         )}
 
                         <p className={`text-sm font-bold pt-0.5 ${t.accent}`}>
-                          {displayPrice(item.price)}
+                          {displayPrice(item)}
                         </p>
                       </div>
 
                       <div className="relative flex-shrink-0">
                         {item.image_url ? (
-                          <button
-                            type="button"
-                            onClick={() => openImage(item)}
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openImage(item)
+                            }}
                             className={`block w-24 h-24 rounded-2xl overflow-hidden border cursor-pointer ${t.line}`}
                           >
                             <img
@@ -695,13 +744,13 @@ export default function MoguMenu() {
                               alt={item.name}
                               className="w-full h-full object-cover"
                             />
-                          </button>
+                          </div>
                         ) : (
                           <div className="w-24 h-24" />
                         )}
 
                         <button
-                          onClick={(e) => addToCart(item, e)}
+                          onClick={(e) => handleTriggerAdd(item, e)}
                           aria-label={`Agregar ${item.name}`}
                           className={`absolute -bottom-2 -right-2 w-9 h-9 rounded-full flex items-center justify-center shadow-lg cursor-pointer transition active:scale-90 ${t.accentBg}`}
                         >
@@ -718,7 +767,7 @@ export default function MoguMenu() {
       )}
 
       {/* ============================================================ */}
-      {/* ESTILO TARJETAS — galería visual con la foto protagonista     */}
+      {/* ESTILO TARJETAS                                              */}
       {/* ============================================================ */}
       {menuStyle === 'cards' && (
         <div className="flex-1 flex flex-col">
@@ -760,13 +809,16 @@ export default function MoguMenu() {
                   {cat.items.map((item) => (
                     <article
                       key={item.id}
-                      className={`group rounded-3xl overflow-hidden flex flex-col border ${t.surface} ${t.line}`}
+                      onClick={() => handleTriggerAdd(item)}
+                      className={`group rounded-3xl overflow-hidden flex flex-col border cursor-pointer ${t.surface} ${t.line}`}
                     >
                       <div className={`relative aspect-[4/3] overflow-hidden ${t.surfaceAlt}`}>
                         {item.image_url ? (
-                          <button
-                            type="button"
-                            onClick={() => openImage(item)}
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openImage(item)
+                            }}
                             className="block w-full h-full cursor-pointer"
                           >
                             <img
@@ -774,7 +826,7 @@ export default function MoguMenu() {
                               alt={item.name}
                               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                             />
-                          </button>
+                          </div>
                         ) : (
                           <div className={`w-full h-full flex items-center justify-center text-3xl ${t.muted}`}>
                             ✦
@@ -788,7 +840,7 @@ export default function MoguMenu() {
                               : 'bg-black/70 text-white'
                           }`}
                         >
-                          {displayPrice(item.price)}
+                          {displayPrice(item)}
                         </span>
                       </div>
 
@@ -810,7 +862,7 @@ export default function MoguMenu() {
                         </div>
 
                         <button
-                          onClick={(e) => addToCart(item, e)}
+                          onClick={(e) => handleTriggerAdd(item, e)}
                           className={`w-full py-2.5 rounded-2xl text-xs font-semibold cursor-pointer transition active:scale-[0.98] flex items-center justify-center gap-1.5 ${t.accentBg}`}
                         >
                           <FiPlus /> Agregar
@@ -822,6 +874,75 @@ export default function MoguMenu() {
               </section>
             ))}
           </main>
+        </div>
+      )}
+
+      {/* MODAL DE SELECCIÓN DE TAMAÑOS (CHICO, MEDIANO, GRANDE) */}
+      {isSizeModalOpen && productToSize && (
+        <div
+          onClick={() => setIsSizeModalOpen(false)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={`w-full max-w-sm rounded-3xl p-6 shadow-2xl border space-y-5 ${t.surface} ${t.line}`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className={`text-base font-bold tracking-tight ${t.title}`}>
+                  {productToSize.name}
+                </h3>
+                <p className={`text-xs mt-0.5 ${t.muted}`}>
+                  Selecciona el tamaño de tu preferencia
+                </p>
+              </div>
+
+              <button
+                onClick={() => setIsSizeModalOpen(false)}
+                className={`w-8 h-8 rounded-full flex items-center justify-center border cursor-pointer transition ${t.line}`}
+              >
+                <FiX className="text-xs" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {(['chico', 'mediano', 'grande'] as const).map((sizeKey) => {
+                const priceVal = productToSize.sizes_prices?.[sizeKey]
+                if (priceVal === undefined || priceVal === null || priceVal === '') return null
+
+                const numericPrice = parsePrice(priceVal) ?? 0
+                const sizeLabel = sizeKey.charAt(0).toUpperCase() + sizeKey.slice(1)
+                const isSelected = selectedSizeKey === sizeKey
+
+                return (
+                  <button
+                    key={sizeKey}
+                    onClick={() => setSelectedSizeKey(sizeKey)}
+                    className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition cursor-pointer ${
+                      isSelected
+                        ? 'border-[#FF7A45] bg-[#FF7A45]/10 font-semibold'
+                        : `${t.line} hover:border-neutral-400`
+                    }`}
+                  >
+                    <span className="text-xs font-semibold">{sizeLabel}</span>
+                    <span className="text-xs font-bold">{formatCLP(numericPrice)}</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            <button
+              onClick={() => {
+                const priceVal = productToSize.sizes_prices?.[selectedSizeKey]
+                const numericPrice = parsePrice(priceVal) ?? 0
+                addToCartDirect(productToSize, selectedSizeKey, numericPrice)
+                setIsSizeModalOpen(false)
+              }}
+              className={`w-full py-3 rounded-2xl text-xs font-semibold cursor-pointer transition shadow-md ${t.accentBg}`}
+            >
+              Confirmar y Agregar
+            </button>
+          </div>
         </div>
       )}
 
@@ -894,12 +1015,12 @@ export default function MoguMenu() {
                 </div>
               ) : (
                 cart.map((ci) => {
-                  const unitPrice = parsePrice(ci.item.price)
-                  const itemSubtotal = getItemSubtotal(ci.item, ci.quantity)
+                  const unitPrice = ci.selectedPrice ?? parsePrice(ci.item.price)
+                  const itemSubtotal = getItemSubtotal(ci)
 
                   return (
                     <div
-                      key={ci.item.id}
+                      key={ci.cartId}
                       className={`flex items-center justify-between gap-3 p-3 rounded-2xl border ${t.line} ${t.surface}`}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -919,7 +1040,7 @@ export default function MoguMenu() {
 
                         <div className="min-w-0 flex-1">
                           <h4 className="text-sm font-semibold break-words leading-snug">
-                            {ci.item.name}
+                            {ci.item.name} {ci.selectedSize ? `(${ci.selectedSize})` : ''}
                           </h4>
 
                           <p className={`text-xs mt-0.5 ${t.muted}`}>
@@ -939,7 +1060,7 @@ export default function MoguMenu() {
                       <div className="flex flex-col items-end gap-2 flex-shrink-0">
                         <div className={`flex items-center rounded-full border ${t.line}`}>
                           <button
-                            onClick={() => decreaseQuantity(ci.item.id)}
+                            onClick={() => decreaseQuantity(ci.cartId)}
                             className="w-8 h-8 flex items-center justify-center cursor-pointer hover:opacity-60"
                             aria-label={`Disminuir ${ci.item.name}`}
                           >
@@ -951,7 +1072,7 @@ export default function MoguMenu() {
                           </span>
 
                           <button
-                            onClick={() => addToCart(ci.item)}
+                            onClick={() => increaseQuantity(ci)}
                             className="w-8 h-8 flex items-center justify-center cursor-pointer hover:opacity-60"
                             aria-label={`Aumentar ${ci.item.name}`}
                           >
@@ -960,7 +1081,7 @@ export default function MoguMenu() {
                         </div>
 
                         <button
-                          onClick={() => removeFromCart(ci.item.id)}
+                          onClick={() => removeFromCart(ci.cartId)}
                           className="text-rose-500 hover:text-rose-600 p-1 transition cursor-pointer"
                           aria-label={`Eliminar ${ci.item.name}`}
                         >
@@ -1057,7 +1178,7 @@ export default function MoguMenu() {
                     <span
                       className={`text-sm font-bold px-3 py-1 rounded-full whitespace-nowrap ${t.accentSoft}`}
                     >
-                      {displayPrice(activeImageModal.price)}
+                      {displayPrice({ price: activeImageModal.price } as MenuItem)}
                     </span>
                   )}
               </div>
