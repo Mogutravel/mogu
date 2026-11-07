@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
   FiClock,
@@ -43,6 +43,7 @@ const STATUS_STEPS = [
 export default function OrderTrackingPage() {
   const params = useParams()
   const searchParams = useSearchParams()
+  const router = useRouter()
 
   const slug = params?.slug as string
   const currentOrderId = searchParams?.get('orderId')
@@ -59,25 +60,31 @@ export default function OrderTrackingPage() {
   const [isBillModalOpen, setIsBillModalOpen] = useState(false)
 
   useEffect(() => {
-    if (!currentOrderId) {
+    if (!currentOrderId || !slug) {
       setError('No se encontró el identificador del pedido.')
       setLoading(false)
       return
     }
 
-    async function fetchTableOrdersDetails() {
+    async function verifyAndLoadOrder() {
       try {
-        // 1. Cargar la orden principal actual para saber la mesa y tienda
+        // 1. Verificar si la orden realmente existe en Supabase (si ya fue pagada y borrada en caja, dará error/null)
         const { data: orderData, error: orderErr } = await supabase
           .from('orders')
           .select('*')
           .eq('id', currentOrderId)
-          .single()
+          .maybeSingle()
 
-        if (orderErr) throw orderErr
+        if (orderErr || !orderData) {
+          localStorage.removeItem(`mogu_active_order_${slug}`)
+          localStorage.removeItem(`mogu_table_${slug}`)
+          router.push(`/menu/${slug}`)
+          return
+        }
+
         setCurrentOrder(orderData)
 
-        // 2. Cargar TODAS las órdenes activas de esa misma mesa y tienda (para sumar el total de la mesa)
+        // 2. Cargar TODAS las órdenes activas de esa misma mesa y tienda
         const { data: allOrdersData, error: allOrdersErr } = await supabase
           .from('orders')
           .select('*')
@@ -113,9 +120,9 @@ export default function OrderTrackingPage() {
       }
     }
 
-    fetchTableOrdersDetails()
+    verifyAndLoadOrder()
 
-    // Suscripción Realtime a la orden actual
+    // Suscripción Realtime: UPDATE (cambio de estado en cocina) y DELETE (cuando pagan y se borra)
     const channel = supabase
       .channel(`order-status-${currentOrderId}`)
       .on(
@@ -132,12 +139,26 @@ export default function OrderTrackingPage() {
           }
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'orders',
+          filter: `id=eq.${currentOrderId}`,
+        },
+        () => {
+          localStorage.removeItem(`mogu_active_order_${slug}`)
+          localStorage.removeItem(`mogu_table_${slug}`)
+          router.push(`/menu/${slug}`)
+        }
+      )
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [currentOrderId])
+  }, [currentOrderId, slug, router])
 
   // Función para enviar llamado (Garzón o Cuenta)
   const handleTableCall = async (type: 'garzon' | 'cuenta') => {
@@ -261,7 +282,7 @@ export default function OrderTrackingPage() {
         {/* Cabecera */}
         <div className="flex items-center justify-between">
           <a
-            href={`/menu/${slug}?mesa=${currentOrder.table_number}`}
+            href={`/menu/${slug}`}
             className="flex items-center gap-2 text-xs font-medium text-white/60 hover:text-white transition"
           >
             <FiArrowLeft /> Volver a la carta
@@ -374,7 +395,7 @@ export default function OrderTrackingPage() {
           💡 Esta pantalla se actualiza en tiempo real automáticamente. Paga al finalizar en la caja del local.
         </p>
 
-        {/* MODAL DETALLE DE CUENTA (Muestra TODAS las comandas de la mesa igual que el panel de caja) */}
+        {/* MODAL DETALLE DE CUENTA */}
         {isBillModalOpen && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
             <div className="w-full max-w-md bg-[#141416] border border-[#26262A] rounded-3xl p-6 shadow-2xl space-y-6">

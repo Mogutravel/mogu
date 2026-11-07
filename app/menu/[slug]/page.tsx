@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useMemo } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
   FiShoppingBag,
@@ -10,6 +10,7 @@ import {
   FiTrash2,
   FiSearch,
   FiX,
+  FiClock,
 } from 'react-icons/fi'
 
 interface Profile {
@@ -65,6 +66,7 @@ interface ImageModal {
 
 export default function MoguMenu() {
   const params = useParams()
+  const router = useRouter()
   const slug = params?.slug as string
 
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -81,6 +83,8 @@ export default function MoguMenu() {
 
   // Capturar el número de mesa de la URL (?mesa=X)
   const [tableNumber, setTableNumber] = useState<number | null>(null)
+  const [isTableActive, setIsTableActive] = useState(true)
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null)
 
   const [activeImageModal, setActiveImageModal] =
     useState<ImageModal | null>(null)
@@ -89,7 +93,7 @@ export default function MoguMenu() {
   const [productToSize, setProductToSize] = useState<MenuItem | null>(null)
   const [selectedSizeKey, setSelectedSizeKey] = useState<'chico' | 'mediano' | 'grande'>('chico')
 
-  // Detectar número de mesa al cargar la página
+  // Detectar número de mesa al cargar la página y guardar en localStorage
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const mesaParam = urlParams.get('mesa')
@@ -97,9 +101,107 @@ export default function MoguMenu() {
       const parsedMesa = parseInt(mesaParam, 10)
       if (!isNaN(parsedMesa)) {
         setTableNumber(parsedMesa)
+        localStorage.setItem(`mogu_table_${slug}`, parsedMesa.toString())
+      }
+    } else {
+      const savedMesa = localStorage.getItem(`mogu_table_${slug}`)
+      if (savedMesa) {
+        setTableNumber(Number(savedMesa))
       }
     }
-  }, [])
+
+    // Verificar si hay una orden activa previa guardada
+    const savedOrderId = localStorage.getItem(`mogu_active_order_${slug}`)
+    if (savedOrderId) {
+      setActiveOrderId(savedOrderId)
+    }
+  }, [slug])
+
+  // 🛡️ SEGURIDAD: Validar si la mesa sigue ocupada/activa en tiempo real
+  useEffect(() => {
+    if (!slug || !tableNumber) return
+
+    const checkTableStatus = async () => {
+      const { data, error } = await supabase
+        .from('tables')
+        .select('status')
+        .eq('store_slug', slug)
+        .eq('table_number', tableNumber)
+        .single()
+
+      if (error || !data || data.status === 'disponible') {
+        setIsTableActive(false)
+        localStorage.removeItem(`mogu_active_order_${slug}`)
+        localStorage.removeItem(`mogu_table_${slug}`)
+        setActiveOrderId(null)
+      }
+    }
+
+    checkTableStatus()
+
+    const channel = supabase
+      .channel(`menu-table-guard-${slug}-${tableNumber}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'tables', 
+          filter: `store_slug=eq.${slug}` 
+        },
+        (payload: any) => {
+          if (payload.new && payload.new.table_number === tableNumber) {
+            if (payload.new.status === 'disponible') {
+              setIsTableActive(false)
+              localStorage.removeItem(`mogu_active_order_${slug}`)
+              localStorage.removeItem(`mogu_table_${slug}`)
+              setActiveOrderId(null)
+            }
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [slug, tableNumber])
+
+  // 🔍 Verificar validez de la orden activa en tiempo real
+  useEffect(() => {
+    if (!slug || !activeOrderId) return
+
+    const checkOrderValidity = async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('id', activeOrderId)
+        .single()
+
+      if (error || !data) {
+        localStorage.removeItem(`mogu_active_order_${slug}`)
+        setActiveOrderId(null)
+      }
+    }
+
+    checkOrderValidity()
+
+    const channelOrder = supabase
+      .channel(`menu-tracker-check-${activeOrderId}`)
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'orders', filter: `id=eq.${activeOrderId}` },
+        () => {
+          localStorage.removeItem(`mogu_active_order_${slug}`)
+          setActiveOrderId(null)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channelOrder)
+    }
+  }, [slug, activeOrderId])
 
   useEffect(() => {
     async function loadMenuData() {
@@ -321,7 +423,7 @@ export default function MoguMenu() {
     setCart((prev) => prev.filter((ci) => ci.cartId !== cartId))
   }
 
-  // ENVÍO DE PEDIDO: Si lo anterior ya se entregó, crea una nueva comanda limpia para cocina
+  // ENVÍO DE PEDIDO: Guarda en localStorage y redirige al seguimiento en vivo
   const handleOrderSubmission = async () => {
     if (cart.length === 0 || !profile || !tableNumber) return
     setIsSubmitting(true)
@@ -333,7 +435,6 @@ export default function MoguMenu() {
         localStorage.setItem('mogu_session', sessionToken)
       }
 
-      // 1. Buscamos si hay una comanda ACTIVA en preparación (recibido o preparando)
       const { data: existingActiveOrder } = await supabase
         .from('orders')
         .select('*')
@@ -345,7 +446,6 @@ export default function MoguMenu() {
       let activeOrderId = ''
 
       if (existingActiveOrder) {
-        // A. SI TODAVÍA ESTÁ EN COCINA: Acumulamos ahí mismo
         activeOrderId = existingActiveOrder.id
         const newTotal = existingActiveOrder.total_amount + cartSubtotal
 
@@ -359,8 +459,6 @@ export default function MoguMenu() {
         if (updateOrderErr) throw updateOrderErr
 
       } else {
-        // B. SI LO ANTERIOR YA FUE ENTREGADO O LISTO: Creamos una NUEVA comanda 
-        // para que la cocina solo vea este nuevo pedido y no lo anterior.
         const { data: newOrder, error: orderError } = await supabase
           .from('orders')
           .insert([
@@ -389,7 +487,6 @@ export default function MoguMenu() {
           }], { onConflict: 'store_slug,table_number' })
       }
 
-      // 2. Insertar los nuevos items vinculados a la comanda
       const itemsToInsert = cart.map((ci) => {
         const unitPrice = ci.selectedPrice ?? parsePrice(ci.item.price) ?? 0
         const sizeSuffix = ci.selectedSize ? ` (${ci.selectedSize})` : ''
@@ -407,6 +504,10 @@ export default function MoguMenu() {
         .insert(itemsToInsert)
 
       if (itemsError) throw itemsError
+
+      // Guardar en localStorage para la barra flotante
+      localStorage.setItem(`mogu_active_order_${profile.slug}`, activeOrderId)
+      setActiveOrderId(activeOrderId)
 
       window.location.href = `/menu/${profile.slug}/seguimiento?orderId=${activeOrderId}`
     } catch (err: any) {
@@ -446,6 +547,21 @@ export default function MoguMenu() {
         <span className="mt-4 text-[11px] uppercase tracking-[0.3em] text-white/50">
           Cargando carta
         </span>
+      </div>
+    )
+  }
+
+  // 🔒 PANTALLA DE BLOQUEO SI LA MESA FUE LIBERADA EN CAJA
+  if (!isTableActive) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0C] text-white flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/20 rounded-3xl flex items-center justify-center text-amber-400 text-2xl">
+          🔒
+        </div>
+        <h1 className="text-xl font-bold">Sesión de mesa finalizada</h1>
+        <p className="text-xs text-white/50 max-w-xs">
+          Esta mesa ha sido cerrada y liberada por el local. Para realizar un nuevo pedido, escanea nuevamente el código QR en tu mesa.
+        </p>
       </div>
     )
   }
@@ -580,8 +696,31 @@ export default function MoguMenu() {
 
   return (
     <div
-      className={`min-h-screen font-sans selection:bg-[#FF7A45]/30 relative flex flex-col transition-colors duration-300 pb-24 ${t.bg}`}
+      className={`min-h-screen font-sans selection:bg-[#FF7A45]/30 relative flex flex-col transition-colors duration-300 pb-32 ${t.bg}`}
     >
+      {/* 🚀 NUBE / BARRA FLOTANTE DE SEGUIMIENTO EN VIVO */}
+      {activeOrderId && (
+        <div className="fixed bottom-20 inset-x-4 z-40 max-w-md mx-auto">
+          <div 
+            onClick={() => router.push(`/menu/${slug}/seguimiento?orderId=${activeOrderId}`)}
+            className="bg-amber-500 hover:bg-amber-400 text-black p-3.5 rounded-2xl shadow-2xl flex items-center justify-between cursor-pointer transition transform active:scale-95 border border-amber-300"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-black/10 flex items-center justify-center font-bold">
+                <FiClock className="text-base animate-spin" />
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-wider">Pedido en curso</p>
+                <p className="text-[11px] font-medium opacity-80">Toca aquí para ver el estado en vivo</p>
+              </div>
+            </div>
+            <span className="text-xs font-black bg-black text-white px-3 py-1.5 rounded-xl">
+              Ver →
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* BOTÓN FLOTANTE DEL CARRITO */}
       <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-sm">
         <button
