@@ -7,8 +7,6 @@ import Link from 'next/link'
 import { 
   FiSearch, 
   FiPlus, 
-  FiEye, 
-  FiEyeOff, 
   FiTrash2, 
   FiCamera, 
   FiX, 
@@ -20,7 +18,9 @@ import {
   FiImage,
   FiLayout,
   FiMoon,
-  FiSun
+  FiSun,
+  FiGrid,
+  FiTrendingUp
 } from 'react-icons/fi'
 
 interface Profile {
@@ -93,7 +93,7 @@ export default function AppleStyleMenuAdminPanel() {
   const [formImagePreview, setFormImagePreview] = useState<string | null>(null)
   const [submittingItem, setSubmittingItem] = useState(false)
 
-  // Nuevos estados para tamaños opcionales
+  // Tamaños opcionales
   const [formHasSizes, setFormHasSizes] = useState(false)
   const [formPriceChico, setFormPriceChico] = useState('')
   const [formPriceMediano, setFormPriceMediano] = useState('')
@@ -103,7 +103,7 @@ export default function AppleStyleMenuAdminPanel() {
   const [newCatName, setNewCatName] = useState('')
   const [isCreatingCat, setIsCreatingCat] = useState(false)
 
-  // Cargar datos desde Supabase
+  // Cargar datos y verificar rol de Administrador
   useEffect(() => {
     async function loadData() {
       if (!slug) return
@@ -113,6 +113,20 @@ export default function AppleStyleMenuAdminPanel() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
           router.push('/login')
+          return
+        }
+
+        // Validación de rol administrador estricta
+        const { data: roleData, error: roleErr } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('store_slug', slug)
+          .maybeSingle()
+
+        if (roleErr || (roleData && roleData.role !== 'admin')) {
+          alert('Acceso restringido. Esta sección es exclusiva para el Administrador.')
+          router.push(`/panel/${slug}/cocina`)
           return
         }
 
@@ -307,7 +321,6 @@ export default function AppleStyleMenuAdminPanel() {
       setFormCategoryId(item.category_id)
       setFormImagePreview(item.image_url)
 
-      // Cargar configuración de tamaños si existe
       setFormHasSizes(item.has_sizes || false)
       setFormPriceChico(item.has_sizes && item.sizes_prices ? String(item.sizes_prices.chico || '') : String(item.price || ''))
       setFormPriceMediano(item.has_sizes && item.sizes_prices ? String(item.sizes_prices.mediano || '') : '')
@@ -354,7 +367,6 @@ export default function AppleStyleMenuAdminPanel() {
         }
       }
 
-      // Preparar datos según si tiene tamaños o precio único
       const productPayload = {
         name: formName.trim(),
         description: formDescription.trim() || null,
@@ -387,6 +399,7 @@ export default function AppleStyleMenuAdminPanel() {
         })))
 
         setMessage('✨ Plato actualizado correctamente.')
+
       } else {
         const { data, error } = await supabase
           .from('menu_items')
@@ -419,7 +432,6 @@ export default function AppleStyleMenuAdminPanel() {
     }
   }
 
-  // Eliminar únicamente la foto del producto
   const handleDeleteProductImageOnly = async (itemId: string) => {
     if (!confirm('¿Eliminar únicamente la fotografía de este plato?')) return
 
@@ -447,7 +459,6 @@ export default function AppleStyleMenuAdminPanel() {
     }
   }
 
-  // Crear Categoría
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!profile || !newCatName.trim()) return
@@ -473,7 +484,6 @@ export default function AppleStyleMenuAdminPanel() {
     }
   }
 
-  // Eliminar Categoría
   const handleDeleteCategory = async (catId: string, catName: string) => {
     if (!confirm(`¿Eliminar la categoría "${catName}" y sus platos asociados?`)) return
 
@@ -492,7 +502,6 @@ export default function AppleStyleMenuAdminPanel() {
     }
   }
 
-  // Cambiar Visibilidad
   const handleToggleActive = async (itemId: string, currentActive: boolean) => {
     const newStatus = !currentActive
     try {
@@ -506,7 +515,6 @@ export default function AppleStyleMenuAdminPanel() {
     }
   }
 
-  // Eliminar Plato Completo
   const handleDeleteItem = async (itemId: string) => {
     if (!confirm('¿Estás seguro de eliminar este plato definitivamente?')) return
 
@@ -556,6 +564,24 @@ export default function AppleStyleMenuAdminPanel() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* BOTÓN DE MÉTRICAS Y ESTADÍSTICAS */}
+            <button
+              onClick={() => router.push(`/panel/menu/${slug}/metricas`)}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-black transition flex items-center gap-2 cursor-pointer shadow-sm"
+            >
+              <FiTrendingUp className="text-xs" />
+              <span>Métricas y Estadísticas</span>
+            </button>
+
+            {/* BOTÓN DE GESTIÓN DE MESAS Y QRs (SOLO ADMIN) */}
+            <Link
+              href={`/panel/${slug}/mesas`}
+              className="px-4 py-2 rounded-xl text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition flex items-center gap-2 cursor-pointer"
+            >
+              <FiGrid className="text-xs" />
+              <span>Gestionar Mesas y QRs</span>
+            </Link>
+
             <Link
               href={`/menu/${slug}`}
               target="_blank"
@@ -639,7 +665,7 @@ export default function AppleStyleMenuAdminPanel() {
           {/* SELECCIÓN DE 3 ESTILOS DE MENÚ Y MODO COLOR */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* ESTILO DE MENÚ (Classic, Modern, Cards) */}
+            {/* ESTILO DE MENÚ */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <FiLayout className="text-sm text-neutral-500" />
@@ -690,7 +716,7 @@ export default function AppleStyleMenuAdminPanel() {
               </div>
             </div>
 
-            {/* COLOR DE FONDO (Light vs Dark) */}
+            {/* COLOR DE FONDO */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 {menuTheme === 'dark' ? <FiMoon className="text-sm text-neutral-500" /> : <FiSun className="text-sm text-neutral-500" />}
@@ -737,7 +763,7 @@ export default function AppleStyleMenuAdminPanel() {
           </div>
         </div>
 
-        {/* MÉTRICAS APPLE STYLE */}
+        {/* MÉTRICAS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="p-5 rounded-2xl bg-white dark:bg-[#121215] border border-neutral-200/80 dark:border-neutral-800/80 shadow-sm space-y-1">
             <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">Total Platos</span>
@@ -757,7 +783,7 @@ export default function AppleStyleMenuAdminPanel() {
           </div>
         </div>
 
-        {/* BUSCADOR, FILTROS Y CATEGORÍAS */}
+        {/* BUSCADOR Y FILTROS */}
         <div className="p-6 rounded-3xl bg-white dark:bg-[#121215] border border-neutral-200/80 dark:border-neutral-800/80 shadow-sm space-y-6">
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
             <div className="relative flex-1">

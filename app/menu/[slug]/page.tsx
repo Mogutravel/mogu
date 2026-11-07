@@ -8,7 +8,6 @@ import {
   FiPlus,
   FiMinus,
   FiTrash2,
-  FiMessageCircle,
   FiSearch,
   FiX,
 } from 'react-icons/fi'
@@ -50,7 +49,7 @@ interface MenuCategory {
 }
 
 interface CartItem {
-  cartId: string // Identificador único para el carrito (permite distinguir tamaños)
+  cartId: string
   item: MenuItem
   quantity: number
   selectedSize?: string
@@ -78,16 +77,30 @@ export default function MoguMenu() {
 
   const [cart, setCart] = useState<CartItem[]>([])
   const [showCartDrawer, setShowCartDrawer] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Capturar el número de mesa de la URL (?mesa=X)
+  const [tableNumber, setTableNumber] = useState<number | null>(null)
 
   const [activeImageModal, setActiveImageModal] =
     useState<ImageModal | null>(null)
 
-  // Estados para el Modal de Selección de Tamaños
   const [isSizeModalOpen, setIsSizeModalOpen] = useState(false)
   const [productToSize, setProductToSize] = useState<MenuItem | null>(null)
   const [selectedSizeKey, setSelectedSizeKey] = useState<'chico' | 'mediano' | 'grande'>('chico')
 
-  // Cargar establecimiento, categorías y productos.
+  // Detectar número de mesa al cargar la página
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const mesaParam = urlParams.get('mesa')
+    if (mesaParam) {
+      const parsedMesa = parseInt(mesaParam, 10)
+      if (!isNaN(parsedMesa)) {
+        setTableNumber(parsedMesa)
+      }
+    }
+  }, [])
+
   useEffect(() => {
     async function loadMenuData() {
       if (!slug) {
@@ -242,7 +255,6 @@ export default function MoguMenu() {
     [cart]
   )
 
-  // Manejador central para agregar al carrito (con o sin modal de tamaños)
   const handleTriggerAdd = (item: MenuItem, e?: React.MouseEvent) => {
     e?.stopPropagation()
 
@@ -309,49 +321,99 @@ export default function MoguMenu() {
     setCart((prev) => prev.filter((ci) => ci.cartId !== cartId))
   }
 
-  const handleWhatsAppCheckout = () => {
-    if (cart.length === 0 || !profile) return
+  // ENVÍO DE PEDIDO: Si lo anterior ya se entregó, crea una nueva comanda limpia para cocina
+  const handleOrderSubmission = async () => {
+    if (cart.length === 0 || !profile || !tableNumber) return
+    setIsSubmitting(true)
 
-    let text =
-      `Hola *${profile.full_name || profile.name || 'Local'}*, ` +
-      'me gustaría realizar el siguiente pedido desde su carta digital:\n\n'
-
-    cart.forEach((ci) => {
-      const unitPrice = ci.selectedPrice ?? parsePrice(ci.item.price)
-      const subtotal = getItemSubtotal(ci)
-      const sizeText = ci.selectedSize ? ` (${ci.selectedSize})` : ''
-
-      text += `• *${ci.quantity}x* ${ci.item.name}${sizeText}\n`
-
-      if (unitPrice !== null && subtotal !== null) {
-        text += `  Precio unitario: ${formatCLP(unitPrice)}\n`
-        text += `  Subtotal: ${formatCLP(subtotal)}\n`
-      } else {
-        text += '  Precio: Por confirmar\n'
+    try {
+      let sessionToken = localStorage.getItem('mogu_session')
+      if (!sessionToken) {
+        sessionToken = Math.random().toString(36).substring(7)
+        localStorage.setItem('mogu_session', sessionToken)
       }
 
-      text += '\n'
-    })
+      // 1. Buscamos si hay una comanda ACTIVA en preparación (recibido o preparando)
+      const { data: existingActiveOrder } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('store_slug', profile.slug)
+        .eq('table_number', tableNumber)
+        .in('status', ['recibido', 'preparando'])
+        .maybeSingle()
 
-    text += `*Subtotal de productos con precio confirmado: ${formatCLP(cartSubtotal)}*\n`
+      let activeOrderId = ''
 
-    if (hasUnpricedItems) {
-      text +=
-        '*Importante:* Hay productos con precio por confirmar. ' +
-        'El monto final debe confirmarse con el local.\n'
+      if (existingActiveOrder) {
+        // A. SI TODAVÍA ESTÁ EN COCINA: Acumulamos ahí mismo
+        activeOrderId = existingActiveOrder.id
+        const newTotal = existingActiveOrder.total_amount + cartSubtotal
+
+        const { error: updateOrderErr } = await supabase
+          .from('orders')
+          .update({ 
+            total_amount: newTotal,
+          })
+          .eq('id', activeOrderId)
+
+        if (updateOrderErr) throw updateOrderErr
+
+      } else {
+        // B. SI LO ANTERIOR YA FUE ENTREGADO O LISTO: Creamos una NUEVA comanda 
+        // para que la cocina solo vea este nuevo pedido y no lo anterior.
+        const { data: newOrder, error: orderError } = await supabase
+          .from('orders')
+          .insert([
+            {
+              store_slug: profile.slug,
+              table_number: tableNumber,
+              session_token: sessionToken,
+              status: 'recibido',
+              total_amount: cartSubtotal,
+              payment_method: 'efectivo',
+            },
+          ])
+          .select()
+          .single()
+
+        if (orderError) throw orderError
+        activeOrderId = newOrder.id
+
+        await supabase
+          .from('tables')
+          .upsert([{
+            store_slug: profile.slug,
+            table_number: tableNumber,
+            status: 'ocupada',
+            current_order_id: activeOrderId
+          }], { onConflict: 'store_slug,table_number' })
+      }
+
+      // 2. Insertar los nuevos items vinculados a la comanda
+      const itemsToInsert = cart.map((ci) => {
+        const unitPrice = ci.selectedPrice ?? parsePrice(ci.item.price) ?? 0
+        const sizeSuffix = ci.selectedSize ? ` (${ci.selectedSize})` : ''
+
+        return {
+          order_id: activeOrderId,
+          product_name: `${ci.item.name}${sizeSuffix}`,
+          quantity: ci.quantity,
+          unit_price: unitPrice,
+        }
+      })
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(itemsToInsert)
+
+      if (itemsError) throw itemsError
+
+      window.location.href = `/menu/${profile.slug}/seguimiento?orderId=${activeOrderId}`
+    } catch (err: any) {
+      console.error('Error al enviar comanda:', err?.message || JSON.stringify(err))
+      alert(`Error al enviar pedido: ${err?.message || 'Inténtalo nuevamente'}`)
+      setIsSubmitting(false)
     }
-
-    text +=
-      '\nEl costo de despacho, si corresponde, se coordina con el local.\n' +
-      '¡Quedo atento/a para coordinar el pago y la entrega!'
-
-    const rawPhone = profile.phone ? profile.phone.replace(/\D/g, '') : ''
-
-    const whatsappUrl = rawPhone
-      ? `https://wa.me/${rawPhone}?text=${encodeURIComponent(text)}`
-      : `https://wa.me/?text=${encodeURIComponent(text)}`
-
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
   }
 
   const filteredCategories = useMemo(() => {
@@ -541,9 +603,7 @@ export default function MoguMenu() {
         </button>
       </div>
 
-      {/* ============================================================ */}
-      {/* ESTILO CLÁSICO                                               */}
-      {/* ============================================================ */}
+      {/* ESTILO CLÁSICO */}
       {menuStyle === 'classic' && (
         <div className="flex-1 flex flex-col">
           <header className="px-6 pt-20 pb-10 text-center">
@@ -557,6 +617,12 @@ export default function MoguMenu() {
               >
                 {displayName}
               </h1>
+
+              {tableNumber && (
+                <span className="inline-block bg-amber-500/15 text-amber-500 text-xs font-bold px-3 py-1 rounded-full border border-amber-500/30">
+                  📍 Atendiendo en Mesa {tableNumber}
+                </span>
+              )}
 
               <div className="flex items-center justify-center gap-3">
                 <span className={`h-px w-12 ${t.lineBg}`} />
@@ -660,9 +726,7 @@ export default function MoguMenu() {
         </div>
       )}
 
-      {/* ============================================================ */}
-      {/* ESTILO MODERNO                                               */}
-      {/* ============================================================ */}
+      {/* ESTILO MODERNO */}
       {menuStyle === 'modern' && (
         <div className="flex-1 flex flex-col">
           <header
@@ -675,6 +739,12 @@ export default function MoguMenu() {
                 >
                   {displayName}
                 </h1>
+
+                {tableNumber && (
+                  <span className="bg-amber-500/15 text-amber-500 text-xs font-bold px-3 py-1 rounded-full border border-amber-500/30 whitespace-nowrap">
+                    📍 Mesa {tableNumber}
+                  </span>
+                )}
               </div>
 
               {renderSearch('Buscar productos')}
@@ -766,17 +836,22 @@ export default function MoguMenu() {
         </div>
       )}
 
-      {/* ============================================================ */}
-      {/* ESTILO TARJETAS                                              */}
-      {/* ============================================================ */}
+      {/* ESTILO TARJETAS */}
       {menuStyle === 'cards' && (
         <div className="flex-1 flex flex-col">
           <header className="px-5 pt-14 pb-6">
             <div className="max-w-4xl mx-auto space-y-6">
               <div className="space-y-2">
-                <p className={`text-[11px] font-semibold uppercase tracking-[0.3em] ${t.accent}`}>
-                  Nuestra carta
-                </p>
+                <div className="flex justify-between items-center">
+                  <p className={`text-[11px] font-semibold uppercase tracking-[0.3em] ${t.accent}`}>
+                    Nuestra carta
+                  </p>
+                  {tableNumber && (
+                    <span className="bg-amber-500/15 text-amber-500 text-xs font-bold px-3 py-1 rounded-full border border-amber-500/30">
+                      📍 Mesa {tableNumber}
+                    </span>
+                  )}
+                </div>
                 <h1
                   className={`text-4xl md:text-5xl font-extrabold tracking-tight leading-none ${t.title}`}
                 >
@@ -877,7 +952,7 @@ export default function MoguMenu() {
         </div>
       )}
 
-      {/* MODAL DE SELECCIÓN DE TAMAÑOS (CHICO, MEDIANO, GRANDE) */}
+      {/* MODAL DE SELECCIÓN DE TAMAÑO */}
       {isSizeModalOpen && productToSize && (
         <div
           onClick={() => setIsSizeModalOpen(false)}
@@ -946,7 +1021,7 @@ export default function MoguMenu() {
         </div>
       )}
 
-      {/* BANNER MOGU */}
+      {/* PIE DE PÁGINA MOGU */}
       <section className={`border-t py-14 px-6 text-center ${t.line}`}>
         <div className="max-w-md mx-auto space-y-3">
           <span className={`text-[10px] font-semibold uppercase tracking-[0.3em] ${t.accent}`}>
@@ -974,14 +1049,13 @@ export default function MoguMenu() {
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer
         className={`py-6 text-center border-t text-[10px] tracking-[0.3em] uppercase ${t.footer}`}
       >
         Hecho con Mogu Digital
       </footer>
 
-      {/* DRAWER DEL CARRITO */}
+      {/* DRAWER / DESPLEGABLE DEL CARRITO */}
       {showCartDrawer && (
         <div
           onClick={() => setShowCartDrawer(false)}
@@ -1116,29 +1190,50 @@ export default function MoguMenu() {
                 </p>
               )}
 
-              <p className={`text-xs ${t.muted}`}>
-                El costo de despacho, si corresponde, se coordina directamente
-                con el local.
-              </p>
-
-              <button
-                onClick={handleWhatsAppCheckout}
-                disabled={cart.length === 0}
-                className={`w-full py-4 px-6 rounded-full text-sm font-semibold flex items-center justify-center gap-2.5 transition ${
-                  cart.length > 0
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-lg shadow-emerald-900/20'
-                    : `${t.surfaceAlt} ${t.muted} cursor-not-allowed`
-                }`}
-              >
-                <FiMessageCircle className="text-base" />
-                <span>Enviar pedido por WhatsApp</span>
-              </button>
+              {/* LÓGICA DE ENVÍO DE PEDIDO */}
+              <div className="space-y-2">
+                {tableNumber ? (
+                  <>
+                    <button
+                      onClick={handleOrderSubmission}
+                      disabled={cart.length === 0 || isSubmitting}
+                      className={`w-full py-4 px-6 rounded-full text-sm font-bold flex items-center justify-center gap-2.5 transition cursor-pointer shadow-lg ${
+                        cart.length > 0 && !isSubmitting
+                          ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20 active:scale-[0.98]'
+                          : `${t.surfaceAlt} ${t.muted} cursor-not-allowed opacity-50`
+                      }`}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="w-4 h-4 rounded-full border-2 border-black/20 border-t-black animate-spin" />
+                          <span>Enviando pedido a barra...</span>
+                        </>
+                      ) : (
+                        <>
+                          <FiShoppingBag className="text-base" />
+                          <span>Enviar pedido a barra (Mesa {tableNumber})</span>
+                        </>
+                      )}
+                    </button>
+                    <p className={`text-[11px] text-center ${t.muted}`}>
+                      💳 Paga al final de tu estadía directamente en la caja.
+                    </p>
+                  </>
+                ) : (
+                  <div className="bg-slate-800/80 border border-slate-700/60 p-3.5 rounded-2xl text-center space-y-1">
+                    <p className="text-xs font-bold text-amber-400">📖 Modo solo lectura</p>
+                    <p className="text-[11px] text-slate-400">
+                      Para realizar un pedido y enviarlo a barra, escanea el código QR de tu mesa en el local.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL DE IMAGEN */}
+      {/* MODAL DE IMAGEN AMPLIADA */}
       {activeImageModal && (
         <div
           onClick={() => setActiveImageModal(null)}

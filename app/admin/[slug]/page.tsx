@@ -24,7 +24,8 @@ import {
   FiLoader, 
   FiExternalLink,
   FiGift,
-  FiArrowRight
+  FiArrowRight,
+  FiLock
 } from 'react-icons/fi'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
 
@@ -40,7 +41,8 @@ interface Profile {
   theme_color?: string | null
   has_menu?: boolean
   has_catalogo?: boolean
-  has_loyalty?: boolean // 👈 Columna para verificar si cuenta con la tarjeta de fidelización
+  has_loyalty?: boolean
+  pin_code?: string | null
 }
 
 interface LinkItem {
@@ -101,6 +103,11 @@ export default function AppleStyleAdvancedClientDashboard() {
   const [updatingPassword, setUpdatingPassword] = useState(false)
   const [passwordMessage, setPasswordMessage] = useState('')
 
+  // 🔐 Estados para cambio de PIN de Administrador
+  const [adminPin, setAdminPin] = useState('')
+  const [updatingPin, setUpdatingPin] = useState(false)
+  const [pinMessage, setPinMessage] = useState('')
+
   useEffect(() => {
     async function loadData() {
       setLoading(true)
@@ -119,6 +126,7 @@ export default function AppleStyleAdvancedClientDashboard() {
 
       if (profileData) {
         setProfile(profileData)
+        // Nota: Ya no cargamos el PIN actual en el input por seguridad y para que permanezca limpio al ingresar.
         const { data: linksData } = await supabase
           .from('links')
           .select('*')
@@ -157,6 +165,35 @@ export default function AppleStyleAdvancedClientDashboard() {
     } else {
       setMessage('✨ ¡Cambios guardados y aplicados en tiempo real!')
       setTimeout(() => setMessage(''), 3500)
+    }
+  }
+
+  // 🔐 Función para actualizar el PIN de Administrador y limpiar la casilla
+  const handleUpdateAdminPin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!profile) return
+    setPinMessage('')
+
+    if (!adminPin || adminPin.length < 4) {
+      setPinMessage('❌ El PIN de administrador debe tener al menos 4 dígitos.')
+      return
+    }
+
+    setUpdatingPin(true)
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ pin_code: adminPin.trim() })
+      .eq('id', profile.id)
+
+    setUpdatingPin(false)
+
+    if (error) {
+      setPinMessage(`❌ Error al actualizar PIN: ${error.message}`)
+    } else {
+      setPinMessage('✨ ¡PIN de administrador actualizado con éxito!')
+      setAdminPin('') // 👈 Limpia la casilla de texto al actualizar exitosamente
+      setTimeout(() => setPinMessage(''), 4000)
     }
   }
 
@@ -647,6 +684,49 @@ export default function AppleStyleAdvancedClientDashboard() {
               </Link>
             </div>
           )}
+
+          {/* 🔐 NUEVA SECCIÓN: PIN DE ACCESO AL PANEL ADMIN */}
+          <div className="p-8 rounded-3xl bg-white border border-[#E5E5EA] shadow-sm space-y-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center">
+                <FiLock className="text-base" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-[#1D1D1F] tracking-tight">PIN de Seguridad del Panel Admin 🔑</h2>
+                <p className="text-xs text-[#86868B]">Establece el código PIN numérico para bloquear/desbloquear el acceso al Admin.</p>
+              </div>
+            </div>
+
+            {pinMessage && (
+              <div className={`p-3.5 rounded-2xl text-xs font-medium border flex items-center gap-2 ${pinMessage.startsWith('❌') ? 'bg-rose-50 text-rose-700 border-rose-200/60' : 'bg-emerald-50 text-emerald-700 border-emerald-200/60'}`}>
+                <span>{pinMessage}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateAdminPin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#86868B] mb-1">PIN Numérico de Administrador</label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  placeholder="Ej. 1234"
+                  value={adminPin}
+                  onChange={(e) => setAdminPin(e.target.value)}
+                  className="w-full bg-[#F5F5F7] border border-[#E5E5EA] rounded-xl px-3.5 py-2.5 text-xs text-[#1D1D1F] focus:ring-2 focus:ring-[#86868B]/35 outline-none transition tracking-widest font-bold"
+                />
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="submit"
+                  disabled={updatingPin}
+                  className="px-5 py-2.5 bg-[#1D1D1F] hover:bg-black text-white font-medium text-xs rounded-xl transition shadow-sm cursor-pointer disabled:opacity-50"
+                >
+                  {updatingPin ? 'Guardando PIN...' : 'Actualizar PIN de Admin'}
+                </button>
+              </div>
+            </form>
+          </div>
 
           {/* SECCIÓN DE SEGURIDAD */}
           <div className="p-8 rounded-3xl bg-white border border-[#E5E5EA] shadow-sm space-y-6">
