@@ -117,7 +117,7 @@ export default function MoguMenu() {
     }
   }, [slug])
 
-  // 🛡️ SEGURIDAD: Validar si la mesa sigue ocupada/activa en tiempo real
+  // 🛡️ SEGURIDAD INTELIGENTE: Validar si la mesa está libre o ocupada en Supabase al entrar
   useEffect(() => {
     if (!slug || !tableNumber) return
 
@@ -127,18 +127,32 @@ export default function MoguMenu() {
         .select('status')
         .eq('store_slug', slug)
         .eq('table_number', tableNumber)
-        .single()
+        .maybeSingle()
 
-      if (error || !data || data.status === 'disponible') {
-        setIsTableActive(false)
+      // Si la mesa no existe todavía en la tabla, la permitimos y dejamos crear
+      if (error || !data) {
+        setIsTableActive(true)
+        return
+      }
+
+      // Si la mesa está DISPONIBLE, limpiamos residuos viejos del celular y permitimos el ingreso libre
+      if (data.status === 'disponible') {
         localStorage.removeItem(`mogu_active_order_${slug}`)
-        localStorage.removeItem(`mogu_table_${slug}`)
         setActiveOrderId(null)
+        setIsTableActive(true)
+        return
+      }
+
+      // Si la mesa está OCUPADA (en curso)
+      if (data.status === 'ocupada' || data.status === 'llamando') {
+        setIsTableActive(true)
+        return
       }
     }
 
     checkTableStatus()
 
+    // ⚡ Suscripción en tiempo real: Si la caja libera la mesa mientras el usuario tiene la carta abierta
     const channel = supabase
       .channel(`menu-table-guard-${slug}-${tableNumber}`)
       .on(
@@ -152,10 +166,10 @@ export default function MoguMenu() {
         (payload: any) => {
           if (payload.new && payload.new.table_number === tableNumber) {
             if (payload.new.status === 'disponible') {
-              setIsTableActive(false)
               localStorage.removeItem(`mogu_active_order_${slug}`)
-              localStorage.removeItem(`mogu_table_${slug}`)
               setActiveOrderId(null)
+              // Opcional: si la mesa se libera estando adentro, podemos mantener el menú abierto para un nuevo pedido
+              setIsTableActive(true)
             }
           }
         }
@@ -551,7 +565,7 @@ export default function MoguMenu() {
     )
   }
 
-  // 🔒 PANTALLA DE BLOQUEO SI LA MESA FUE LIBERADA EN CAJA
+  // 🔒 PANTALLA DE BLOQUEO (Solo si la mesa fue cerrada explícitamente y no está disponible)
   if (!isTableActive) {
     return (
       <div className="min-h-screen bg-[#0A0A0C] text-white flex flex-col items-center justify-center p-6 text-center space-y-4">
