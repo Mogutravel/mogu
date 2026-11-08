@@ -93,7 +93,7 @@ export default function MoguMenu() {
   const [productToSize, setProductToSize] = useState<MenuItem | null>(null)
   const [selectedSizeKey, setSelectedSizeKey] = useState<'chico' | 'mediano' | 'grande'>('chico')
 
-  // Detectar número de mesa al cargar la página y guardar en localStorage
+  // Detectar número de mesa únicamente si viene en la URL (?mesa=X)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const mesaParam = urlParams.get('mesa')
@@ -104,10 +104,7 @@ export default function MoguMenu() {
         localStorage.setItem(`mogu_table_${slug}`, parsedMesa.toString())
       }
     } else {
-      const savedMesa = localStorage.getItem(`mogu_table_${slug}`)
-      if (savedMesa) {
-        setTableNumber(Number(savedMesa))
-      }
+      setTableNumber(null)
     }
 
     // Verificar si hay una orden activa previa guardada
@@ -117,7 +114,18 @@ export default function MoguMenu() {
     }
   }, [slug])
 
-  // 🛡️ SEGURIDAD INTELIGENTE: Validar si la mesa está libre o ocupada en Supabase al entrar
+  // 🚪 Función para salir de la mesa manualmente y limpiar la sesión del dispositivo
+  const handleLeaveTable = () => {
+    localStorage.removeItem(`mogu_table_${slug}`)
+    localStorage.removeItem(`mogu_active_order_${slug}`)
+    setTableNumber(null)
+    setActiveOrderId(null)
+    setIsTableActive(true)
+    setCart([])
+    router.replace(`/menu/${slug}`)
+  }
+
+  // 🛡️ SEGURIDAD INTELIGENTE: Validar si la mesa está libre u ocupada en Supabase al entrar
   useEffect(() => {
     if (!slug || !tableNumber) return
 
@@ -129,13 +137,11 @@ export default function MoguMenu() {
         .eq('table_number', tableNumber)
         .maybeSingle()
 
-      // Si la mesa no existe todavía en la tabla, la permitimos y dejamos crear
       if (error || !data) {
         setIsTableActive(true)
         return
       }
 
-      // Si la mesa está DISPONIBLE, limpiamos residuos viejos del celular y permitimos el ingreso libre
       if (data.status === 'disponible') {
         localStorage.removeItem(`mogu_active_order_${slug}`)
         setActiveOrderId(null)
@@ -143,7 +149,6 @@ export default function MoguMenu() {
         return
       }
 
-      // Si la mesa está OCUPADA (en curso)
       if (data.status === 'ocupada' || data.status === 'llamando') {
         setIsTableActive(true)
         return
@@ -152,7 +157,6 @@ export default function MoguMenu() {
 
     checkTableStatus()
 
-    // ⚡ Suscripción en tiempo real: Si la caja libera la mesa mientras el usuario tiene la carta abierta
     const channel = supabase
       .channel(`menu-table-guard-${slug}-${tableNumber}`)
       .on(
@@ -168,7 +172,6 @@ export default function MoguMenu() {
             if (payload.new.status === 'disponible') {
               localStorage.removeItem(`mogu_active_order_${slug}`)
               setActiveOrderId(null)
-              // Opcional: si la mesa se libera estando adentro, podemos mantener el menú abierto para un nuevo pedido
               setIsTableActive(true)
             }
           }
@@ -437,7 +440,6 @@ export default function MoguMenu() {
     setCart((prev) => prev.filter((ci) => ci.cartId !== cartId))
   }
 
-  // ENVÍO DE PEDIDO: Guarda en localStorage y redirige al seguimiento en vivo
   const handleOrderSubmission = async () => {
     if (cart.length === 0 || !profile || !tableNumber) return
     setIsSubmitting(true)
@@ -519,7 +521,6 @@ export default function MoguMenu() {
 
       if (itemsError) throw itemsError
 
-      // Guardar en localStorage para la barra flotante
       localStorage.setItem(`mogu_active_order_${profile.slug}`, activeOrderId)
       setActiveOrderId(activeOrderId)
 
@@ -565,7 +566,6 @@ export default function MoguMenu() {
     )
   }
 
-  // 🔒 PANTALLA DE BLOQUEO (Solo si la mesa fue cerrada explícitamente y no está disponible)
   if (!isTableActive) {
     return (
       <div className="min-h-screen bg-[#0A0A0C] text-white flex flex-col items-center justify-center p-6 text-center space-y-4">
@@ -772,9 +772,16 @@ export default function MoguMenu() {
               </h1>
 
               {tableNumber && (
-                <span className="inline-block bg-amber-500/15 text-amber-500 text-xs font-bold px-3 py-1 rounded-full border border-amber-500/30">
-                  📍 Atendiendo en Mesa {tableNumber}
-                </span>
+                <div className="inline-flex items-center gap-2 bg-amber-500/15 text-amber-500 text-xs font-bold px-3 py-1 rounded-full border border-amber-500/30">
+                  <span>📍 Atendiendo en Mesa {tableNumber}</span>
+                  <button
+                    onClick={handleLeaveTable}
+                    className="text-amber-500/70 hover:text-amber-500 hover:bg-amber-500/20 p-0.5 rounded-full transition cursor-pointer"
+                    title="Salir de esta mesa"
+                  >
+                    <FiX className="text-xs" />
+                  </button>
+                </div>
               )}
 
               <div className="flex items-center justify-center gap-3">
@@ -894,9 +901,16 @@ export default function MoguMenu() {
                 </h1>
 
                 {tableNumber && (
-                  <span className="bg-amber-500/15 text-amber-500 text-xs font-bold px-3 py-1 rounded-full border border-amber-500/30 whitespace-nowrap">
-                    📍 Mesa {tableNumber}
-                  </span>
+                  <div className="flex items-center gap-1.5 bg-amber-500/15 text-amber-500 border border-amber-500/30 rounded-full px-3 py-1 shrink-0">
+                    <span className="text-xs font-bold">📍 Mesa {tableNumber}</span>
+                    <button
+                      onClick={handleLeaveTable}
+                      title="Salir de esta mesa"
+                      className="ml-1 text-amber-500/70 hover:text-amber-500 p-0.5 rounded-full hover:bg-amber-500/20 transition cursor-pointer"
+                    >
+                      <FiX className="text-xs" />
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -1000,9 +1014,16 @@ export default function MoguMenu() {
                     Nuestra carta
                   </p>
                   {tableNumber && (
-                    <span className="bg-amber-500/15 text-amber-500 text-xs font-bold px-3 py-1 rounded-full border border-amber-500/30">
-                      📍 Mesa {tableNumber}
-                    </span>
+                    <div className="flex items-center gap-1.5 bg-amber-500/15 text-amber-500 text-xs font-bold px-3 py-1 rounded-full border border-amber-500/30">
+                      <span>📍 Mesa {tableNumber}</span>
+                      <button
+                        onClick={handleLeaveTable}
+                        className="text-amber-500/70 hover:text-amber-500 hover:bg-amber-500/20 p-0.5 rounded-full transition cursor-pointer"
+                        title="Salir de esta mesa"
+                      >
+                        <FiX className="text-xs" />
+                      </button>
+                    </div>
                   )}
                 </div>
                 <h1
@@ -1343,7 +1364,6 @@ export default function MoguMenu() {
                 </p>
               )}
 
-              {/* LÓGICA DE ENVÍO DE PEDIDO */}
               <div className="space-y-2">
                 {tableNumber ? (
                   <>
