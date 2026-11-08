@@ -36,7 +36,7 @@ interface Order {
   id: string
   store_slug: string
   table_number: number
-  status: 'recibido' | 'preparando' | 'listo' | 'entregado' | 'pagado'
+  status: 'recibido' | 'preparando' | 'listo' | 'entregado'
   total_amount: number
   created_at: string
   items?: OrderItem[]
@@ -64,10 +64,11 @@ export default function CajaMesasPanel() {
     audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3')
   }, [])
 
-  // Cargar Mesas y Órdenes Activas
+  // Cargar Mesas y Órdenes Activas limpiando huérfanas
   const fetchData = async () => {
     if (!slug) return
     try {
+      // 1. Cargar únicamente órdenes vivas y activas (excluyendo 'pagado')
       const { data: ordersData, error: ordersErr } = await supabase
         .from('orders')
         .select('*')
@@ -94,26 +95,25 @@ export default function CajaMesasPanel() {
 
       setOrders(fullOrders)
 
-      // Cargar mesas
+      // 2. Cargar mesas reales desde Supabase
       const { data: tablesData, error: tablesErr } = await supabase
         .from('tables')
         .select('*')
         .eq('store_slug', slug)
         .order('table_number', { ascending: true })
 
-      if (tablesErr || !tablesData || tablesData.length === 0) {
-        const defaultTables: TableItem[] = Array.from({ length: 12 }, (_, i) => {
-          const tNum = i + 1
-          const hasActiveOrder = fullOrders.some((o) => o.table_number === tNum)
-          return {
-            id: `table-${tNum}`,
+      if (tablesErr) throw tablesErr
+
+      if (!tablesData || tablesData.length === 0) {
+        setTables([
+          {
+            id: 'table-1',
             store_slug: slug,
-            table_number: tNum,
-            status: hasActiveOrder ? 'ocupada' : 'disponible',
-            call_status: null,
+            table_number: 1,
+            status: fullOrders.some(o => o.table_number === 1) ? 'ocupada' : 'disponible',
+            call_status: null
           }
-        })
-        setTables(defaultTables)
+        ])
       } else {
         const currentLlamadasStr = JSON.stringify(tablesData.map(t => t.call_status))
         if (prevLlamadasRef.current && prevLlamadasRef.current !== currentLlamadasStr) {
@@ -124,7 +124,19 @@ export default function CajaMesasPanel() {
         }
         prevLlamadasRef.current = currentLlamadasStr
 
-        setTables(tablesData)
+        // Mapear asegurando que si la mesa no tiene órdenes reales activas, refleje su estado correcto
+        const syncedTables = tablesData.map(t => {
+          const hasActiveOrders = fullOrders.some(o => o.table_number === t.table_number)
+          // Si Supabase dice 'disponible' o no tiene órdenes activas, la dejamos disponible
+          const finalStatus = (!hasActiveOrders && t.status !== 'llamando') ? 'disponible' : t.status
+          
+          return {
+            ...t,
+            status: finalStatus
+          }
+        })
+
+        setTables(syncedTables)
       }
     } catch (err) {
       console.error('Error al sincronizar caja:', err)
@@ -161,7 +173,6 @@ export default function CajaMesasPanel() {
     }
   }, [slug])
 
-  // Marcar pedido como entregado (mantiene la mesa ocupada hasta el pago)
   const handleMarkAsDelivered = async (orderId: string, tableNumber: number) => {
     try {
       const { error: orderError } = await supabase
@@ -191,7 +202,6 @@ export default function CajaMesasPanel() {
     setIsModalOpen(true)
   }
 
-  // Desmarcar llamada y BORRAR el registro de table_calls para no acumular basura
   const handleDismissCall = async (tableNumber: number) => {
     try {
       await supabase
@@ -212,7 +222,7 @@ export default function CajaMesasPanel() {
     }
   }
 
-  // PROCESAR PAGO: Borra órdenes e ítems, libera la mesa (QR/NFC) y limpia llamadas
+  // PROCESAR PAGO: Borra órdenes e ítems de forma limpia y deja la mesa disponible
   const handleProcessPayment = async (paymentMethod: 'Efectivo' | 'Tarjeta' | 'Transferencia') => {
     if (!selectedTable) return
 
@@ -220,7 +230,6 @@ export default function CajaMesasPanel() {
       const orderIds = tableOrders.map((o) => o.id)
 
       if (orderIds.length > 0) {
-        // 1. Borrar primero los ítems de las comandas (order_items)
         const { error: itemsErr } = await supabase
           .from('order_items')
           .delete()
@@ -228,7 +237,6 @@ export default function CajaMesasPanel() {
 
         if (itemsErr) throw itemsErr
 
-        // 2. Borrar las comandas principales (orders)
         const { error: ordErr } = await supabase
           .from('orders')
           .delete()
@@ -237,32 +245,29 @@ export default function CajaMesasPanel() {
         if (ordErr) throw ordErr
       }
 
-      // 3. Limpiar la mesa por completo: Estado disponible, sin orden actual y sin llamadas pendientes
       const { error: tableError } = await supabase
         .from('tables')
-        .update({ 
+        .upsert([{
+          store_slug: slug,
+          table_number: selectedTable.table_number,
           status: 'disponible', 
           current_order_id: null,
           call_status: null 
-        })
-        .eq('store_slug', slug)
-        .eq('table_number', selectedTable.table_number)
+        }], { onConflict: 'store_slug,table_number' })
 
       if (tableError) throw tableError
 
-      // 4. Borrar historial de llamadas en table_calls
       await supabase
         .from('table_calls')
         .delete()
         .eq('store_slug', slug)
         .eq('table_number', selectedTable.table_number)
 
-      // Cerrar modal y refrescar
       setIsModalOpen(false)
       setSelectedTable(null)
-      fetchData()
+      await fetchData()
 
-      alert(`✨ Pago con ${paymentMethod} registrado. ¡Mesa ${selectedTable.table_number} liberada, borrada de la base de datos y lista para el siguiente cliente!`)
+      alert(`✨ Pago con ${paymentMethod} registrado. ¡Mesa ${selectedTable.table_number} liberada correctamente!`)
     } catch (err: any) {
       console.error('Error al procesar pago y limpiar mesa:', err)
       alert(`Hubo un error al registrar el pago: ${err?.message || 'Error desconocido'}`)
@@ -313,7 +318,7 @@ export default function CajaMesasPanel() {
         </div>
       </header>
 
-      {/* SECCIÓN DE PLATOS LISTOS PARA RETIRAR EN BARRA */}
+      {/* SECCIÓN DE PLATOS LISTOS EN BARRA */}
       {readyOrders.length > 0 && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-3xl p-5 space-y-4">
           <div className="flex items-center justify-between">
@@ -357,10 +362,10 @@ export default function CajaMesasPanel() {
         </div>
       )}
 
-      {/* Grilla de Mesas */}
+      {/* GRILLA DE MESAS */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
         {tables.map((table) => {
-          const tableHasActiveOrders = orders.some((o) => o.table_number === table.table_number)
+          const isOccupied = table.status === 'ocupada'
           const isCalling = table.call_status === 'garzon' || table.call_status === 'cuenta'
 
           return (
@@ -370,7 +375,7 @@ export default function CajaMesasPanel() {
               className={`p-5 rounded-3xl border cursor-pointer transition-all duration-300 flex flex-col justify-between h-44 shadow-xl relative overflow-hidden ${
                 isCalling
                   ? 'bg-amber-500/10 border-amber-500 animate-pulse shadow-amber-500/20'
-                  : tableHasActiveOrders
+                  : isOccupied
                   ? 'bg-[#18181B] border-emerald-500/50 hover:border-emerald-400 shadow-emerald-500/5'
                   : 'bg-[#141416] border-[#27272A] hover:border-white/30 text-white/50'
               }`}
@@ -387,17 +392,17 @@ export default function CajaMesasPanel() {
                 </span>
                 <span
                   className={`w-2.5 h-2.5 rounded-full ${
-                    isCalling ? 'bg-amber-400 animate-ping' : tableHasActiveOrders ? 'bg-emerald-400' : 'bg-neutral-600'
+                    isCalling ? 'bg-amber-400 animate-ping' : isOccupied ? 'bg-emerald-400' : 'bg-neutral-600'
                   }`}
                 />
               </div>
 
               <div className="space-y-1">
                 <p className="text-lg font-black text-white">
-                  {isCalling ? '¡Atención!' : tableHasActiveOrders ? 'Ocupada' : 'Disponible'}
+                  {isCalling ? '¡Atención!' : isOccupied ? 'Ocupada' : 'Disponible'}
                 </p>
                 <p className="text-[11px] text-white/50">
-                  {isCalling ? 'Requiere asistencia' : tableHasActiveOrders ? 'Con consumo activo' : 'Lista para asignar'}
+                  {isCalling ? 'Requiere asistencia' : isOccupied ? 'Con consumo activo' : 'Lista para asignar'}
                 </p>
               </div>
 
