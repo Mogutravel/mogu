@@ -194,14 +194,12 @@ export default function CajaMesasPanel() {
   // Desmarcar llamada y BORRAR el registro de table_calls para no acumular basura
   const handleDismissCall = async (tableNumber: number) => {
     try {
-      // 1. Limpiar estado en la tabla tables
       await supabase
         .from('tables')
         .update({ call_status: null, status: 'ocupada' })
         .eq('store_slug', slug)
         .eq('table_number', tableNumber)
 
-      // 2. Borrar registros de llamadas de esta mesa en table_calls
       await supabase
         .from('table_calls')
         .delete()
@@ -214,23 +212,32 @@ export default function CajaMesasPanel() {
     }
   }
 
-  // PROCESAR PAGO: Cierra órdenes, limpia mesa (QR/NFC) y BORRA llamadas de table_calls
+  // PROCESAR PAGO: Borra órdenes e ítems, libera la mesa (QR/NFC) y limpia llamadas
   const handleProcessPayment = async (paymentMethod: 'Efectivo' | 'Tarjeta' | 'Transferencia') => {
     if (!selectedTable) return
 
     try {
-      // 1. Marcar comandas activas como 'pagado'
       const orderIds = tableOrders.map((o) => o.id)
+
       if (orderIds.length > 0) {
+        // 1. Borrar primero los ítems de las comandas (order_items)
+        const { error: itemsErr } = await supabase
+          .from('order_items')
+          .delete()
+          .in('order_id', orderIds)
+
+        if (itemsErr) throw itemsErr
+
+        // 2. Borrar las comandas principales (orders)
         const { error: ordErr } = await supabase
           .from('orders')
-          .update({ status: 'pagado' })
+          .delete()
           .in('id', orderIds)
 
         if (ordErr) throw ordErr
       }
 
-      // 2. Limpiar la mesa por completo: Estado disponible, sin orden actual y sin llamadas pendientes
+      // 3. Limpiar la mesa por completo: Estado disponible, sin orden actual y sin llamadas pendientes
       const { error: tableError } = await supabase
         .from('tables')
         .update({ 
@@ -243,7 +250,7 @@ export default function CajaMesasPanel() {
 
       if (tableError) throw tableError
 
-      // 3. Borrar historial de llamadas en table_calls para mantener la base de datos limpia
+      // 4. Borrar historial de llamadas en table_calls
       await supabase
         .from('table_calls')
         .delete()
@@ -255,10 +262,10 @@ export default function CajaMesasPanel() {
       setSelectedTable(null)
       fetchData()
 
-      alert(`✨ Pago con ${paymentMethod} registrado. ¡Mesa ${selectedTable.table_number} liberada y QR/NFC limpio!`)
+      alert(`✨ Pago con ${paymentMethod} registrado. ¡Mesa ${selectedTable.table_number} liberada, borrada de la base de datos y lista para el siguiente cliente!`)
     } catch (err: any) {
       console.error('Error al procesar pago y limpiar mesa:', err)
-      alert('Hubo un error al registrar el pago.')
+      alert(`Hubo un error al registrar el pago: ${err?.message || 'Error desconocido'}`)
     }
   }
 
