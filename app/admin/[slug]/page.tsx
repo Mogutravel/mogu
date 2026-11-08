@@ -43,6 +43,10 @@ interface Profile {
   has_catalogo?: boolean
   has_loyalty?: boolean
   pin_code?: string | null
+  plans?: {
+    slug: string
+    name: string
+  } | null
 }
 
 interface LinkItem {
@@ -85,6 +89,9 @@ function renderLinkIcon(keyOrEmoji?: string) {
 }
 
 export default function AppleStyleAdvancedClientDashboard() {
+  const params = useParams()
+  const slug = params?.slug as string
+
   const [profile, setProfile] = useState<Profile | null>(null)
   const [links, setLinks] = useState<LinkItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -103,30 +110,36 @@ export default function AppleStyleAdvancedClientDashboard() {
   const [updatingPassword, setUpdatingPassword] = useState(false)
   const [passwordMessage, setPasswordMessage] = useState('')
 
-  // 🔐 Estados para cambio de PIN de Administrador
+  // Estados para PIN de Administrador
   const [adminPin, setAdminPin] = useState('')
   const [updatingPin, setUpdatingPin] = useState(false)
   const [pinMessage, setPinMessage] = useState('')
 
   useEffect(() => {
     async function loadData() {
+      if (!slug) return
       setLoading(true)
-      const { data: { user } } = await supabase.auth.getUser()
 
+      const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         window.location.href = '/login'
         return
       }
 
-      const { data: profileData } = await supabase
+      // Consulta del perfil incluyendo la relación con la tabla plans
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
+        .select('*, plans(slug, name)')
+        .eq('slug', slug)
+        .maybeSingle()
+
+      if (profileError) {
+        console.error('Error cargando perfil:', profileError)
+      }
 
       if (profileData) {
         setProfile(profileData)
-        // Nota: Ya no cargamos el PIN actual en el input por seguridad y para que permanezca limpio al ingresar.
+
         const { data: linksData } = await supabase
           .from('links')
           .select('*')
@@ -139,7 +152,7 @@ export default function AppleStyleAdvancedClientDashboard() {
     }
 
     loadData()
-  }, [])
+  }, [slug])
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -168,7 +181,6 @@ export default function AppleStyleAdvancedClientDashboard() {
     }
   }
 
-  // 🔐 Función para actualizar el PIN de Administrador y limpiar la casilla
   const handleUpdateAdminPin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!profile) return
@@ -180,7 +192,6 @@ export default function AppleStyleAdvancedClientDashboard() {
     }
 
     setUpdatingPin(true)
-
     const { error } = await supabase
       .from('profiles')
       .update({ pin_code: adminPin.trim() })
@@ -192,7 +203,7 @@ export default function AppleStyleAdvancedClientDashboard() {
       setPinMessage(`❌ Error al actualizar PIN: ${error.message}`)
     } else {
       setPinMessage('✨ ¡PIN de administrador actualizado con éxito!')
-      setAdminPin('') // 👈 Limpia la casilla de texto al actualizar exitosamente
+      setAdminPin('')
       setTimeout(() => setPinMessage(''), 4000)
     }
   }
@@ -212,11 +223,7 @@ export default function AppleStyleAdvancedClientDashboard() {
     }
 
     setUpdatingPassword(true)
-
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    })
-
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
     setUpdatingPassword(false)
 
     if (error) {
@@ -267,7 +274,6 @@ export default function AppleStyleAdvancedClientDashboard() {
     }
 
     setAddingLink(true)
-
     let formattedUrl = newUrl.trim()
     if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
       formattedUrl = `https://${formattedUrl}`
@@ -396,9 +402,7 @@ export default function AppleStyleAdvancedClientDashboard() {
           <div className="p-8 rounded-3xl bg-white border border-[#E5E5EA] shadow-sm space-y-6">
             <div>
               <h1 className="text-base font-bold text-[#1D1D1F] tracking-tight mb-1">Personaliza tu Negocio 🎨</h1>
-              <p className="text-xs text-[#86868B]">
-                Modifica la identidad visual, colores y datos de tu tarjeta Mogu.
-              </p>
+              <p className="text-xs text-[#86868B]">Modifica la identidad visual, colores y datos de tu tarjeta Mogu.</p>
             </div>
 
             {message && (
@@ -655,7 +659,7 @@ export default function AppleStyleAdvancedClientDashboard() {
             </div>
           )}
 
-          {/* MÓDULO DE FIDELIZACIÓN DIGITAL (SÓLO SI HAS_LOYALTY ES TRUE) */}
+          {/* MÓDULO DE FIDELIZACIÓN DIGITAL */}
           {profile?.has_loyalty && (
             <div className="p-6 rounded-3xl bg-white border border-[#E5E5EA] shadow-sm flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center space-x-3.5">
@@ -685,48 +689,50 @@ export default function AppleStyleAdvancedClientDashboard() {
             </div>
           )}
 
-          {/* 🔐 NUEVA SECCIÓN: PIN DE ACCESO AL PANEL ADMIN */}
-          <div className="p-8 rounded-3xl bg-white border border-[#E5E5EA] shadow-sm space-y-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center">
-                <FiLock className="text-base" />
+          {/* 🔐 PIN DE ACCESO AL PANEL ADMIN (SÓLO APARECE SI EL PLAN ES MOGU-ECOSYSTEM) */}
+          {profile?.plans?.slug === 'mogu-ecosystem' && (
+            <div className="p-8 rounded-3xl bg-white border border-[#E5E5EA] shadow-sm space-y-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center">
+                  <FiLock className="text-base" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-[#1D1D1F] tracking-tight">PIN de Seguridad del Panel Admin 🔑</h2>
+                  <p className="text-xs text-[#86868B]">Establece el código PIN numérico para bloquear/desbloquear el acceso al Admin.</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-base font-bold text-[#1D1D1F] tracking-tight">PIN de Seguridad del Panel Admin 🔑</h2>
-                <p className="text-xs text-[#86868B]">Establece el código PIN numérico para bloquear/desbloquear el acceso al Admin.</p>
-              </div>
+
+              {pinMessage && (
+                <div className={`p-3.5 rounded-2xl text-xs font-medium border flex items-center gap-2 ${pinMessage.startsWith('❌') ? 'bg-rose-50 text-rose-700 border-rose-200/60' : 'bg-emerald-50 text-emerald-700 border-emerald-200/60'}`}>
+                  <span>{pinMessage}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleUpdateAdminPin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[#86868B] mb-1">PIN Numérico de Administrador</label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    placeholder="Ej. 1234"
+                    value={adminPin}
+                    onChange={(e) => setAdminPin(e.target.value)}
+                    className="w-full bg-[#F5F5F7] border border-[#E5E5EA] rounded-xl px-3.5 py-2.5 text-xs text-[#1D1D1F] focus:ring-2 focus:ring-[#86868B]/35 outline-none transition tracking-widest font-bold"
+                  />
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    disabled={updatingPin}
+                    className="px-5 py-2.5 bg-[#1D1D1F] hover:bg-black text-white font-medium text-xs rounded-xl transition shadow-sm cursor-pointer disabled:opacity-50"
+                  >
+                    {updatingPin ? 'Guardando PIN...' : 'Actualizar PIN de Admin'}
+                  </button>
+                </div>
+              </form>
             </div>
-
-            {pinMessage && (
-              <div className={`p-3.5 rounded-2xl text-xs font-medium border flex items-center gap-2 ${pinMessage.startsWith('❌') ? 'bg-rose-50 text-rose-700 border-rose-200/60' : 'bg-emerald-50 text-emerald-700 border-emerald-200/60'}`}>
-                <span>{pinMessage}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleUpdateAdminPin} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-[#86868B] mb-1">PIN Numérico de Administrador</label>
-                <input
-                  type="text"
-                  maxLength={6}
-                  placeholder="Ej. 1234"
-                  value={adminPin}
-                  onChange={(e) => setAdminPin(e.target.value)}
-                  className="w-full bg-[#F5F5F7] border border-[#E5E5EA] rounded-xl px-3.5 py-2.5 text-xs text-[#1D1D1F] focus:ring-2 focus:ring-[#86868B]/35 outline-none transition tracking-widest font-bold"
-                />
-              </div>
-
-              <div className="flex justify-end pt-2">
-                <button
-                  type="submit"
-                  disabled={updatingPin}
-                  className="px-5 py-2.5 bg-[#1D1D1F] hover:bg-black text-white font-medium text-xs rounded-xl transition shadow-sm cursor-pointer disabled:opacity-50"
-                >
-                  {updatingPin ? 'Guardando PIN...' : 'Actualizar PIN de Admin'}
-                </button>
-              </div>
-            </form>
-          </div>
+          )}
 
           {/* SECCIÓN DE SEGURIDAD */}
           <div className="p-8 rounded-3xl bg-white border border-[#E5E5EA] shadow-sm space-y-6">
