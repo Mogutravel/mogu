@@ -12,7 +12,10 @@ import {
   FiBell,
   FiDollarSign,
   FiX,
-  FiFileText
+  FiFileText,
+  FiHeart,
+  FiMessageSquare,
+  FiLogOut
 } from 'react-icons/fi'
 
 interface OrderItem {
@@ -53,6 +56,9 @@ export default function OrderTrackingPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  // Estado para la pantalla de agradecimiento cuando la mesa es pagada/liberada
+  const [isSessionClosed, setIsSessionClosed] = useState(false)
+
   // Estados para llamados y modal de la cuenta
   const [callingWaiter, setCallingWaiter] = useState(false)
   const [requestingBill, setRequestingBill] = useState(false)
@@ -68,23 +74,23 @@ export default function OrderTrackingPage() {
 
     async function verifyAndLoadOrder() {
       try {
-        // 1. Verificar si la orden realmente existe en Supabase (si ya fue pagada y borrada en caja, dará error/null)
+        // 1. Verificar si la orden sigue activa en Supabase
         const { data: orderData, error: orderErr } = await supabase
           .from('orders')
           .select('*')
           .eq('id', currentOrderId)
           .maybeSingle()
 
+        // Si la orden ya no existe (fue cobrada y borrada en la caja), mostramos despedida
         if (orderErr || !orderData) {
-          localStorage.removeItem(`mogu_active_order_${slug}`)
-          localStorage.removeItem(`mogu_table_${slug}`)
-          router.push(`/menu/${slug}`)
+          setIsSessionClosed(true)
+          setLoading(false)
           return
         }
 
         setCurrentOrder(orderData)
 
-        // 2. Cargar TODAS las órdenes activas de esa misma mesa y tienda
+        // 2. Cargar TODAS las órdenes activas de esa misma mesa
         const { data: allOrdersData, error: allOrdersErr } = await supabase
           .from('orders')
           .select('*')
@@ -122,7 +128,7 @@ export default function OrderTrackingPage() {
 
     verifyAndLoadOrder()
 
-    // Suscripción Realtime: UPDATE (cambio de estado en cocina) y DELETE (cuando pagan y se borra)
+    // Suscripción Realtime para detectar cambios o cobro en caja
     const channel = supabase
       .channel(`order-status-${currentOrderId}`)
       .on(
@@ -148,9 +154,8 @@ export default function OrderTrackingPage() {
           filter: `id=eq.${currentOrderId}`,
         },
         () => {
-          localStorage.removeItem(`mogu_active_order_${slug}`)
-          localStorage.removeItem(`mogu_table_${slug}`)
-          router.push(`/menu/${slug}`)
+          // Se activa el aviso de agradecimiento cuando la caja cobra y elimina la orden
+          setIsSessionClosed(true)
         }
       )
       .subscribe()
@@ -158,7 +163,14 @@ export default function OrderTrackingPage() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [currentOrderId, slug, router])
+  }, [currentOrderId, slug])
+
+  // Limpiar sesión y desvincular el dispositivo del local
+  const handleFinalExit = () => {
+    localStorage.removeItem(`mogu_active_order_${slug}`)
+    localStorage.removeItem(`mogu_table_${slug}`)
+    router.push(`/menu/${slug}`)
+  }
 
   // Función para enviar llamado (Garzón o Cuenta)
   const handleTableCall = async (type: 'garzon' | 'cuenta') => {
@@ -250,6 +262,51 @@ export default function OrderTrackingPage() {
     )
   }
 
+  // 🎉 PANTALLA DE AGRADECIMIENTO Y CIERRE DE SESIÓN AL PAGAR Y LIBERAR LA MESA
+  if (isSessionClosed) {
+    return (
+      <div className="min-h-screen bg-[#0B0B0C] text-[#F2F2EE] font-sans flex flex-col items-center justify-center p-6 text-center space-y-6">
+        <div className="w-20 h-20 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-full flex items-center justify-center text-3xl animate-bounce">
+          <FiHeart />
+        </div>
+
+        <div className="space-y-2 max-w-sm">
+          <h1 className="text-2xl font-black tracking-tight">¡Gracias por tu visita!</h1>
+          <p className="text-sm text-white/70 leading-relaxed">
+            Tu cuenta ha sido pagada y la mesa ha sido liberada con éxito.
+          </p>
+        </div>
+
+        {/* Tarjeta de invitación a comentar */}
+        <div className="w-full max-w-sm bg-[#141416] border border-[#26262A] rounded-3xl p-5 space-y-3 text-left shadow-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#FF7A45]/15 text-[#FF7A45] flex items-center justify-center text-lg">
+              <FiMessageSquare />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold">¿Qué tal estuvo tu experiencia?</h3>
+              <p className="text-[11px] text-white/50">Tu opinión nos ayuda a seguir mejorando</p>
+            </div>
+          </div>
+          <p className="text-xs text-white/60 italic pt-1 border-t border-[#26262A]">
+            "¡No olvides comentar tu experiencia con el equipo antes de marcharte!"
+          </p>
+        </div>
+
+        {/* Botón de Cierre de Sesión */}
+        <div className="w-full max-w-sm pt-2">
+          <button
+            onClick={handleFinalExit}
+            className="w-full py-4 px-6 bg-[#FF7A45] hover:bg-[#ff692e] text-black font-extrabold text-xs uppercase tracking-wider rounded-2xl transition cursor-pointer shadow-lg flex items-center justify-center gap-2 active:scale-95"
+          >
+            <FiLogOut className="text-base" />
+            <span>Cerrar sesión en mi celular</span>
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (error || !currentOrder) {
     return (
       <div className="min-h-screen bg-[#0B0B0C] text-[#F2F2EE] flex flex-col items-center justify-center p-6 text-center space-y-4">
@@ -267,13 +324,11 @@ export default function OrderTrackingPage() {
 
   const currentStep = getStepIndex(currentOrder.status)
 
-  // Calcular el total acumulado de todas las comandas de la mesa
   const totalTableAmount = tableOrders.reduce((acc, ord) => {
     const orderSum = ord.items?.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0) || ord.total_amount || 0
     return acc + orderSum
   }, 0)
 
-  // Ítems de la orden actual para la tarjeta principal
   const currentOrderItems = tableOrders.find(o => o.id === currentOrder.id)?.items || []
 
   return (
