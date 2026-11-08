@@ -1,15 +1,12 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { 
   FiGrid, 
-  FiDollarSign, 
-  FiCheckCircle, 
   FiX, 
   FiRefreshCw, 
-  FiArrowLeft,
   FiBell,
   FiTruck,
   FiPackage
@@ -44,7 +41,6 @@ interface Order {
 
 export default function CajaMesasPanel() {
   const params = useParams()
-  const router = useRouter()
   const slug = params?.slug as string
 
   const [tables, setTables] = useState<TableItem[]>([])
@@ -217,7 +213,6 @@ export default function CajaMesasPanel() {
     }
   }
 
-  // ⚡ PROCESAR PAGO: FORZAR EL BORRADO FÍSICO DE LAS TABLAS ORDERS Y ORDER_ITEMS
   const handleProcessPayment = async (paymentMethod: 'Efectivo' | 'Tarjeta' | 'Transferencia') => {
     if (!selectedTable) return
 
@@ -225,35 +220,11 @@ export default function CajaMesasPanel() {
       const orderIds = tableOrders.map((o) => o.id)
 
       if (orderIds.length > 0) {
-        // 1. Forzar borrado directo de ítems asociados a estas órdenes
-        const { error: itemsErr } = await supabase
-          .from('order_items')
-          .delete()
-          .in('order_id', orderIds)
-
-        if (itemsErr) console.warn('Aviso al borrar order_items:', itemsErr.message)
-
-        // 2. Forzar borrado directo de las órdenes principales de la mesa
-        const { error: ordErr } = await supabase
-          .from('orders')
-          .delete()
-          .in('id', orderIds)
-
-        if (ordErr) {
-          console.warn('Aviso al borrar orders, aplicando respaldo:', ordErr.message)
-          // Respaldo por si hay directiva estricta de RLS
-          await supabase.from('orders').update({ status: 'pagado' }).in('id', orderIds)
-        }
+        await supabase.from('order_items').delete().in('order_id', orderIds)
+        await supabase.from('orders').delete().in('id', orderIds)
+        await supabase.from('orders').update({ status: 'pagado' }).in('id', orderIds)
       }
 
-      // 3. Forzar de forma adicional el borrado de cualquier orden huérfana ligada a esta mesa por número
-      await supabase
-        .from('orders')
-        .delete()
-        .eq('store_slug', slug)
-        .eq('table_number', selectedTable.table_number)
-
-      // 4. Liberar la mesa de forma permanente a 'disponible'
       const { error: tableError } = await supabase
         .from('tables')
         .upsert([{
@@ -266,14 +237,12 @@ export default function CajaMesasPanel() {
 
       if (tableError) throw tableError
 
-      // 5. Limpiar llamadas pendientes
       await supabase
         .from('table_calls')
         .delete()
         .eq('store_slug', slug)
         .eq('table_number', selectedTable.table_number)
 
-      // 6. Limpieza instantánea en el estado de React
       setOrders((prev) => prev.filter((o) => !orderIds.includes(o.id)))
       setTableOrders([])
       setIsModalOpen(false)
@@ -281,10 +250,10 @@ export default function CajaMesasPanel() {
       
       await fetchData()
 
-      alert(`✨ Pago con ${paymentMethod} registrado. ¡Mesa ${selectedTable.table_number} liberada y registros borrados!`)
+      alert(`✨ Pago con ${paymentMethod} registrado. ¡Mesa ${selectedTable.table_number} liberada con éxito!`)
     } catch (err: any) {
-      console.error('Error al procesar pago y forzar borrado:', err)
-      alert(`Hubo un error al procesar el pago: ${err?.message || 'Error desconocido'}`)
+      console.error('Error al procesar pago:', err)
+      alert(`Hubo an error al registrar el pago: ${err?.message || 'Error desconocido'}`)
     }
   }
 
@@ -299,23 +268,15 @@ export default function CajaMesasPanel() {
 
   return (
     <div className="min-h-screen bg-[#09090B] text-white font-sans p-6 space-y-8">
-      {/* Cabecera */}
+      {/* Cabecera Estética (Sin botón de retroceso) */}
       <header className="flex items-center justify-between border-b border-[#27272A] pb-5">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push(`/admin/${slug}`)}
-            className="p-2.5 bg-[#18181B] border border-[#27272A] rounded-xl text-white/70 hover:text-white transition cursor-pointer"
-          >
-            <FiArrowLeft />
-          </button>
-          <div>
-            <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
-              <FiGrid className="text-emerald-400" /> Control de Caja y Salón
-            </h1>
-            <p className="text-xs text-white/50 mt-1">
-              Monitoreo en tiempo real para <span className="text-emerald-400 font-bold uppercase">{slug}</span>
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
+            <FiGrid className="text-emerald-400" /> Control de Caja y Salón
+          </h1>
+          <p className="text-xs text-white/50 mt-1">
+            Monitoreo en tiempo real para <span className="text-emerald-400 font-bold uppercase">{slug}</span>
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
