@@ -56,7 +56,7 @@ export default function OrderTrackingPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  // Estado para la pantalla de agradecimiento cuando la mesa es pagada/liberada
+  // Estado para desplegar la nube flotante de cierre de sesión
   const [isSessionClosed, setIsSessionClosed] = useState(false)
 
   // Estados para llamados y modal de la cuenta
@@ -74,14 +74,13 @@ export default function OrderTrackingPage() {
 
     async function verifyAndLoadOrder() {
       try {
-        // 1. Verificar si la orden sigue activa en Supabase
+        // 1. Cargar la orden activa
         const { data: orderData, error: orderErr } = await supabase
           .from('orders')
           .select('*')
           .eq('id', currentOrderId)
           .maybeSingle()
 
-        // Si la orden ya no existe (fue cobrada y borrada en la caja), mostramos despedida
         if (orderErr || !orderData) {
           setIsSessionClosed(true)
           setLoading(false)
@@ -90,7 +89,19 @@ export default function OrderTrackingPage() {
 
         setCurrentOrder(orderData)
 
-        // 2. Cargar TODAS las órdenes activas de esa misma mesa
+        // 2. Verificar estado de la mesa en la base de datos
+        const { data: tableData } = await supabase
+          .from('tables')
+          .select('status')
+          .eq('store_slug', orderData.store_slug)
+          .eq('table_number', orderData.table_number)
+          .maybeSingle()
+
+        if (tableData && tableData.status === 'disponible') {
+          setIsSessionClosed(true)
+        }
+
+        // 3. Cargar todas las órdenes activas de la mesa
         const { data: allOrdersData, error: allOrdersErr } = await supabase
           .from('orders')
           .select('*')
@@ -128,8 +139,8 @@ export default function OrderTrackingPage() {
 
     verifyAndLoadOrder()
 
-    // Suscripción Realtime para detectar cambios o cobro en caja
-    const channel = supabase
+    // ⚡ Suscripción Realtime a cambios en las Órdenes (UPDATE / DELETE)
+    const orderChannel = supabase
       .channel(`order-status-${currentOrderId}`)
       .on(
         'postgres_changes',
@@ -142,6 +153,9 @@ export default function OrderTrackingPage() {
         (payload) => {
           if (payload.new) {
             setCurrentOrder((prev) => (prev ? { ...prev, ...payload.new } : (payload.new as Order)))
+            if (payload.new.status === 'pagado') {
+              setIsSessionClosed(true)
+            }
           }
         }
       )
@@ -154,16 +168,44 @@ export default function OrderTrackingPage() {
           filter: `id=eq.${currentOrderId}`,
         },
         () => {
-          // Se activa el aviso de agradecimiento cuando la caja cobra y elimina la orden
           setIsSessionClosed(true)
         }
       )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(orderChannel)
     }
   }, [currentOrderId, slug])
+
+  // ⚡ Suscripción Realtime al estado de la Mesa (Liberación de mesa desde la caja)
+  useEffect(() => {
+    if (!currentOrder || !slug) return
+
+    const tableChannel = supabase
+      .channel(`table-status-listener-${slug}-${currentOrder.table_number}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tables',
+          filter: `store_slug=eq.${slug}`,
+        },
+        (payload: any) => {
+          if (payload.new && payload.new.table_number === currentOrder.table_number) {
+            if (payload.new.status === 'disponible') {
+              setIsSessionClosed(true)
+            }
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(tableChannel)
+    }
+  }, [currentOrder, slug])
 
   // Limpiar sesión y desvincular el dispositivo del local
   const handleFinalExit = () => {
@@ -262,51 +304,6 @@ export default function OrderTrackingPage() {
     )
   }
 
-  // 🎉 PANTALLA DE AGRADECIMIENTO Y CIERRE DE SESIÓN AL PAGAR Y LIBERAR LA MESA
-  if (isSessionClosed) {
-    return (
-      <div className="min-h-screen bg-[#0B0B0C] text-[#F2F2EE] font-sans flex flex-col items-center justify-center p-6 text-center space-y-6">
-        <div className="w-20 h-20 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-full flex items-center justify-center text-3xl animate-bounce">
-          <FiHeart />
-        </div>
-
-        <div className="space-y-2 max-w-sm">
-          <h1 className="text-2xl font-black tracking-tight">¡Gracias por tu visita!</h1>
-          <p className="text-sm text-white/70 leading-relaxed">
-            Tu cuenta ha sido pagada y la mesa ha sido liberada con éxito.
-          </p>
-        </div>
-
-        {/* Tarjeta de invitación a comentar */}
-        <div className="w-full max-w-sm bg-[#141416] border border-[#26262A] rounded-3xl p-5 space-y-3 text-left shadow-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#FF7A45]/15 text-[#FF7A45] flex items-center justify-center text-lg">
-              <FiMessageSquare />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold">¿Qué tal estuvo tu experiencia?</h3>
-              <p className="text-[11px] text-white/50">Tu opinión nos ayuda a seguir mejorando</p>
-            </div>
-          </div>
-          <p className="text-xs text-white/60 italic pt-1 border-t border-[#26262A]">
-            "¡No olvides comentar tu experiencia con el equipo antes de marcharte!"
-          </p>
-        </div>
-
-        {/* Botón de Cierre de Sesión */}
-        <div className="w-full max-w-sm pt-2">
-          <button
-            onClick={handleFinalExit}
-            className="w-full py-4 px-6 bg-[#FF7A45] hover:bg-[#ff692e] text-black font-extrabold text-xs uppercase tracking-wider rounded-2xl transition cursor-pointer shadow-lg flex items-center justify-center gap-2 active:scale-95"
-          >
-            <FiLogOut className="text-base" />
-            <span>Cerrar sesión en mi celular</span>
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   if (error || !currentOrder) {
     return (
       <div className="min-h-screen bg-[#0B0B0C] text-[#F2F2EE] flex flex-col items-center justify-center p-6 text-center space-y-4">
@@ -332,7 +329,7 @@ export default function OrderTrackingPage() {
   const currentOrderItems = tableOrders.find(o => o.id === currentOrder.id)?.items || []
 
   return (
-    <div className="min-h-screen bg-[#0B0B0C] text-[#F2F2EE] font-sans flex flex-col items-center p-4 md:p-8 pb-20">
+    <div className="min-h-screen bg-[#0B0B0C] text-[#F2F2EE] font-sans flex flex-col items-center p-4 md:p-8 pb-36 relative">
       <div className="w-full max-w-md space-y-6">
         {/* Cabecera */}
         <div className="flex items-center justify-between">
@@ -511,6 +508,33 @@ export default function OrderTrackingPage() {
         )}
 
       </div>
+
+      {/* 🚀 NUBE FLOTANTE DE CIERRE DE SESIÓN CUANDO LA CAJA LIBERA LA MESA */}
+      {isSessionClosed && (
+        <div className="fixed bottom-6 inset-x-4 z-50 max-w-md mx-auto animate-bounce">
+          <div className="bg-[#141416] border border-amber-500/50 text-white p-5 rounded-3xl shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl shrink-0">
+                <FiHeart />
+              </div>
+              <div>
+                <h3 className="text-sm font-black">¡Gracias por tu visita!</h3>
+                <p className="text-xs text-white/60">
+                  Tu cuenta ha sido cobrada y la mesa liberada. No olvides comentar tu experiencia.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleFinalExit}
+              className="w-full py-3.5 px-6 bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs uppercase tracking-wider rounded-2xl transition cursor-pointer shadow-lg flex items-center justify-center gap-2 active:scale-95"
+            >
+              <FiLogOut className="text-base" />
+              <span>Cerrar sesión en mi celular</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
