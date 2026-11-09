@@ -49,7 +49,7 @@ export default async function Home() {
   return (
     <div style={{ backgroundColor: '#0E0C0A', color: '#D4CEC7', minHeight: '100vh', position: 'relative', overflowX: 'hidden' }} className="font-sans">
       
-      {/* 🌟 HERO & FULL-PAGE GRADIENT ESTILO REMOTE */}
+      {/* 🌟 HERO & FULL-PAGE GRADIENT */}
       <div className="fixed inset-0 w-full h-full bg-gradient-to-b from-[#4c1d95] via-[#1e40af] to-[#0E0C0A] opacity-90 pointer-events-none -z-0" />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full bg-gradient-to-r from-purple-500/15 via-cyan-400/15 to-blue-600/15 blur-[160px] pointer-events-none -z-0" />
 
@@ -71,8 +71,8 @@ export default async function Home() {
           </Link>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-white/80 md:flex">
-            <Link href="#ecosistema" className="transition hover:text-white">Plataforma Cloud</Link>
-            <Link href="#testimonios" className="transition hover:text-white">Opiniones</Link>
+            <Link href="#ecosistema" className="transition hover:text-white">Plataforma</Link>
+            <Link href="#testimonios" className="transition hover:text-white">Casos de Éxito</Link>
             <Link href="#como-funciona" className="transition hover:text-white">¿Cómo funciona?</Link>
           </nav>
 
@@ -84,7 +84,7 @@ export default async function Home() {
               href="/login" 
               className="px-4 py-2 bg-white hover:bg-slate-100 text-[#0E0C0A] text-xs font-bold rounded-xl transition shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-[1.02] flex items-center gap-1.5"
             >
-              Crear mi Perfil 🚀
+              Acceso Local 🚀
             </Link>
           </div>
         </header>
@@ -99,13 +99,14 @@ export default async function Home() {
           </div>
 
           <div className="mx-auto max-w-5xl text-center space-y-6 relative z-20">
+            {/* H1 Corregido para posicionar Mogu como Software Operativo y Gastronómico */}
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-100 to-teal-200 leading-[1.08] drop-shadow-md">
-              El sistema operativo digital <br className="hidden sm:block" />
-              para tu negocio global.
+              El sistema operativo interno <br className="hidden sm:block" />
+              para tu restaurante o café.
             </h1>
 
             <p className="text-base sm:text-lg text-white/95 max-w-2xl mx-auto font-normal leading-relaxed">
-              Una plataforma integral para menús digitales, catálogos interactivos y gestión en tiempo real. Disponible en todo Chile.
+              Mogu centraliza la operación de tu local: conecta la caja registradora, optimiza la atención de los garzones, gestiona pedidos en tiempo real y potencia la fidelización a través de la red internacional <strong className="text-white">Mogu Travel</strong>.
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -119,7 +120,7 @@ export default async function Home() {
                 href="#ecosistema"
                 className="w-full sm:w-auto rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 px-8 py-4 text-xs font-semibold uppercase tracking-wider text-white transition-all text-center backdrop-blur-md"
               >
-                Ver Planes Cloud
+                Ver Planes y Precios
               </Link>
             </div>
           </div>
@@ -130,16 +131,16 @@ export default async function Home() {
 
         </section>
 
-        {/* 3. TARJETAS DE CARACTERÍSTICAS */}
+        {/* 3. TARJETAS DE CARACTERÍSTICAS OPERATIVAS */}
         <section className="mx-auto max-w-7xl px-6 py-20 relative z-20">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             
             <div className="p-6 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">SaaS</span>
-                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">Perfil institucional centralizado</h3>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">Operación</span>
+                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">Caja y Garzones Conectados</h3>
                 <p className="text-xs text-white/80 leading-relaxed">
-                  Rely on our platform to make sure your brand gets noticed everywhere online.
+                  Sincronización instantánea de comandas, control de mesas y actualización de ventas directo con el punto de venta.
                 </p>
               </div>
               <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">01 / MOGU CORE</div>
@@ -147,10 +148,10 @@ export default async function Home() {
 
             <div className="p-6 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">Digital</span>
-                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">Menú QR & Catálogos NFC</h3>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">Pedidos</span>
+                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">Menú & E-Commerce Dinámico</h3>
                 <p className="text-xs text-white/80 leading-relaxed">
-                  Local compliance, interactive menus, and real-time updates for your customers.
+                  Cartas digitales interactivas donde tus clientes visualizan platos y hacen seguimiento de su pedido en tiempo real.
                 </p>
               </div>
               <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">02 / INTERACTIVE</div>
@@ -158,24 +159,24 @@ export default async function Home() {
 
             <div className="p-6 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">Velocidad</span>
-                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">Actualizaciones instantáneas</h3>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">Comunidad</span>
+                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">Red Global Mogu Travel</h3>
                 <p className="text-xs text-white/80 leading-relaxed">
-                  Hire and manage your products effortlessly through cloud infrastructure.
+                  Conecta tu local a una red internacional de viajeros y ofrece beneficios de fidelización cruzada únicos en Chile.
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">03 / REAL-TIME</div>
+              <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">03 / TRAVEL NETWORK</div>
             </div>
 
             <div className="p-6 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">Soporte</span>
-                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">Asistencia técnica 24/7</h3>
+                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">Infraestructura Cloud</h3>
                 <p className="text-xs text-white/80 leading-relaxed">
-                  Connect your business tools via our secure backend and dedicated expert team.
+                  Actualiza precios, productos y configuraciones al instante de forma segura desde nuestra plataforma backend.
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">04 / SUPPORT</div>
+              <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">04 / REAL-TIME</div>
             </div>
 
           </div>
@@ -185,11 +186,11 @@ export default async function Home() {
         <section id="ecosistema" className="mx-auto max-w-7xl px-6 py-28 relative z-20 border-t border-white/15">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
-              Planes Anuales Mogu.cl
+              Planes Mogu SpA
             </span>
-            <h2 className="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tight">Planes de Ecosistema Digital</h2>
+            <h2 className="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tight">Planes de Software y Operaciones</h2>
             <p className="text-[#D4CEC7] text-sm md:text-base font-normal mt-3">
-              Selecciona el plan perfecto para tu marca con diseño editorial de alta gama y gestión en tiempo real.
+              Selecciona el nivel ideal para tu restaurante o café, adaptado a tu volumen de productos y herramientas de caja.
             </p>
           </div>
 
@@ -296,7 +297,7 @@ export default async function Home() {
             </span>
             <h2 className="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tight">Lo que dicen nuestros clientes</h2>
             <p className="text-[#D4CEC7] text-sm md:text-base font-normal mt-3">
-              Negocios gastronómicos y comerciales que ya transformaron su experiencia digital con Mogu.
+              Locales gastronómicos y cafeterías que ya conectaron su operación interna con Mogu.
             </p>
           </div>
 
@@ -305,7 +306,7 @@ export default async function Home() {
               <div>
                 <div className="flex text-amber-400 text-sm mb-4">★★★★★</div>
                 <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed italic">
-                  &ldquo;Implementar el menú digital con Mogu cambió por completo la dinámica de nuestro local. Los clientes escanean el QR y piden de forma inmediata. ¡Increíble soporte!&rdquo;
+                  &ldquo;La integración entre los garzones y la caja cambió por completo nuestro ritmo de atención. Los pedidos entran limpios y ordenados en tiempo real.&rdquo;
                 </p>
               </div>
               <div className="mt-8 pt-4 border-t border-white/10 flex items-center gap-3">
@@ -323,7 +324,7 @@ export default async function Home() {
               <div>
                 <div className="flex text-amber-400 text-sm mb-4">★★★★★</div>
                 <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed italic">
-                  &ldquo;La interfaz es súper elegante y profesional. Nos da una presencia de marca increíble frente a nuestra competencia y podemos actualizar precios en segundos.&rdquo;
+                  &ldquo;Poder actualizar la carta de productos al instante y ofrecer la comunidad de Mogu Travel a nuestros clientes nos da un estándar totalmente diferente.&rdquo;
                 </p>
               </div>
               <div className="mt-8 pt-4 border-t border-white/10 flex items-center gap-3">
@@ -332,7 +333,7 @@ export default async function Home() {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-white">Fernanda Valenzuela</h4>
-                  <span className="text-[10px] text-cyan-300 font-medium">Boutique & Showroom</span>
+                  <span className="text-[10px] text-cyan-300 font-medium">Cafetería de Especialidad</span>
                 </div>
               </div>
             </div>
@@ -341,7 +342,7 @@ export default async function Home() {
               <div>
                 <div className="flex text-amber-400 text-sm mb-4">★★★★★</div>
                 <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed italic">
-                  &ldquo;Tener todo centralizado en un perfil inteligente con WhatsApp y catálogos enlazados nos ha ayudado a cerrar muchísimas más ventas este año. 100% recomendado.&rdquo;
+                  &ldquo;Tener el control centralizado de la administración y la visualización de pedidos para el cliente final ha optimizado nuestro servicio de forma increíble.&rdquo;
                 </p>
               </div>
               <div className="mt-8 pt-4 border-t border-white/10 flex items-center gap-3">
@@ -361,36 +362,36 @@ export default async function Home() {
         <section id="como-funciona" className="mx-auto max-w-7xl px-6 py-28 relative z-20 border-t border-white/15">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
-              Tecnología Web App
+              Implementación Rápida
             </span>
-            <h2 className="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tight">Simple para ti, impecable para tus clientes</h2>
+            <h2 className="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tight">Simple para el equipo, impecable para el cliente</h2>
             <p className="text-[#D4CEC7] text-sm md:text-base font-normal mt-3">
-              Lanza tu ecosistema digital en menos de 5 minutos y edítalo cuantas veces quieras.
+              Conecta tu local al sistema operativo de Mogu en pocos minutos.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
             <div className="p-8 rounded-3xl border border-white/15 bg-white/[0.05] backdrop-blur-xl shadow-lg">
               <div className="w-12 h-12 rounded-2xl bg-white/10 text-cyan-400 font-bold flex items-center justify-center text-sm mb-6 border border-white/20 shadow-inner">01</div>
-              <h3 className="text-lg font-bold text-white mb-2">Crea tu Cuenta</h3>
+              <h3 className="text-lg font-bold text-white mb-2">Configura tu Local</h3>
               <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed">
-                Elige tu enlace personalizado y configura el estilo visual de tu perfil o carta interactiva.
+                Registra tu negocio, define tu menú o catálogo interactivo y establece los accesos para caja y garzones.
               </p>
             </div>
 
             <div className="p-8 rounded-3xl border border-white/15 bg-white/[0.05] backdrop-blur-xl shadow-lg">
               <div className="w-12 h-12 rounded-2xl bg-white/10 text-cyan-400 font-bold flex items-center justify-center text-sm mb-6 border border-white/20 shadow-inner">02</div>
-              <h3 className="text-lg font-bold text-white mb-2">Publica y Comparte</h3>
+              <h3 className="text-lg font-bold text-white mb-2">Conecta la Operación</h3>
               <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed">
-                Añade tus platos, servicios y redes sociales. Compártelo en Instagram, WhatsApp o código QR.
+                Sincroniza comandas en tiempo real y permite que los clientes sigan sus pedidos de forma digital y fluida.
               </p>
             </div>
 
             <div className="p-8 rounded-3xl border border-white/15 bg-white/[0.05] backdrop-blur-xl shadow-lg">
               <div className="w-12 h-12 rounded-2xl bg-white/10 text-cyan-400 font-bold flex items-center justify-center text-sm mb-6 border border-white/20 shadow-inner">03</div>
-              <h3 className="text-lg font-bold text-white mb-2">Crece sin Límites</h3>
+              <h3 className="text-lg font-bold text-white mb-2">Fideliza y Crece</h3>
               <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed">
-                Actualiza precios e información al instante desde cualquier celular o computador.
+                Integra a tus clientes a la comunidad global Mogu Travel y escala tu servicio gastronómico sin límites.
               </p>
             </div>
           </div>
