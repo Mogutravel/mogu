@@ -26,7 +26,7 @@ export default function LoginPage() {
     setErrorMessage('')
 
     try {
-      // INICIO DE SESIÓN DIRECTO
+      // 1. INICIO DE SESIÓN DIRECTO EN AUTH
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -35,13 +35,23 @@ export default function LoginPage() {
       if (signInError) throw signInError
 
       if (signInData.user) {
+        // 2. CONSULTAR PERFIL Y SU PLAN ASOCIADO
         const { data: profile } = await supabase
           .from('profiles')
-          .select('slug')
+          .select('slug, subscription_type, plan_id, plans(slug)')
           .eq('user_id', signInData.user.id)
           .maybeSingle()
 
         if (profile) {
+          const planSlug = (profile.plans as any)?.slug
+
+          // 3. SI ES PLAN MOGU START -> REDIRECCIÓN DIRECTA AL ADMIN
+          if (profile.subscription_type === 'free_start' || planSlug === 'mogu-start') {
+            window.location.href = `/admin/${profile.slug}`
+            return
+          }
+
+          // 4. SI ES UN PLAN AVANZADO -> MOSTRAR SELECTOR DE ROL (Cocina / Caja / Admin)
           setActiveSlug(profile.slug)
           setShowRoleSelector(true)
         } else {
@@ -59,8 +69,8 @@ export default function LoginPage() {
     }
   }
 
-  // MANEJO DE RUTAS SEGÚN EL ROL SELECCIONADO
-  const handleSelectRole = (role: 'cocina' | 'caja' | 'admin') => {
+  // MANEJO DE RUTAS SEGÚN EL ROL SELECCIONADO (Para planes Pro / Empresa)
+  const handleSelectRole = async (role: 'cocina' | 'caja' | 'admin') => {
     if (!activeSlug) return
 
     if (role === 'cocina') {
@@ -68,11 +78,25 @@ export default function LoginPage() {
     } else if (role === 'caja') {
       window.location.href = `/panel/${activeSlug}/caja`
     } else if (role === 'admin') {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('pin_code')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        // Si no tiene PIN configurado, ingresar directo
+        if (!profile?.pin_code) {
+          window.location.href = `/admin/${activeSlug}`
+          return
+        }
+      }
       setShowPinModal(true)
     }
   }
 
-  // VALIDACIÓN DEL PIN DE ADMINISTRADOR
+  // VALIDACIÓN DEL PIN DE ADMINISTRADOR (Para planes con PIN)
   const handleVerifyPin = async (e: React.FormEvent) => {
     e.preventDefault()
     setCheckingPin(true)
@@ -117,7 +141,7 @@ export default function LoginPage() {
           <div className="text-center space-y-2">
             <div className="inline-block font-black text-2xl tracking-wider text-white mb-1">MOGU</div>
             <p className="text-xs text-neutral-400 font-medium">
-              Tarjetas NFC Inteligentes para PyMEs ⚡
+              Plataforma de Fidelización e Integración Comercial ⚡
             </p>
           </div>
 
@@ -165,7 +189,7 @@ export default function LoginPage() {
 
         </div>
       ) : (
-        /* VISTA DEL SELECTOR DE PERFIL POST-LOGIN */
+        /* VISTA DEL SELECTOR DE PERFIL POST-LOGIN (Planes Pro / Empresa) */
         <div className="relative z-10 w-full max-w-md bg-neutral-900/50 backdrop-blur-2xl border border-neutral-800/80 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl text-center">
           <div>
             <h2 className="text-xl font-bold">¿Quién se está conectando?</h2>

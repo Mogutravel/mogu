@@ -135,7 +135,7 @@ export default function MoguStartWizard() {
       try {
         let uploadedAvatarUrl = ''
 
-        // 1. Si el usuario seleccionó un archivo, subirlo al Storage de Supabase (bucket 'avatars')
+        // 1. Subir imagen al Storage de Supabase si se seleccionó archivo
         if (avatarFile) {
           const fileExt = avatarFile.name.split('.').pop()
           const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
@@ -148,7 +148,6 @@ export default function MoguStartWizard() {
           if (uploadError) {
             console.error('Error subiendo imagen al storage:', uploadError)
           } else {
-            // Obtener la URL pública oficial de Supabase
             const { data: publicUrlData } = supabase.storage
               .from('avatars')
               .getPublicUrl(filePath)
@@ -157,7 +156,7 @@ export default function MoguStartWizard() {
           }
         }
 
-        // 2. Crear usuario en Auth enviando la URL pública y los demás campos en metadata
+        // 2. Crear usuario en Supabase Auth
         const { data: authData, error: signUpError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -184,11 +183,12 @@ export default function MoguStartWizard() {
           .eq('slug', 'mogu-start')
           .maybeSingle()
 
-        // 4. Inserción directa en profiles asegurando todos los campos con la URL del Storage[cite: 5]
+        // 4. Inserción en profiles (Solo Fidelización activa, user_id vinculado, sin pin_code/menu/catalogo)
         const { error: profileError } = await supabase
           .from('profiles')
           .upsert({
             id: authData.user.id,
+            user_id: authData.user.id, // Vínculo explícito para auth en login
             email: formData.email,
             full_name: formData.businessName,
             slug: formData.slug,
@@ -198,13 +198,36 @@ export default function MoguStartWizard() {
             theme_color: formData.theme_color,
             avatar_url: uploadedAvatarUrl || null,
             plan_id: planData?.id || null,
+            has_loyalty: true,        // ÚNICA FEATURE ACTIVA EN MOGU START
+            has_menu: false,          // No aplica en Mogu Start
+            has_catalogo: false,      // No aplica en Mogu Start
+            subscription_status: 'active',
+            subscription_type: 'free_start',
           })
 
         if (profileError) {
           console.error('Error insertando en profiles:', profileError)
+          throw profileError
         }
 
-        // 5. Redirigir al panel de administración del cliente
+        // 5. Creación del programa inicial en loyalty_programs para Mogu Start
+        const { error: loyaltyError } = await supabase
+          .from('loyalty_programs')
+          .upsert({
+            profile_id: authData.user.id,
+            program_name: `Club de Fidelización ${formData.businessName}`,
+            collection_tag: '✦ MOGU PASS ✦',
+            stamps_required: 10,
+            reward_title: 'Premio Sorpresa / Producto Gratis',
+            reward_description: '¡Felicidades! Completaste tu tarjeta Mogu. Muestra este pase en caja.',
+            is_active: true,
+          }, { onConflict: 'profile_id' })
+
+        if (loyaltyError) {
+          console.error('Error creando el programa de fidelización:', loyaltyError)
+        }
+
+        // 6. Redirigir al panel de administración del cliente
         window.location.href = `/admin/${formData.slug}`
       } catch (err: any) {
         const message = err?.message || ''
@@ -264,7 +287,7 @@ export default function MoguStartWizard() {
                 </span>
                 <h1 className="text-3xl font-black text-white tracking-tight">Mogu Start</h1>
                 <p className="text-xs text-[#D4CEC7]">
-                  Crea tu perfil básico sin costo de mantenimiento ni tarjetas de crédito.
+                  Crea tu perfil básico con sistema de fidelización sin costo de mantenimiento.
                 </p>
               </div>
 
@@ -279,10 +302,10 @@ export default function MoguStartWizard() {
                     <span className="text-cyan-400 font-bold">✓</span> Perfil institucional Mogu
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="text-cyan-400 font-bold">✓</span> Ubicación y Redes Sociales
+                    <span className="text-cyan-400 font-bold">✓</span> Tarjeta de Fidelización (Mogu Pass)
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="text-cyan-400 font-bold">✓</span> Horarios de atención
+                    <span className="text-cyan-400 font-bold">✓</span> Redes sociales y contacto
                   </li>
                 </ul>
               </div>
@@ -294,12 +317,12 @@ export default function MoguStartWizard() {
             <div className="space-y-4 animate-fadeIn">
               <div className="text-center space-y-1 mb-2">
                 <h2 className="text-xl font-black text-white tracking-tight">Personaliza tu Negocio 🎨</h2>
-                <p className="text-xs text-[#D4CEC7]">Modifica la identidad visual, colores y datos de tu tarjeta Mogu.</p>
+                <p className="text-xs text-[#D4CEC7]">Modifica la identidad visual, colores y datos de tu perfil Mogu.</p>
               </div>
 
               {/* Logotipo / Avatar */}
               <div>
-                <label className="block text-xs font-semibold text-white/80 mb-2">Logotipo / Foto de Perfil (avatar_url)</label>
+                <label className="block text-xs font-semibold text-white/80 mb-2">Logotipo / Foto de Perfil</label>
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
                     {avatarPreview ? (
@@ -317,7 +340,7 @@ export default function MoguStartWizard() {
 
               {/* Color de Identidad */}
               <div>
-                <label className="block text-xs font-semibold text-white/80 mb-2">Color de Identidad (theme_color)</label>
+                <label className="block text-xs font-semibold text-white/80 mb-2">Color de Identidad</label>
                 <div className="flex items-center gap-3">
                   {colorOptions.map((color) => (
                     <button
@@ -337,20 +360,20 @@ export default function MoguStartWizard() {
               {/* Nombre y Categoría */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-white/80 mb-1">Nombre del Negocio (full_name)</label>
+                  <label className="block text-xs font-semibold text-white/80 mb-1">Nombre del Negocio</label>
                   <input
                     type="text"
                     name="businessName"
                     value={formData.businessName}
                     onChange={handleBusinessNameChange}
-                    placeholder="Ej. Dias de cafe ☕"
+                    placeholder="Ej. Días de café ☕"
                     required
                     className="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-cyan-400 transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-white/80 mb-1">Categoría Comercial (title)</label>
+                  <label className="block text-xs font-semibold text-white/80 mb-1">Categoría Comercial</label>
                   <input
                     type="text"
                     name="title"
@@ -386,7 +409,7 @@ export default function MoguStartWizard() {
 
               {/* Bio */}
               <div>
-                <label className="block text-xs font-semibold text-white/80 mb-1">Eslogan o Bio del Negocio (bio)</label>
+                <label className="block text-xs font-semibold text-white/80 mb-1">Eslogan o Bio del Negocio</label>
                 <textarea
                   name="bio"
                   value={formData.bio}
@@ -399,7 +422,7 @@ export default function MoguStartWizard() {
 
               {/* Teléfono / WhatsApp */}
               <div>
-                <label className="block text-xs font-semibold text-white/80 mb-1">Teléfono / WhatsApp de Contacto (phone)</label>
+                <label className="block text-xs font-semibold text-white/80 mb-1">Teléfono / WhatsApp de Contacto</label>
                 <input
                   type="text"
                   name="phone"
