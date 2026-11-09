@@ -57,8 +57,8 @@ export default async function Home() {
       answer: "Mogu sincroniza las comandas al instante entre el personal de salón (garzones) y el punto de venta o caja, permitiendo un seguimiento del estado de los pedidos y métricas de ventas en tiempo real."
     },
     {
-      question: "¿Qué es la comunidad Mogu Travel?",
-      answer: "Es la red internacional de fidelización de Mogu que conecta locales gastronómicos con una comunidad global de viajeros, ofreciendo beneficios cruzados e incentivos de consumo."
+      question: "¿Qué es la comunidad Mogu Travel y los Mogu Puntos?",
+      answer: "Es la red internacional de fidelización de Mogu que conecta locales gastronómicos con una comunidad global de viajeros, permitiendo acumular y canjear Mogu Puntos por incentivos de consumo."
     },
     {
       question: "¿Cuáles son los planes de Mogu para restaurantes?",
@@ -109,10 +109,12 @@ export default async function Home() {
             </span>
           </Link>
 
-          <nav className="hidden items-center gap-8 text-sm font-medium text-white/80 md:flex">
-            <Link href="#ecosistema" className="transition hover:text-white">Plataforma</Link>
-            <Link href="#testimonios" className="transition hover:text-white">Casos de Éxito</Link>
-            <Link href="#como-funciona" className="transition hover:text-white">¿Cómo funciona?</Link>
+          {/* Navegación actualizada con enlaces de solución */}
+          <nav className="hidden items-center gap-6 text-sm font-medium text-white/80 md:flex">
+            <Link href="/cafeterias" className="transition hover:text-white">Cafés & Restaurantes</Link>
+            <Link href="/comida-rapida" className="transition hover:text-white">Comida Rápida</Link>
+            <Link href="/mogutravel" className="transition hover:text-cyan-300 font-semibold text-cyan-400">Mogu Travel ✈️</Link>
+            <Link href="#ecosistema" className="transition hover:text-white">Planes</Link>
             <Link href="#faq" className="transition hover:text-white">FAQ</Link>
           </nav>
 
@@ -139,14 +141,13 @@ export default async function Home() {
           </div>
 
           <div className="mx-auto max-w-5xl text-center space-y-6 relative z-20">
-            {/* H1 Corregido para posicionar Mogu como Software Operativo y Gastronómico */}
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-100 to-teal-200 leading-[1.08] drop-shadow-md">
               El sistema operativo interno <br className="hidden sm:block" />
               para tu restaurante o café.
             </h1>
 
             <p className="text-base sm:text-lg text-white/95 max-w-2xl mx-auto font-normal leading-relaxed">
-              Mogu centraliza la operación de tu local: conecta la caja registradora, optimiza la atención de los garzones, gestiona pedidos en tiempo real y potencia la fidelización a través de la red internacional <strong className="text-white">Mogu Travel</strong>.
+              Mogu centraliza la operación de tu local: conecta la caja registradora, optimiza la atención de los garzones, gestiona pedidos en tiempo real y potencia la fidelización con <strong className="text-white">Mogu Puntos</strong> y la red <strong className="text-white">Mogu Travel</strong>.
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -199,13 +200,13 @@ export default async function Home() {
 
             <div className="p-6 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">Comunidad</span>
-                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">Red Global Mogu Travel</h3>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">Fidelización</span>
+                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">Mogu Puntos & Travel</h3>
                 <p className="text-xs text-white/80 leading-relaxed">
-                  Conecta tu local a una red internacional de viajeros y ofrece beneficios de fidelización cruzada únicos en Chile.
+                  Premia la frecuencia con Mogu Puntos y conecta tu local a la red internacional de viajeros Mogu Travel.
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">03 / TRAVEL NETWORK</div>
+              <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">03 / LOYALTY NETWORK</div>
             </div>
 
             <div className="p-6 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
@@ -329,7 +330,32 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 5. TESTIMONIOS */}
+        {/* 5. SECCIÓN MOGU PUNTOS & FIDELIZACIÓN */}
+        <section className="mx-auto max-w-7xl px-6 py-20 relative z-25 border-t border-white/15">
+          <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-r from-purple-900/40 via-cyan-900/30 to-blue-900/40 border border-cyan-500/30 backdrop-blur-2xl shadow-[0_0_50px_rgba(6,182,212,0.15)] flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="space-y-4 max-w-2xl">
+              <span className="text-xs font-extrabold uppercase px-3.5 py-1 rounded-full bg-cyan-400/20 text-cyan-300 border border-cyan-400/40 tracking-wider">
+                Fidelización & Recompensas
+              </span>
+              <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight">
+                Haz que tus clientes vuelvan con Mogu Puntos
+              </h2>
+              <p className="text-sm md:text-base text-white/80 leading-relaxed font-normal">
+                Cada pedido en tu restaurante o café otorga <strong>Mogu Puntos</strong> acumulables. Conecta tu negocio a la red global <strong>Mogu Travel</strong> e impulsa la retención de clientes sin complicaciones.
+              </p>
+            </div>
+            <div className="w-full md:w-auto text-center">
+              <Link
+                href="/mogutravel"
+                className="w-full sm:w-auto inline-block px-8 py-4 bg-cyan-400 hover:bg-cyan-300 text-[#0E0C0A] font-extrabold rounded-2xl transition shadow-lg text-xs uppercase tracking-wider"
+              >
+                Explorar Mogu Travel →
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* 6. TESTIMONIOS */}
         <section id="testimonios" className="mx-auto max-w-7xl px-6 py-28 relative z-20 border-t border-white/15">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
@@ -364,7 +390,7 @@ export default async function Home() {
               <div>
                 <div className="flex text-amber-400 text-sm mb-4">★★★★★</div>
                 <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed italic">
-                  &ldquo;Poder actualizar la carta de productos al instante y ofrecer la comunidad de Mogu Travel a nuestros clientes nos da un estándar totalmente diferente.&rdquo;
+                  &ldquo;Poder actualizar la carta de productos al instante y ofrecer la comunidad de Mogu Travel y Mogu Puntos nos da una retención de clientes increíble.&rdquo;
                 </p>
               </div>
               <div className="mt-8 pt-4 border-t border-white/10 flex items-center gap-3">
@@ -382,7 +408,7 @@ export default async function Home() {
               <div>
                 <div className="flex text-amber-400 text-sm mb-4">★★★★★</div>
                 <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed italic">
-                  &ldquo;Tener el control centralizado de la administración y la visualización de pedidos para el cliente final ha optimizado nuestro servicio de forma increíble.&rdquo;
+                  &ldquo;Tener el control centralizado de la administración y la visualización de pedidos para el cliente final ha optimizado nuestro servicio de forma única.&rdquo;
                 </p>
               </div>
               <div className="mt-8 pt-4 border-t border-white/10 flex items-center gap-3">
@@ -398,7 +424,7 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 6. ¿CÓMO FUNCIONA? */}
+        {/* 7. ¿CÓMO FUNCIONA? */}
         <section id="como-funciona" className="mx-auto max-w-7xl px-6 py-28 relative z-20 border-t border-white/15">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
@@ -431,13 +457,13 @@ export default async function Home() {
               <div className="w-12 h-12 rounded-2xl bg-white/10 text-cyan-400 font-bold flex items-center justify-center text-sm mb-6 border border-white/20 shadow-inner">03</div>
               <h3 className="text-lg font-bold text-white mb-2">Fideliza y Crece</h3>
               <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed">
-                Integra a tus clientes a la comunidad global Mogu Travel y escala tu servicio gastronómico sin límites.
+                Integra Mogu Puntos y la comunidad Mogu Travel para escalar tu servicio gastronómico sin límites.
               </p>
             </div>
           </div>
         </section>
 
-        {/* 7. PREGUNTAS FRECUENTES (FAQ / GEO) */}
+        {/* 8. PREGUNTAS FRECUENTES (FAQ / GEO) */}
         <section id="faq" className="mx-auto max-w-7xl px-6 py-28 relative z-20 border-t border-white/15">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
@@ -459,7 +485,7 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 8. FOOTER */}
+        {/* 9. FOOTER */}
         <footer id="contacto" className="border-t border-white/15 bg-[#0E0C0A]/80 backdrop-blur-md py-12 relative z-20">
           <div className="mx-auto max-w-7xl px-6 flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="text-center md:text-left">
