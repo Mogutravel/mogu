@@ -46,7 +46,7 @@ const formatPrice = (amount: number) => {
 export default async function Home() {
   const planes = await getPlans()
 
-  // Preguntas Frecuentes estructuradas para GEO / Motores de IA
+  // Preguntas Frecuentes estructuradas para GEO / Motores de IA actualizadas con datos reales
   const faqs = [
     {
       question: "¿Qué es la plataforma Mogu?",
@@ -62,7 +62,7 @@ export default async function Home() {
     },
     {
       question: "¿Cuáles son los planes de Mogu para restaurantes?",
-      answer: "Ofrecemos el Plan Pro (hasta 50 productos en menú digital o catálogo e-commerce) y el Plan Empresa (hasta 100 productos, menú e-commerce completo e incluye 1 tótem físico de fidelización de cortesía para mesón/caja)."
+      answer: "Ofrecemos el Plan Mogu Start ($0, ideal con perfil digital y enlace personalizado), Plan Mogu Pro ($79.900 + IVA/año, con carta o menú digital QR/NFC y gestión de promociones) y Mogu Ecosystem ($119.900 + IVA/año, que incluye caja registradora, módulo de garzones y sala, y KDS en tiempo real)."
     }
   ]
 
@@ -109,7 +109,7 @@ export default async function Home() {
             </span>
           </Link>
 
-          {/* Navegación actualizada con enlaces de solución */}
+          {/* Navegación del Header con accesos directos */}
           <nav className="hidden items-center gap-6 text-sm font-medium text-white/80 md:flex">
             <Link href="/cafeterias" className="transition hover:text-white">Cafés & Restaurantes</Link>
             <Link href="/comida-rapida" className="transition hover:text-white">Comida Rápida</Link>
@@ -132,7 +132,7 @@ export default async function Home() {
         </header>
 
         {/* 2. HERO SECTION */}
-        <section className="relative overflow-hidden px-6 pt-36 pb-24 md:pt-44 md:pb-32">
+        <section className="relative overflow-hidden px-6 pt-36 pb-16 md:pt-44 md:pb-24">
           
           <div className="mx-auto max-w-7xl text-center mb-6 select-none">
             <h2 className="text-6xl sm:text-8xl lg:text-[10rem] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-200 via-white to-cyan-100 uppercase opacity-95 leading-none">
@@ -150,7 +150,76 @@ export default async function Home() {
               Mogu centraliza la operación de tu local: conecta la caja registradora, optimiza la atención de los garzones, gestiona pedidos en tiempo real y potencia la fidelización con <strong className="text-white">Mogu Puntos</strong> y la red <strong className="text-white">Mogu Travel</strong>.
             </p>
 
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+            {/* 🌟 3 BOTONES / TARJETAS INTERACTIVAS DE NICHOS */}
+            <div className="pt-6 max-w-4xl mx-auto">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-cyan-300 block mb-4">
+                Explora las soluciones especializadas de Mogu:
+              </span>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+                <Link 
+                  href="/cafeterias"
+                  className="group p-5 rounded-2xl bg-white/[0.07] hover:bg-white/[0.12] border border-white/15 hover:border-cyan-400/65 transition-all duration-300 backdrop-blur-xl shadow-lg flex flex-col justify-between hover:-translate-y-1"
+                >
+                  <div>
+                    <div className="w-9 h-9 rounded-xl bg-cyan-400/20 text-cyan-300 flex items-center justify-center text-lg mb-3 border border-cyan-400/30 group-hover:scale-110 transition-transform">
+                      ☕
+                    </div>
+                    <h3 className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">
+                      Cafés & Restaurantes
+                    </h3>
+                    <p className="text-[11px] text-white/70 mt-1 leading-snug">
+                      Software de gestión y comanderos para salones y cafeterías.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider mt-4 flex items-center gap-1">
+                    Ver solución →
+                  </span>
+                </Link>
+
+                <Link 
+                  href="/comida-rapida"
+                  className="group p-5 rounded-2xl bg-white/[0.07] hover:bg-white/[0.12] border border-white/15 hover:border-amber-400/65 transition-all duration-300 backdrop-blur-xl shadow-lg flex flex-col justify-between hover:-translate-y-1"
+                >
+                  <div>
+                    <div className="w-9 h-9 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center text-lg mb-3 border border-amber-400/30 group-hover:scale-110 transition-transform">
+                      🍕
+                    </div>
+                    <h3 className="text-sm font-bold text-white group-hover:text-amber-300 transition-colors">
+                      Comida Rápida
+                    </h3>
+                    <p className="text-[11px] text-white/70 mt-1 leading-snug">
+                      Pedidos con retiro o delivery para sushi, pizzas, hamburguesas y más.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider mt-4 flex items-center gap-1">
+                    Ver solución →
+                  </span>
+                </Link>
+
+                <Link 
+                  href="/mogutravel"
+                  className="group p-5 rounded-2xl bg-gradient-to-b from-purple-900/40 to-cyan-900/40 hover:from-purple-900/60 hover:to-cyan-900/60 border border-cyan-400/40 hover:border-cyan-300 transition-all duration-300 backdrop-blur-xl shadow-[0_0_20px_rgba(6,182,212,0.15)] flex flex-col justify-between hover:-translate-y-1"
+                >
+                  <div>
+                    <div className="w-9 h-9 rounded-xl bg-purple-400/20 text-purple-300 flex items-center justify-center text-lg mb-3 border border-purple-400/30 group-hover:scale-110 transition-transform">
+                      ✈️
+                    </div>
+                    <h3 className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">
+                      Mogu Travel
+                    </h3>
+                    <p className="text-[11px] text-white/70 mt-1 leading-snug">
+                      La red internacional de fidelización para viajeros y Mogu Puntos.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold text-cyan-300 uppercase tracking-wider mt-4 flex items-center gap-1">
+                    Explorar Red →
+                  </span>
+                </Link>
+              </div>
+            </div>
+
+            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/login"
                 className="w-full sm:w-auto rounded-xl bg-white hover:bg-slate-100 px-8 py-4 text-xs font-bold uppercase tracking-wider text-[#0E0C0A] transition-all text-center shadow-2xl border border-white/20 hover:scale-[1.02] flex items-center justify-center gap-2"
