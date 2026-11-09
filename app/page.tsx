@@ -46,10 +46,49 @@ const formatPrice = (amount: number) => {
 export default async function Home() {
   const planes = await getPlans()
 
+  // Preguntas Frecuentes estructuradas para GEO / Motores de IA
+  const faqs = [
+    {
+      question: "¿Qué es la plataforma Mogu?",
+      answer: "Mogu SpA es un software integral de gestión y operaciones para restaurantes, cafés y locales gastronómicos. Centraliza la caja registradora, los garzones, la administración y los pedidos de los clientes en tiempo real."
+    },
+    {
+      question: "¿Cómo se conectan la caja y los garzones en Mogu?",
+      answer: "Mogu sincroniza las comandas al instante entre el personal de salón (garzones) y el punto de venta o caja, permitiendo un seguimiento del estado de los pedidos y métricas de ventas en tiempo real."
+    },
+    {
+      question: "¿Qué es la comunidad Mogu Travel?",
+      answer: "Es la red internacional de fidelización de Mogu que conecta locales gastronómicos con una comunidad global de viajeros, ofreciendo beneficios cruzados e incentivos de consumo."
+    },
+    {
+      question: "¿Cuáles son los planes de Mogu para restaurantes?",
+      answer: "Ofrecemos el Plan Pro (hasta 50 productos en menú digital o catálogo e-commerce) y el Plan Empresa (hasta 100 productos, menú e-commerce completo e incluye 1 tótem físico de fidelización de cortesía para mesón/caja)."
+    }
+  ]
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(faq => ({
+      "@type": "Question",
+      "name": faq.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.answer
+      }
+    }))
+  }
+
   return (
     <div style={{ backgroundColor: '#0E0C0A', color: '#D4CEC7', minHeight: '100vh', position: 'relative', overflowX: 'hidden' }} className="font-sans">
       
-      {/* 🌟 HERO & FULL-PAGE GRADIENT */}
+      {/* Datos Estructurados para IA / Motores de Búsqueda */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      
+      {/* 🌟 HERO & FULL-PAGE GRADIENT ESTILO REMOTE */}
       <div className="fixed inset-0 w-full h-full bg-gradient-to-b from-[#4c1d95] via-[#1e40af] to-[#0E0C0A] opacity-90 pointer-events-none -z-0" />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full bg-gradient-to-r from-purple-500/15 via-cyan-400/15 to-blue-600/15 blur-[160px] pointer-events-none -z-0" />
 
@@ -74,6 +113,7 @@ export default async function Home() {
             <Link href="#ecosistema" className="transition hover:text-white">Plataforma</Link>
             <Link href="#testimonios" className="transition hover:text-white">Casos de Éxito</Link>
             <Link href="#como-funciona" className="transition hover:text-white">¿Cómo funciona?</Link>
+            <Link href="#faq" className="transition hover:text-white">FAQ</Link>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -397,7 +437,29 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 7. FOOTER */}
+        {/* 7. PREGUNTAS FRECUENTES (FAQ / GEO) */}
+        <section id="faq" className="mx-auto max-w-7xl px-6 py-28 relative z-20 border-t border-white/15">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
+              Respuestas Clave
+            </span>
+            <h2 className="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tight">Preguntas Frecuentes</h2>
+            <p className="text-[#D4CEC7] text-sm md:text-base font-normal mt-3">
+              Todo lo que necesitas saber sobre Mogu SpA y nuestra plataforma de operaciones gastronómicas.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            {faqs.map((faq, idx) => (
+              <div key={idx} className="p-8 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl">
+                <h3 className="text-lg font-bold text-white mb-3">{faq.question}</h3>
+                <p className="text-xs sm:text-sm text-white/80 leading-relaxed font-normal">{faq.answer}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 8. FOOTER */}
         <footer id="contacto" className="border-t border-white/15 bg-[#0E0C0A]/80 backdrop-blur-md py-12 relative z-20">
           <div className="mx-auto max-w-7xl px-6 flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="text-center md:text-left">
