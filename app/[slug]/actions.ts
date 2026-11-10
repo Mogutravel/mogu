@@ -1,38 +1,52 @@
 'use server'
 
 import { createClient } from '@supabase/supabase-js'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 
-// Inicializamos un cliente de Supabase con la Service Role Key 
-// (Asegúrate de tener SUPABASE_SERVICE_ROLE_KEY en tus variables de entorno del servidor)
+// Inicializamos el cliente con la Service Role Key para operaciones administrativas
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function deleteUserAccount(userId: string, slug: string) {
+export async function deleteUserAccount(providedId: string, slug: string) {
   try {
-    if (!userId) {
-      return { success: false, error: 'ID de usuario no válido.' }
+    if (!providedId && !slug) {
+      return { success: false, error: 'Identificador de usuario no válido.' }
     }
 
-    // 1. Eliminar registros de tablas relacionadas (ej: links, pedidos, etc.)
-    await supabaseAdmin.from('links').delete().eq('profile_id', userId)
-    
-    // 2. Eliminar el perfil en la tabla public.profiles
-    await supabaseAdmin.from('profiles').delete().eq('user_id', userId)
+    let authUserId: string | null = null
 
-    // 3. Eliminar el usuario de Supabase Auth (auth.users)
-    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+    // 1. Intentamos obtener el user_id de auth.users desde la tabla profiles
+    // Buscamos primero por id del perfil y como respaldo por el slug
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('user_id')
+      .or(`id.eq.${providedId},slug.eq.${slug}`)
+      .maybeSingle()
+
+    if (profile?.user_id) {
+      authUserId = profile.user_id
+    } else {
+      // Fallback: si no se encontró en profiles o si el ID provisto ya era el user_id de auth
+      authUserId = providedId
+    }
+
+    // 2. Eliminamos al usuario directamente de Supabase Auth (auth.users)
+    // El ON DELETE CASCADE en PostgreSQL se encargará de borrar en cadena
+    // el perfil, los links, programas de fidelización, etc.
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(authUserId)
 
     if (authError) {
+      console.error('Error borrando usuario en Supabase Auth Admin:', authError)
       throw new Error(authError.message)
     }
 
     return { success: true }
   } catch (error: any) {
     console.error('Error al eliminar la cuenta:', error)
-    return { success: false, error: error.message || 'Error al procesar la eliminación.' }
+    return { 
+      success: false, 
+      error: error.message || 'Ocurrió un error al intentar eliminar la cuenta.' 
+    }
   }
 }

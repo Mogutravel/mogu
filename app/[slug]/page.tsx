@@ -534,7 +534,6 @@ export default function AppleDynamicPublicProfilePage() {
           <span className="font-bold text-[#1D1D1F] tracking-wider">MOGU</span>
         </a>
       </footer>
-
     </div>
   )
 }
