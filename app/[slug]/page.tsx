@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import DeleteAccountButton from '@/components/DeleteAccountButton'
 import {
   FaWhatsapp,
   FaInstagram,
@@ -293,7 +294,7 @@ export default function AppleDynamicPublicProfilePage() {
   const themeGlowClass = getThemeGlowClass(profile.theme_color)
   const themeHex = getThemeHex(profile.theme_color)
 
-  // ⚡ Ruta universal unificada corregida
+  // Ruta universal unificada
   const passRoute = `/${profile.slug}/pass`
 
   return (
@@ -519,6 +520,11 @@ export default function AppleDynamicPublicProfilePage() {
             Quiero mi tarjeta Mogu 🚀
           </a>
         </div>
+
+        {/* ⚖️ BOTÓN DE ELIMINACIÓN DE DATOS (CUMPLIMIENTO LEGAL) */}
+        {profile?.id && (
+          <DeleteAccountButton userId={profile.id} slug={profile.slug} />
+        )}
 
       </main>
 

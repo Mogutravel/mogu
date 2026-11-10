@@ -156,7 +156,7 @@ export default function MoguStartWizard() {
           }
         }
 
-        // 2. Crear usuario en Supabase Auth
+        // 2. Crear usuario en Supabase Auth (Esto ejecuta el trigger handle_new_user en BD)
         const { data: authData, error: signUpError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -176,19 +176,23 @@ export default function MoguStartWizard() {
         if (signUpError) throw signUpError
         if (!authData.user) throw new Error('No se pudo crear la cuenta de usuario.')
 
-        // 3. Obtener id del plan 'mogu-start'
+        // 3. Obtener id del plan 'mogu-start' (con fallback por si difiere el slug en BD)
+        let resolvedPlanId: string | null = null
         const { data: planData } = await supabase
           .from('plans')
           .select('id')
-          .eq('slug', 'mogu-start')
+          .or('slug.eq.mogu-start,slug.eq.start,slug.eq.free')
+          .limit(1)
           .maybeSingle()
 
-        // 4. Inserción en profiles (Solo Fidelización activa, user_id vinculado, sin pin_code/menu/catalogo)
+        if (planData?.id) {
+          resolvedPlanId = planData.id
+        }
+
+        // 4. Actualizar el perfil recién creado por el Trigger asignando plan_id explícito
         const { error: profileError } = await supabase
           .from('profiles')
-          .upsert({
-            id: authData.user.id,
-            user_id: authData.user.id, // Vínculo explícito para auth en login
+          .update({
             email: formData.email,
             full_name: formData.businessName,
             slug: formData.slug,
@@ -197,38 +201,49 @@ export default function MoguStartWizard() {
             phone: formData.phone,
             theme_color: formData.theme_color,
             avatar_url: uploadedAvatarUrl || null,
-            plan_id: planData?.id || null,
-            has_loyalty: true,        // ÚNICA FEATURE ACTIVA EN MOGU START
-            has_menu: false,          // No aplica en Mogu Start
-            has_catalogo: false,      // No aplica en Mogu Start
+            plan_id: resolvedPlanId,
+            has_loyalty: true,
+            has_menu: false,
+            has_catalogo: false,
             subscription_status: 'active',
             subscription_type: 'free_start',
           })
+          .eq('user_id', authData.user.id)
 
         if (profileError) {
-          console.error('Error insertando en profiles:', profileError)
+          console.error('Error actualizando profiles:', profileError)
           throw profileError
         }
 
-        // 5. Creación del programa inicial en loyalty_programs para Mogu Start
-        const { error: loyaltyError } = await supabase
-          .from('loyalty_programs')
-          .upsert({
-            profile_id: authData.user.id,
-            program_name: `Club de Fidelización ${formData.businessName}`,
-            collection_tag: '✦ MOGU PASS ✦',
-            stamps_required: 10,
-            reward_title: 'Premio Sorpresa / Producto Gratis',
-            reward_description: '¡Felicidades! Completaste tu tarjeta Mogu. Muestra este pase en caja.',
-            is_active: true,
-          }, { onConflict: 'profile_id' })
+        // 5. Obtener el id del perfil para vincular el programa de fidelización
+        const { data: newProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', authData.user.id)
+          .single()
 
-        if (loyaltyError) {
-          console.error('Error creando el programa de fidelización:', loyaltyError)
+        if (newProfile) {
+          const { error: loyaltyError } = await supabase
+            .from('loyalty_programs')
+            .upsert({
+              profile_id: newProfile.id,
+              program_name: `Club de Fidelización ${formData.businessName}`,
+              collection_tag: '✦ MOGU PASS ✦',
+              stamps_required: 10,
+              reward_title: 'Premio Sorpresa / Producto Gratis',
+              reward_description: '¡Felicidades! Completaste tu tarjeta Mogu. Muestra este pase en caja.',
+              is_active: true,
+            }, { onConflict: 'profile_id' })
+
+          if (loyaltyError) {
+            console.error('Error creando el programa de fidelización:', loyaltyError)
+          }
         }
 
-        // 6. Redirigir al panel de administración del cliente
-        window.location.href = `/admin/${formData.slug}`
+        // 6. REDIRECCIÓN ABSOLUTA DIRECTA AL ADMIN
+        window.location.href = `http://localhost:3000/admin/${formData.slug}`
+        return
+
       } catch (err: any) {
         const message = err?.message || ''
         console.error('Error en el registro:', message, err)
