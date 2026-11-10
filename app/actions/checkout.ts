@@ -123,8 +123,8 @@ export async function processTransferCheckout(data: CheckoutData) {
           status: 'active',
           trial_ends_at: null,
           plan_id: planIdToAssign,
-          has_catalogo: planIdToAssign ? hasCatalogo : false, // Guarda la selección del usuario
-          has_menu: planIdToAssign ? hasMenu : false,         // Guarda la selección del usuario
+          has_catalogo: planIdToAssign ? hasCatalogo : false,
+          has_menu: planIdToAssign ? hasMenu : false,
         })
         .select('slug')
         .single()
@@ -163,6 +163,44 @@ export async function processTransferCheckout(data: CheckoutData) {
     return {
       success: false,
       message: error.message || 'Error interno al procesar el pedido.',
+    }
+  }
+}
+
+/**
+ * Procesa el pago de una mesa de forma atómica:
+ * Respalda la orden en table_sales_history y luego limpia las órdenes activas de la mesa.
+ */
+export async function processTablePayment(
+  storeSlug: string,
+  tableNumber: number,
+  paymentMethod: string = 'efectivo'
+) {
+  try {
+    if (!storeSlug || !tableNumber) {
+      return { success: false, message: 'Identificador de local o mesa no válido.' }
+    }
+
+    const { error } = await supabaseAdmin.rpc('checkout_and_save_table_sale', {
+      p_store_slug: storeSlug,
+      p_table_number: tableNumber,
+      p_payment_method: paymentMethod,
+    })
+
+    if (error) {
+      console.error('Error RPC checkout_and_save_table_sale:', error.message)
+      return { success: false, message: `Error al procesar la venta: ${error.message}` }
+    }
+
+    return {
+      success: true,
+      message: 'Venta registrada en el historial y mesa liberada correctamente.',
+    }
+  } catch (err: any) {
+    console.error('Error inesperado en processTablePayment:', err)
+    return {
+      success: false,
+      message: err.message || 'Error interno al cerrar la mesa.',
     }
   }
 }

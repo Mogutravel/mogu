@@ -74,9 +74,9 @@ export default function MetricasVentasPage() {
   // Cálculos de Métricas Globales
   const totalVentasGlobal = salesHistory.reduce((acc, curr) => acc + Number(curr.total_amount), 0)
   const totalTransacciones = salesHistory.length
-  const totalEfectivo = salesHistory.filter(s => s.payment_method === 'Efectivo').reduce((acc, curr) => acc + Number(curr.total_amount), 0)
-  const totalTarjeta = salesHistory.filter(s => s.payment_method === 'Tarjeta').reduce((acc, curr) => acc + Number(curr.total_amount), 0)
-  const totalTransferencia = salesHistory.filter(s => s.payment_method === 'Transferencia').reduce((acc, curr) => acc + Number(curr.total_amount), 0)
+  const totalEfectivo = salesHistory.filter(s => s.payment_method?.toLowerCase() === 'efectivo').reduce((acc, curr) => acc + Number(curr.total_amount), 0)
+  const totalTarjeta = salesHistory.filter(s => s.payment_method?.toLowerCase() === 'tarjeta').reduce((acc, curr) => acc + Number(curr.total_amount), 0)
+  const totalTransferencia = salesHistory.filter(s => s.payment_method?.toLowerCase() === 'transferencia').reduce((acc, curr) => acc + Number(curr.total_amount), 0)
 
   return (
     <div className="min-h-screen bg-[#09090B] text-white font-sans p-6 space-y-8">
@@ -84,7 +84,7 @@ export default function MetricasVentasPage() {
       <header className="flex items-center justify-between border-b border-[#27272A] pb-5">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => router.push(`/admin/${slug}`)}
+            onClick={() => router.push(`/panel/menu/${slug}`)}
             className="p-2.5 bg-[#18181B] border border-[#27272A] rounded-xl text-white/70 hover:text-white transition cursor-pointer"
           >
             <FiArrowLeft />
@@ -183,31 +183,30 @@ export default function MetricasVentasPage() {
                     <span className="text-xs font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-xl">
                       Mesa {sale.table_number}
                     </span>
-                    <span className="text-[11px] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/30 px-2.5 py-0.5 rounded-lg">
+                    <span className="text-[11px] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/30 px-2.5 py-0.5 rounded-lg capitalize">
                       {sale.payment_method}
                     </span>
                   </div>
 
                   <div className="text-xs text-white/50 flex items-center gap-1.5 font-mono pt-1">
                     <FiClock className="text-white/40" />
-                    {new Date(sale.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} hrs 
-                    <span className="text-white/30">• {new Date(sale.created_at).toLocaleDateString('es-CL')}</span>
+                    <span>{new Date(sale.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} hrs</span>
+                    <span className="text-white/30">{new Date(sale.created_at).toLocaleDateString('es-CL')}</span>
                   </div>
                 </div>
 
                 <div className="space-y-2 pt-2 border-t border-[#27272A]">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">Detalle de productos:</p>
                   <div className="space-y-1 pl-2 border-l-2 border-emerald-500/30 max-h-36 overflow-y-auto pr-1">
-                    {sale.items_summary?.map((group: any, idx: number) => (
-                      <div key={idx} className="space-y-1">
-                        {group.items?.map((item: any, i: number) => (
-                          <div key={i} className="flex justify-between text-xs text-white/80">
-                            <span>{item.quantity}x {item.product_name}</span>
-                            <span className="font-mono">${(item.quantity * item.unit_price).toLocaleString('es-CL')}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
+                    {Array.isArray(sale.items_summary) && sale.items_summary.map((item: any, idx: number) => {
+                      const productItems = item.items || [item]
+                      return productItems.map((prod: any, i: number) => (
+                        <div key={`${idx}-${i}`} className="flex justify-between text-xs text-white/80">
+                          <span>{prod.quantity || 1}x {prod.product_name || prod.name}</span>
+                          <span className="font-mono">${((prod.quantity || 1) * (prod.unit_price || prod.price || 0)).toLocaleString('es-CL')}</span>
+                        </div>
+                      ))
+                    })}
                   </div>
                 </div>
 

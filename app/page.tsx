@@ -113,7 +113,7 @@ export default async function Home() {
           <nav className="hidden items-center gap-6 text-sm font-medium text-white/80 md:flex">
             <Link href="/cafeterias" className="transition hover:text-white">Cafés & Restaurantes</Link>
             <Link href="/comida-rapida" className="transition hover:text-white">Comida Rápida</Link>
-            <Link href="/mogutravel" className="transition hover:text-cyan-300 font-semibold text-cyan-400">Mogu Travel ✈️</Link>
+            <Link href="/travel" className="transition hover:text-cyan-300 font-semibold text-cyan-400">Mogu Travel ✈️</Link>
             <Link href="#ecosistema" className="transition hover:text-white">Planes</Link>
             <Link href="#faq" className="transition hover:text-white">FAQ</Link>
           </nav>
@@ -198,7 +198,7 @@ export default async function Home() {
                 </Link>
 
                 <Link 
-                  href="/mogutravel"
+                  href="/travel"
                   className="group p-5 rounded-2xl bg-gradient-to-b from-purple-900/40 to-cyan-900/40 hover:from-purple-900/60 hover:to-cyan-900/60 border border-cyan-400/40 hover:border-cyan-300 transition-all duration-300 backdrop-blur-xl shadow-[0_0_20px_rgba(6,182,212,0.15)] flex flex-col justify-between hover:-translate-y-1"
                 >
                   <div>
@@ -292,7 +292,76 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 4. PLANES ANUALES DINÁMICOS DESDE SUPABASE */}
+        {/* 🌟 4. SECCIÓN VISUAL DE MOGU TRAVEL & SUBCONEXIONES */}
+        <section className="mx-auto max-w-7xl px-6 py-28 relative z-25 border-t border-white/15">
+          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+            <span className="text-xs font-black uppercase px-4 py-1.5 rounded-full bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-cyan-300 border border-cyan-400/30 tracking-widest shadow-lg">
+              Comunidad Global ✈️ Mogu Travel
+            </span>
+            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight">
+              Una red internacional que conecta viajeros y locales
+            </h2>
+            <p className="text-sm md:text-base text-white/70 leading-relaxed font-normal">
+              Mogu Travel no es solo fidelización; es una comunidad en movimiento. Explora el ecosistema de pasaportes digitales, timbres oficiales y beneficios en cada ciudad y local aliado.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            
+            {/* Tarjeta 1: Pasaporte Digital */}
+            <div className="group p-8 rounded-3xl bg-gradient-to-b from-purple-950/40 via-[#141416] to-[#141416] border border-purple-500/30 hover:border-purple-400/60 transition-all duration-300 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center justify-center text-2xl font-bold group-hover:scale-110 transition-transform">
+                  🛂
+                </div>
+                <h3 className="text-2xl font-extrabold text-white group-hover:text-purple-300 transition-colors">
+                  Pasaporte Digital del Viajero
+                </h3>
+                <p className="text-xs sm:text-sm text-white/70 leading-relaxed font-normal">
+                  Visualiza tu perfil de viajero, rango actual, puntos acumulados y la grilla con todos los timbres oficiales desbloqueados al pagar en locales aliados alrededor del mundo.
+                </p>
+              </div>
+
+              <div className="pt-8">
+                <Link
+                  href="/travel/passport"
+                  className="w-full py-3.5 px-6 rounded-2xl bg-purple-600/20 hover:bg-purple-600 text-purple-200 hover:text-white border border-purple-500/40 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <span>Abrir mi Pasaporte</span>
+                  <span>→</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Tarjeta 2: Red Global / Exploración (Enlaza correctamente a /travel) */}
+            <div className="group p-8 rounded-3xl bg-gradient-to-b from-cyan-950/40 via-[#141416] to-[#141416] border border-cyan-500/30 hover:border-cyan-400/60 transition-all duration-300 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center justify-center text-2xl font-bold group-hover:scale-110 transition-transform">
+                  🌍
+                </div>
+                <h3 className="text-2xl font-extrabold text-white group-hover:text-cyan-300 transition-colors">
+                  Red Global de Aliados & Nómadas
+                </h3>
+                <p className="text-xs sm:text-sm text-white/70 leading-relaxed font-normal">
+                  Descubre cómo los cafés, restaurantes y hostels se conectan a través de Mogu Travel para ofrecer experiencias transfronterizas y recompensas exclusivas.
+                </p>
+              </div>
+
+              <div className="pt-8">
+                <Link
+                  href="/travel"
+                  className="w-full py-3.5 px-6 rounded-2xl bg-cyan-600/20 hover:bg-cyan-500 text-cyan-200 hover:text-black border border-cyan-500/40 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <span>Explorar la Red</span>
+                  <span>→</span>
+                </Link>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        {/* 5. PLANES ANUALES DINÁMICOS DESDE SUPABASE */}
         <section id="ecosistema" className="mx-auto max-w-7xl px-6 py-28 relative z-20 border-t border-white/15">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
@@ -396,31 +465,6 @@ export default async function Home() {
                 </div>
               )
             })}
-          </div>
-        </section>
-
-        {/* 5. SECCIÓN MOGU PUNTOS & FIDELIZACIÓN */}
-        <section className="mx-auto max-w-7xl px-6 py-20 relative z-25 border-t border-white/15">
-          <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-r from-purple-900/40 via-cyan-900/30 to-blue-900/40 border border-cyan-500/30 backdrop-blur-2xl shadow-[0_0_50px_rgba(6,182,212,0.15)] flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="space-y-4 max-w-2xl">
-              <span className="text-xs font-extrabold uppercase px-3.5 py-1 rounded-full bg-cyan-400/20 text-cyan-300 border border-cyan-400/40 tracking-wider">
-                Fidelización & Recompensas
-              </span>
-              <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight">
-                Haz que tus clientes vuelvan con Mogu Puntos
-              </h2>
-              <p className="text-sm md:text-base text-white/80 leading-relaxed font-normal">
-                Cada pedido en tu restaurante o café otorga <strong>Mogu Puntos</strong> acumulables. Conecta tu negocio a la red global <strong>Mogu Travel</strong> e impulsa la retención de clientes sin complicaciones.
-              </p>
-            </div>
-            <div className="w-full md:w-auto text-center">
-              <Link
-                href="/mogutravel"
-                className="w-full sm:w-auto inline-block px-8 py-4 bg-cyan-400 hover:bg-cyan-300 text-[#0E0C0A] font-extrabold rounded-2xl transition shadow-lg text-xs uppercase tracking-wider"
-              >
-                Explorar Mogu Travel →
-              </Link>
-            </div>
           </div>
         </section>
 

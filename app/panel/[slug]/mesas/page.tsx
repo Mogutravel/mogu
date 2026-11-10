@@ -11,6 +11,7 @@ import {
   FiCheck,
   FiArrowLeft,
   FiSmartphone,
+  FiPrinter
 } from 'react-icons/fi'
 
 interface TableItem {
@@ -99,14 +100,59 @@ export default function TablesManagementPage() {
     setTimeout(() => setCopiedTable(null), 2500)
   }
 
+  // Generar URL del código QR visual
+  const getQrImageUrl = (tableNumber: number) => {
+    const targetUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/menu/${slug}?mesa=${tableNumber}`
+    return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(targetUrl)}&color=09090b&bgcolor=ffffff`
+  }
+
   return (
-    <div className="min-h-screen bg-[#09090B] text-white font-sans p-6 md:p-10">
+    <div className="min-h-screen bg-[#09090B] text-white font-sans p-6 md:p-10 pb-32">
       <div className="max-w-5xl mx-auto space-y-8">
+        
         {/* Cabecera */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#27272A] pb-6">
           <div>
             <a
-              href={`/panel/${slug}`} className="flex items-center gap-2 text-xs font-medium text-white/50 hover:text-white transition mb-3" > <FiArrowLeft /> Volver al panel de administración </a> <h1 className="text-3xl font-black tracking-tight flex items-center gap-3"> <FiGrid className="text-[#FF7A45]" /> Gestión de Mesas, QRs y NFC </h1> <p className="text-xs text-white/50 mt-1"> Administra las mesas físicas de tu local y obtén sus enlaces individuales para códigos QR y etiquetas NFC. </p> </div>  <button onClick={handleAddTable} disabled={creating} className="px-5 py-3 bg-[#FF7A45] hover:brightness-110 text-black font-extrabold text-xs rounded-2xl transition cursor-pointer flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 shadow-lg shadow-[#FF7A45]/20" > <FiPlus className="text-base" /> {creating ? 'Creando...' : 'Añadir Nueva Mesa'} </button> </div>  {/* Listado / Grilla de Mesas */} {loading ? ( <div className="py-20 text-center text-white/40 text-xs tracking-widest uppercase animate-pulse"> Cargando mesas del local... </div> ) : tables.length === 0 ? ( <div className="bg-[#141416] border border-[#27272A] rounded-3xl p-12 text-center space-y-4"> <FiSmartphone className="text-4xl text-[#FF7A45] mx-auto opacity-50" /> <h2 className="text-lg font-bold">Aún no tienes mesas creadas</h2> <p className="text-xs text-white/50 max-w-sm mx-auto"> Haz clic en el botón superior para agregar tu primera mesa y generar su enlace inteligente. </p> </div> ) : ( <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5"> {tables.map((tbl) => { const tableUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/menu/${slug}?mesa=${tbl.table_number}`
+              href={`/panel/${slug}`}
+              className="flex items-center gap-2 text-xs font-medium text-white/50 hover:text-white transition mb-3"
+            >
+              <FiArrowLeft /> Volver al panel de administración
+            </a>
+            <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
+              <FiGrid className="text-[#FF7A45]" /> Gestión de Mesas, QRs y NFC
+            </h1>
+            <p className="text-xs text-white/50 mt-1">
+              Administra las mesas físicas de tu local y obtén sus códigos QR en vivo y enlaces para etiquetas NFC.
+            </p>
+          </div>
+
+          <button
+            onClick={handleAddTable}
+            disabled={creating}
+            className="px-5 py-3 bg-[#FF7A45] hover:brightness-110 text-black font-extrabold text-xs rounded-2xl transition cursor-pointer flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 shadow-lg shadow-[#FF7A45]/20"
+          >
+            <FiPlus className="text-base" /> {creating ? 'Creando...' : 'Añadir Nueva Mesa'}
+          </button>
+        </div>
+
+        {/* Listado / Grilla de Mesas */}
+        {loading ? (
+          <div className="py-20 text-center text-white/40 text-xs tracking-widest uppercase animate-pulse">
+            Cargando mesas del local...
+          </div>
+        ) : tables.length === 0 ? (
+          <div className="bg-[#141416] border border-[#27272A] rounded-3xl p-12 text-center space-y-4">
+            <FiSmartphone className="text-4xl text-[#FF7A45] mx-auto opacity-50" />
+            <h2 className="text-lg font-bold">Aún no tienes mesas creadas</h2>
+            <p className="text-xs text-white/50 max-w-sm mx-auto">
+              Haz clic en el botón superior para agregar tu primera mesa y generar su código QR inteligente.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {tables.map((tbl) => {
+              const tableUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/menu/${slug}?mesa=${tbl.table_number}`
               const isCopied = copiedTable === tbl.table_number
 
               return (
@@ -117,7 +163,7 @@ export default function TablesManagementPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider block">
-                        Mesa Individual
+                        Tótem Físico
                       </span>
                       <h2 className="text-2xl font-black text-white mt-0.5">
                         Mesa {tbl.table_number}
@@ -133,29 +179,48 @@ export default function TablesManagementPage() {
                     </button>
                   </div>
 
+                  {/* Código QR Visual */}
+                  <div className="bg-white p-3 rounded-2xl flex items-center justify-center shadow-inner">
+                    <img
+                      src={getQrImageUrl(tbl.table_number)}
+                      alt={`QR Mesa ${tbl.table_number}`}
+                      className="w-36 h-36 object-contain"
+                    />
+                  </div>
+
                   <div className="bg-[#1B1B1E] border border-[#27272A] p-3 rounded-2xl space-y-1">
                     <span className="text-[10px] text-white/40 block font-mono">Enlace NFC / QR:</span>
                     <p className="text-xs font-mono text-amber-400 truncate">{tableUrl}</p>
                   </div>
 
-                  <button
-                    onClick={() => handleCopyLink(tbl.table_number)}
-                    className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
-                      isCopied
-                        ? 'bg-emerald-500 text-black'
-                        : 'bg-[#27272A] hover:bg-[#3F3F46] text-white'
-                    }`}
-                  >
-                    {isCopied ? (
-                      <>
-                        <FiCheck /> ¡Enlace Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <FiCopy /> Copiar Link para QR/NFC
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleCopyLink(tbl.table_number)}
+                      className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                        isCopied
+                          ? 'bg-emerald-500 text-black'
+                          : 'bg-[#27272A] hover:bg-[#3F3F46] text-white'
+                      }`}
+                    >
+                      {isCopied ? (
+                        <>
+                          <FiCheck /> ¡Copiado!
+                        </>
+                      ) : (
+                        <>
+                          <FiCopy /> Copiar Link
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => window.print()}
+                      className="p-2.5 bg-[#27272A] hover:bg-[#3F3F46] text-white rounded-xl transition cursor-pointer"
+                      title="Imprimir Tótem"
+                    >
+                      <FiPrinter className="text-sm" />
+                    </button>
+                  </div>
                 </div>
               )
             })}

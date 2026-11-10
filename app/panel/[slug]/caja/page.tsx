@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { processTablePayment } from '@/app/actions/checkout'
 import { 
   FiGrid, 
   FiX, 
@@ -217,32 +218,18 @@ export default function CajaMesasPanel() {
     if (!selectedTable) return
 
     try {
-      const orderIds = tableOrders.map((o) => o.id)
+      // Invocación atómica del RPC a través del Server Action
+      const res = await processTablePayment(
+        slug,
+        selectedTable.table_number,
+        paymentMethod.toLowerCase()
+      )
 
-      if (orderIds.length > 0) {
-        await supabase.from('order_items').delete().in('order_id', orderIds)
-        await supabase.from('orders').delete().in('id', orderIds)
-        await supabase.from('orders').update({ status: 'pagado' }).in('id', orderIds)
+      if (!res.success) {
+        throw new Error(res.message)
       }
 
-      const { error: tableError } = await supabase
-        .from('tables')
-        .upsert([{
-          store_slug: slug,
-          table_number: selectedTable.table_number,
-          status: 'disponible', 
-          current_order_id: null,
-          call_status: null 
-        }], { onConflict: 'store_slug,table_number' })
-
-      if (tableError) throw tableError
-
-      await supabase
-        .from('table_calls')
-        .delete()
-        .eq('store_slug', slug)
-        .eq('table_number', selectedTable.table_number)
-
+      const orderIds = tableOrders.map((o) => o.id)
       setOrders((prev) => prev.filter((o) => !orderIds.includes(o.id)))
       setTableOrders([])
       setIsModalOpen(false)
@@ -253,7 +240,7 @@ export default function CajaMesasPanel() {
       alert(`✨ Pago con ${paymentMethod} registrado. ¡Mesa ${selectedTable.table_number} liberada con éxito!`)
     } catch (err: any) {
       console.error('Error al procesar pago:', err)
-      alert(`Hubo an error al registrar el pago: ${err?.message || 'Error desconocido'}`)
+      alert(`Hubo un error al registrar el pago: ${err?.message || 'Error desconocido'}`)
     }
   }
 
@@ -268,7 +255,7 @@ export default function CajaMesasPanel() {
 
   return (
     <div className="min-h-screen bg-[#09090B] text-white font-sans p-6 space-y-8">
-      {/* Cabecera Estética (Sin botón de retroceso) */}
+      {/* Cabecera Estética */}
       <header className="flex items-center justify-between border-b border-[#27272A] pb-5">
         <div>
           <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
@@ -320,7 +307,7 @@ export default function CajaMesasPanel() {
                 <div className="space-y-1">
                   {order.items?.map((item) => (
                     <p key={item.id} className="text-xs font-semibold">
-                      - {item.quantity}x {item.product_name}
+                      • {item.quantity}x {item.product_name}
                     </p>
                   ))}
                 </div>
