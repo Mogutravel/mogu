@@ -241,7 +241,7 @@ export default function MoguStartWizard() {
         }
 
         // 6. REDIRECCIÓN ABSOLUTA DIRECTA AL ADMIN
-        window.location.href = `http://localhost:3000/admin/${formData.slug}`
+        window.location.href = `http://mogu.cl/admin/${formData.slug}`
         return
 
       } catch (err: any) {
