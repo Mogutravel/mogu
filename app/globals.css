@@ -81,3 +81,16 @@ html {
   background-color: var(--color-mogu-pink);
   color: var(--color-mogu-wine);
 }
+
+/* ============================================================
+   Custom Utilities (Tailwind v4)
+   ============================================================ */
+
+/* Ocultar scrollbar horizontal en slider de categorías para móviles */
+@utility no-scrollbar {
+  -ms-overflow-style: none;  /* IE y Edge */
+  scrollbar-width: none;  /* Firefox */
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari y Opera */
+  }
+}

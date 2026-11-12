@@ -25,7 +25,8 @@ import {
   FiExternalLink,
   FiGift,
   FiArrowRight,
-  FiLock
+  FiLock,
+  FiSmartphone
 } from 'react-icons/fi'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
 
@@ -126,7 +127,6 @@ export default function AppleStyleAdvancedClientDashboard() {
         return
       }
 
-      // Consulta del perfil incluyendo la relación con la tabla plans
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*, plans(slug, name)')
@@ -396,6 +396,37 @@ export default function AppleStyleAdvancedClientDashboard() {
               <p className="text-xs text-[#86868B]">
                 Personaliza tu información y administra tus enlaces exclusivos.
               </p>
+            </div>
+          </div>
+
+          {/* 📱 ACCESO DIRECTO AL NUEVO APP DESIGN STUDIO */}
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-900 to-teal-900 text-white shadow-md flex items-center justify-between flex-wrap gap-4">
+            <div className="space-y-1">
+              <span className="inline-block px-2.5 py-0.5 bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider rounded-full mb-1">
+                Nuevo Personalizador 🎨
+              </span>
+              <h2 className="text-sm font-extrabold tracking-tight">Diseña y Personaliza tu App Mobile</h2>
+              <p className="text-xs text-emerald-100 max-w-md">
+                Cambia los colores, activa secciones de la pantalla de inicio, gestiona banners y ve los cambios en tiempo real.
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-2.5">
+              <Link
+                href={`/mobile/${slug}`}
+                target="_blank"
+                className="px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5"
+              >
+                <span>Ver App</span>
+                <FiExternalLink className="text-xs" />
+              </Link>
+              <Link
+                href={`/${slug}/appeditor`}
+                className="px-5 py-2.5 bg-white text-emerald-900 hover:bg-emerald-50 font-black text-xs rounded-xl transition shadow-sm flex items-center gap-1.5"
+              >
+                <span>Abrir Editor Visual</span>
+                <FiArrowRight className="text-xs" />
+              </Link>
             </div>
           </div>
 
@@ -689,7 +720,7 @@ export default function AppleStyleAdvancedClientDashboard() {
             </div>
           )}
 
-          {/* 🔐 PIN DE ACCESO AL PANEL ADMIN (SÓLO APARECE SI EL PLAN ES MOGU-ECOSYSTEM) */}
+          {/* 🔐 PIN DE ACCESO AL PANEL ADMIN */}
           {profile?.plans?.slug === 'mogu-ecosystem' && (
             <div className="p-8 rounded-3xl bg-white border border-[#E5E5EA] shadow-sm space-y-6">
               <div className="flex items-center space-x-3">
@@ -784,7 +815,7 @@ export default function AppleStyleAdvancedClientDashboard() {
 
         </div>
 
-        {/* COLUMNA DERECHA: PREVISUALIZADOR EN VIVO ESTILO APPLE */}
+        {/* COLUMNA DERECHA: PREVISUALIZADOR EN VIVO */}
         <div className="lg:col-span-5 flex flex-col items-center">
           <div className="sticky top-24 w-full max-w-xs bg-white border-4 border-[#E5E5EA] rounded-[44px] p-4 shadow-xl relative overflow-hidden">
             
