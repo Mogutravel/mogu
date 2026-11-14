@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import DeleteAccountButton from '@/components/DeleteAccountButton'
+// NOTA: Eliminamos la importación de DeleteAccountButton de aquí
 import {
   FaWhatsapp,
   FaInstagram,
@@ -146,7 +146,6 @@ export default function AppleDynamicPublicProfilePage() {
 
       setProfile(profileData)
 
-      // Cargar Enlaces Activos
       const { data: linksData } = await supabase
         .from('links')
         .select('*')
@@ -156,7 +155,6 @@ export default function AppleDynamicPublicProfilePage() {
 
       if (linksData) setLinks(linksData)
 
-      // Cargar Programa de Fidelización Activo
       const { data: loyaltyData } = await supabase
         .from('loyalty_programs')
         .select('*')
@@ -293,8 +291,6 @@ export default function AppleDynamicPublicProfilePage() {
 
   const themeGlowClass = getThemeGlowClass(profile.theme_color)
   const themeHex = getThemeHex(profile.theme_color)
-
-  // Ruta universal unificada
   const passRoute = `/${profile.slug}/pass`
 
   return (
@@ -428,7 +424,7 @@ export default function AppleDynamicPublicProfilePage() {
           </div>
         )}
 
-        {/* 🎁 BOTÓN TARJETA DE FIDELIZACIÓN (RUTA UNIVERSAL) */}
+        {/* 🎁 BOTÓN TARJETA DE FIDELIZACIÓN */}
         {loyaltyProgram && (
           <div className="mb-3">
             <Link
@@ -521,10 +517,7 @@ export default function AppleDynamicPublicProfilePage() {
           </a>
         </div>
 
-        {/* ⚖️ BOTÓN DE ELIMINACIÓN DE DATOS (CUMPLIMIENTO LEGAL) */}
-        {profile?.id && (
-          <DeleteAccountButton userId={profile.id} slug={profile.slug} />
-        )}
+        {/* NOTA: El botón DeleteAccountButton se ha removido de aquí */}
 
       </main>
 

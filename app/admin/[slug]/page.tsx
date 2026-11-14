@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import DeleteAccountButton from '@/components/DeleteAccountButton' // 👈 Importamos el botón aquí
 import {
   FaWhatsapp,
   FaInstagram,
@@ -812,6 +813,19 @@ export default function AppleStyleAdvancedClientDashboard() {
               </div>
             </form>
           </div>
+
+          {/* ⚖️ BOTÓN DE ELIMINACIÓN DE CUENTA Y DATOS (ZONA DE PELIGRO - MOVIDO AL ADMIN) */}
+          {profile?.id && (
+            <div className="p-8 rounded-3xl bg-white border border-rose-200/80 shadow-sm space-y-4">
+              <div>
+                <h2 className="text-base font-bold text-rose-600 tracking-tight mb-1">Zona de Peligro ⚠️</h2>
+                <p className="text-xs text-[#86868B]">La eliminación de la cuenta es permanente y borrará todos los datos asociados de forma definitiva.</p>
+              </div>
+              <div className="pt-2 flex justify-start">
+                <DeleteAccountButton userId={profile.id} slug={profile.slug} />
+              </div>
+            </div>
+          )}
 
         </div>
 

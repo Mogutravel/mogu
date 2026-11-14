@@ -1,8 +1,29 @@
 import Link from 'next/link'
+import { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import PhoneMockup from '@/components/PhoneMockup'
+import Navbar from '@/components/Navbar'
+import { ArrowRight, Check, Star, Coffee, Flame, Globe, Stamp, Compass } from 'lucide-react'
 
 export const revalidate = 0
+
+export const metadata: Metadata = {
+  title: 'Mogu - Sistema Operativo Interno para Restaurantes y Cafés',
+  description: 'Mogu centraliza la operación de tu local: conecta la caja registradora, optimiza la atención de garzones, gestiona pedidos en tiempo real y potencia la fidelización con Mogu Puntos y Mogu Travel.',
+  keywords: ['software restaurante', 'comandas caja garzones', 'carta digital qr', 'mogu travel', 'gestion cafeterias'],
+  openGraph: {
+    title: 'Mogu - Sistema Operativo para Restaurantes y Cafés',
+    description: 'Centraliza caja, garzones y pedidos en tiempo real. Descubre Mogu Travel y los planes para tu local.',
+    url: 'https://mogu.cl',
+    siteName: 'Mogu SpA',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Mogu - Sistema Operativo para Restaurantes y Cafés',
+    description: 'Centraliza caja, garzones y pedidos en tiempo real. Descubre Mogu Travel y los planes para tu local.',
+  },
+}
 
 interface Plan {
   id: string
@@ -46,7 +67,6 @@ const formatPrice = (amount: number) => {
 export default async function Home() {
   const planes = await getPlans()
 
-  // Preguntas Frecuentes estructuradas para GEO / Motores de IA actualizadas con datos reales
   const faqs = [
     {
       question: "¿Qué es la plataforma Mogu?",
@@ -82,56 +102,18 @@ export default async function Home() {
   return (
     <div style={{ backgroundColor: '#0E0C0A', color: '#D4CEC7', minHeight: '100vh', position: 'relative', overflowX: 'hidden' }} className="font-sans">
       
-      {/* Datos Estructurados para IA / Motores de Búsqueda */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
       
-      {/* 🌟 HERO & FULL-PAGE GRADIENT ESTILO REMOTE */}
       <div className="fixed inset-0 w-full h-full bg-gradient-to-b from-[#4c1d95] via-[#1e40af] to-[#0E0C0A] opacity-90 pointer-events-none -z-0" />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full bg-gradient-to-r from-purple-500/15 via-cyan-400/15 to-blue-600/15 blur-[160px] pointer-events-none -z-0" />
 
       <div className="relative z-10">
         
-        {/* 1. HEADER / NAVBAR */}
-        <header className="fixed top-4 left-1/2 -translate-x-1/2 w-[92%] max-w-7xl px-6 py-3.5 flex items-center justify-between z-50 bg-[#0E0C0A]/80 backdrop-blur-2xl border border-white/15 rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.6)]">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl overflow-hidden bg-white/10 border border-white/20 flex items-center justify-center shadow-inner group-hover:border-white/40 transition">
-              <img 
-                src="/logo-mogu.png" 
-                alt="Mogu Logo" 
-                className="w-full h-full object-cover" 
-              />
-            </div>
-            <span className="text-lg font-black tracking-widest text-white">
-              MOGU<span className="text-cyan-400">.</span>
-            </span>
-          </Link>
+        <Navbar />
 
-          {/* Navegación del Header con accesos directos */}
-          <nav className="hidden items-center gap-6 text-sm font-medium text-white/80 md:flex">
-            <Link href="/cafeterias" className="transition hover:text-white">Cafés & Restaurantes</Link>
-            <Link href="/comida-rapida" className="transition hover:text-white">Comida Rápida</Link>
-            <Link href="/travel" className="transition hover:text-cyan-300 font-semibold text-cyan-400">Mogu Travel ✈️</Link>
-            <Link href="#ecosistema" className="transition hover:text-white">Planes</Link>
-            <Link href="#faq" className="transition hover:text-white">FAQ</Link>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="px-4 py-2 text-xs font-semibold text-white/80 hover:text-white transition">
-              Iniciar Sesión
-            </Link>
-            <Link 
-              href="/login" 
-              className="px-4 py-2 bg-white hover:bg-slate-100 text-[#0E0C0A] text-xs font-bold rounded-xl transition shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-[1.02] flex items-center gap-1.5"
-            >
-              Acceso Local 🚀
-            </Link>
-          </div>
-        </header>
-
-        {/* 2. HERO SECTION */}
         <section className="relative overflow-hidden px-6 pt-36 pb-16 md:pt-44 md:pb-24">
           
           <div className="mx-auto max-w-7xl text-center mb-6 select-none">
@@ -150,7 +132,6 @@ export default async function Home() {
               Mogu centraliza la operación de tu local: conecta la caja registradora, optimiza la atención de los garzones, gestiona pedidos en tiempo real y potencia la fidelización con <strong className="text-white">Mogu Puntos</strong> y la red <strong className="text-white">Mogu Travel</strong>.
             </p>
 
-            {/* 🌟 3 BOTONES / TARJETAS INTERACTIVAS DE NICHOS */}
             <div className="pt-6 max-w-4xl mx-auto">
               <span className="text-[11px] font-bold uppercase tracking-widest text-cyan-300 block mb-4">
                 Explora las soluciones especializadas de Mogu:
@@ -162,18 +143,19 @@ export default async function Home() {
                   className="group p-5 rounded-2xl bg-white/[0.07] hover:bg-white/[0.12] border border-white/15 hover:border-cyan-400/65 transition-all duration-300 backdrop-blur-xl shadow-lg flex flex-col justify-between hover:-translate-y-1"
                 >
                   <div>
-                    <div className="w-9 h-9 rounded-xl bg-cyan-400/20 text-cyan-300 flex items-center justify-center text-lg mb-3 border border-cyan-400/30 group-hover:scale-110 transition-transform">
-                      ☕
+                    <div className="w-9 h-9 rounded-xl bg-cyan-400/20 text-cyan-300 flex items-center justify-center mb-3 border border-cyan-400/30 group-hover:scale-110 transition-transform">
+                      <Coffee className="w-4 h-4" />
                     </div>
                     <h3 className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">
-                      Cafés & Restaurantes
+                      Cafés y Restaurantes
                     </h3>
                     <p className="text-[11px] text-white/70 mt-1 leading-snug">
                       Software de gestión y comanderos para salones y cafeterías.
                     </p>
                   </div>
                   <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider mt-4 flex items-center gap-1">
-                    Ver solución →
+                    Ver solución
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
                   </span>
                 </Link>
 
@@ -182,8 +164,8 @@ export default async function Home() {
                   className="group p-5 rounded-2xl bg-white/[0.07] hover:bg-white/[0.12] border border-white/15 hover:border-amber-400/65 transition-all duration-300 backdrop-blur-xl shadow-lg flex flex-col justify-between hover:-translate-y-1"
                 >
                   <div>
-                    <div className="w-9 h-9 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center text-lg mb-3 border border-amber-400/30 group-hover:scale-110 transition-transform">
-                      🍕
+                    <div className="w-9 h-9 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center mb-3 border border-amber-400/30 group-hover:scale-110 transition-transform">
+                      <Flame className="w-4 h-4" />
                     </div>
                     <h3 className="text-sm font-bold text-white group-hover:text-amber-300 transition-colors">
                       Comida Rápida
@@ -193,7 +175,8 @@ export default async function Home() {
                     </p>
                   </div>
                   <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider mt-4 flex items-center gap-1">
-                    Ver solución →
+                    Ver solución
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
                   </span>
                 </Link>
 
@@ -202,8 +185,8 @@ export default async function Home() {
                   className="group p-5 rounded-2xl bg-gradient-to-b from-purple-900/40 to-cyan-900/40 hover:from-purple-900/60 hover:to-cyan-900/60 border border-cyan-400/40 hover:border-cyan-300 transition-all duration-300 backdrop-blur-xl shadow-[0_0_20px_rgba(6,182,212,0.15)] flex flex-col justify-between hover:-translate-y-1"
                 >
                   <div>
-                    <div className="w-9 h-9 rounded-xl bg-purple-400/20 text-purple-300 flex items-center justify-center text-lg mb-3 border border-purple-400/30 group-hover:scale-110 transition-transform">
-                      ✈️
+                    <div className="w-9 h-9 rounded-xl bg-purple-400/20 text-purple-300 flex items-center justify-center mb-3 border border-purple-400/30 group-hover:scale-110 transition-transform">
+                      <Globe className="w-4 h-4" />
                     </div>
                     <h3 className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">
                       Mogu Travel
@@ -213,7 +196,8 @@ export default async function Home() {
                     </p>
                   </div>
                   <span className="text-[10px] font-bold text-cyan-300 uppercase tracking-wider mt-4 flex items-center gap-1">
-                    Explorar Red →
+                    Explorar Red
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
                   </span>
                 </Link>
               </div>
@@ -222,9 +206,10 @@ export default async function Home() {
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/login"
-                className="w-full sm:w-auto rounded-xl bg-white hover:bg-slate-100 px-8 py-4 text-xs font-bold uppercase tracking-wider text-[#0E0C0A] transition-all text-center shadow-2xl border border-white/20 hover:scale-[1.02] flex items-center justify-center gap-2"
+                className="group w-full sm:w-auto rounded-xl bg-white hover:bg-slate-100 px-8 py-4 text-xs font-bold uppercase tracking-wider text-[#0E0C0A] transition-all text-center shadow-2xl border border-white/20 hover:scale-[1.02] flex items-center justify-center gap-2"
               >
-                Comenzar ahora →
+                <span>Comenzar ahora</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <Link
                 href="#ecosistema"
@@ -241,7 +226,6 @@ export default async function Home() {
 
         </section>
 
-        {/* 3. TARJETAS DE CARACTERÍSTICAS OPERATIVAS */}
         <section className="mx-auto max-w-7xl px-6 py-20 relative z-20">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             
@@ -259,7 +243,7 @@ export default async function Home() {
             <div className="p-6 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">Pedidos</span>
-                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">Menú & E-Commerce Dinámico</h3>
+                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">Menú y E-Commerce Dinámico</h3>
                 <p className="text-xs text-white/80 leading-relaxed">
                   Cartas digitales interactivas donde tus clientes visualizan platos y hacen seguimiento de su pedido en tiempo real.
                 </p>
@@ -270,7 +254,7 @@ export default async function Home() {
             <div className="p-6 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">Fidelización</span>
-                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">Mogu Puntos & Travel</h3>
+                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">Mogu Puntos y Travel</h3>
                 <p className="text-xs text-white/80 leading-relaxed">
                   Premia la frecuencia con Mogu Puntos y conecta tu local a la red internacional de viajeros Mogu Travel.
                 </p>
@@ -292,11 +276,10 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 🌟 4. SECCIÓN VISUAL DE MOGU TRAVEL & SUBCONEXIONES */}
         <section className="mx-auto max-w-7xl px-6 py-28 relative z-25 border-t border-white/15">
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
             <span className="text-xs font-black uppercase px-4 py-1.5 rounded-full bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-cyan-300 border border-cyan-400/30 tracking-widest shadow-lg">
-              Comunidad Global ✈️ Mogu Travel
+              Comunidad Global Mogu Travel
             </span>
             <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight">
               Una red internacional que conecta viajeros y locales
@@ -308,11 +291,10 @@ export default async function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             
-            {/* Tarjeta 1: Pasaporte Digital */}
             <div className="group p-8 rounded-3xl bg-gradient-to-b from-purple-950/40 via-[#141416] to-[#141416] border border-purple-500/30 hover:border-purple-400/60 transition-all duration-300 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
               <div className="space-y-4">
-                <div className="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center justify-center text-2xl font-bold group-hover:scale-110 transition-transform">
-                  🛂
+                <div className="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Stamp className="w-7 h-7" />
                 </div>
                 <h3 className="text-2xl font-extrabold text-white group-hover:text-purple-300 transition-colors">
                   Pasaporte Digital del Viajero
@@ -328,19 +310,18 @@ export default async function Home() {
                   className="w-full py-3.5 px-6 rounded-2xl bg-purple-600/20 hover:bg-purple-600 text-purple-200 hover:text-white border border-purple-500/40 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg"
                 >
                   <span>Abrir mi Pasaporte</span>
-                  <span>→</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </div>
             </div>
 
-            {/* Tarjeta 2: Red Global / Exploración (Enlaza correctamente a /travel) */}
             <div className="group p-8 rounded-3xl bg-gradient-to-b from-cyan-950/40 via-[#141416] to-[#141416] border border-cyan-500/30 hover:border-cyan-400/60 transition-all duration-300 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
               <div className="space-y-4">
-                <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center justify-center text-2xl font-bold group-hover:scale-110 transition-transform">
-                  🌍
+                <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Compass className="w-7 h-7" />
                 </div>
                 <h3 className="text-2xl font-extrabold text-white group-hover:text-cyan-300 transition-colors">
-                  Red Global de Aliados & Nómadas
+                  Red Global de Aliados y Nómadas
                 </h3>
                 <p className="text-xs sm:text-sm text-white/70 leading-relaxed font-normal">
                   Descubre cómo los cafés, restaurantes y hostels se conectan a través de Mogu Travel para ofrecer experiencias transfronterizas y recompensas exclusivas.
@@ -353,7 +334,7 @@ export default async function Home() {
                   className="w-full py-3.5 px-6 rounded-2xl bg-cyan-600/20 hover:bg-cyan-500 text-cyan-200 hover:text-black border border-cyan-500/40 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg"
                 >
                   <span>Explorar la Red</span>
-                  <span>→</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </div>
             </div>
@@ -361,7 +342,6 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 5. PLANES ANUALES DINÁMICOS DESDE SUPABASE */}
         <section id="ecosistema" className="mx-auto max-w-7xl px-6 py-28 relative z-20 border-t border-white/15">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
@@ -385,7 +365,7 @@ export default async function Home() {
                   >
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                       <span className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-[10px] font-extrabold uppercase px-4 py-1.5 rounded-full tracking-widest shadow-lg">
-                        ⭐ MÁS POPULAR
+                        MÁS POPULAR
                       </span>
                     </div>
 
@@ -409,7 +389,8 @@ export default async function Home() {
                       <ul className="space-y-3.5 mt-6 text-xs font-normal text-white">
                         {plan.features?.map((feature, idx) => (
                           <li key={idx} className="flex items-center gap-2.5">
-                            <span className="text-cyan-400 font-bold">✓</span> {feature}
+                            <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                            <span>{feature}</span>
                           </li>
                         ))}
                       </ul>
@@ -417,9 +398,10 @@ export default async function Home() {
 
                     <Link
                       href={`/checkout/${plan.slug}`}
-                      className="w-full mt-8 py-3.5 text-xs font-bold uppercase tracking-wider rounded-2xl bg-white hover:bg-slate-100 text-[#0E0C0A] text-center transition-all shadow-[0_0_25px_rgba(255,255,255,0.4)] hover:scale-[1.02] block"
+                      className="group w-full mt-8 py-3.5 text-xs font-bold uppercase tracking-wider rounded-2xl bg-white hover:bg-slate-100 text-[#0E0C0A] text-center transition-all shadow-[0_0_25px_rgba(255,255,255,0.4)] hover:scale-[1.02] flex items-center justify-center gap-2"
                     >
-                      Elegir {plan.name} →
+                      <span>Elegir {plan.name}</span>
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                     </Link>
                   </div>
                 )
@@ -450,7 +432,8 @@ export default async function Home() {
                     <ul className="space-y-3.5 mt-6 text-xs font-normal text-white">
                       {plan.features?.map((feature, idx) => (
                         <li key={idx} className="flex items-center gap-2.5">
-                          <span className="text-cyan-400 font-bold">✓</span> {feature}
+                          <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                          <span>{feature}</span>
                         </li>
                       ))}
                     </ul>
@@ -458,9 +441,10 @@ export default async function Home() {
 
                   <Link
                     href={`/checkout/${plan.slug}`}
-                    className="w-full mt-8 py-3.5 text-xs font-bold uppercase tracking-wider rounded-2xl bg-white/10 hover:bg-white hover:text-[#0E0C0A] text-white text-center transition-all border border-white/20 shadow-md block"
+                    className="group w-full mt-8 py-3.5 text-xs font-bold uppercase tracking-wider rounded-2xl bg-white/10 hover:bg-white hover:text-[#0E0C0A] text-white text-center transition-all border border-white/20 shadow-md flex items-center justify-center gap-2"
                   >
-                    Elegir {plan.name} →
+                    <span>Elegir {plan.name}</span>
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                   </Link>
                 </div>
               )
@@ -468,7 +452,6 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 6. TESTIMONIOS */}
         <section id="testimonios" className="mx-auto max-w-7xl px-6 py-28 relative z-20 border-t border-white/15">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
@@ -483,7 +466,11 @@ export default async function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
             <div className="p-8 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between">
               <div>
-                <div className="flex text-amber-400 text-sm mb-4">★★★★★</div>
+                <div className="flex items-center gap-1 text-amber-400 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
                 <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed italic">
                   &ldquo;La integración entre los garzones y la caja cambió por completo nuestro ritmo de atención. Los pedidos entran limpios y ordenados en tiempo real.&rdquo;
                 </p>
@@ -494,14 +481,18 @@ export default async function Home() {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-white">Carlos Ramírez</h4>
-                  <span className="text-[10px] text-cyan-300 font-medium">Café & Bistró Santiago</span>
+                  <span className="text-[10px] text-cyan-300 font-medium">Café y Bistró Santiago</span>
                 </div>
               </div>
             </div>
 
             <div className="p-8 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between">
               <div>
-                <div className="flex text-amber-400 text-sm mb-4">★★★★★</div>
+                <div className="flex items-center gap-1 text-amber-400 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
                 <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed italic">
                   &ldquo;Poder actualizar la carta de productos al instante y ofrecer la comunidad de Mogu Travel y Mogu Puntos nos da una retención de clientes increíble.&rdquo;
                 </p>
@@ -519,7 +510,11 @@ export default async function Home() {
 
             <div className="p-8 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between">
               <div>
-                <div className="flex text-amber-400 text-sm mb-4">★★★★★</div>
+                <div className="flex items-center gap-1 text-amber-400 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
                 <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed italic">
                   &ldquo;Tener el control centralizado de la administración y la visualización de pedidos para el cliente final ha optimizado nuestro servicio de forma única.&rdquo;
                 </p>
@@ -530,14 +525,13 @@ export default async function Home() {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-white">Matías Soto</h4>
-                  <span className="text-[10px] text-cyan-300 font-medium">Gastronomía & Eventos</span>
+                  <span className="text-[10px] text-cyan-300 font-medium">Gastronomía y Eventos</span>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* 7. ¿CÓMO FUNCIONA? */}
         <section id="como-funciona" className="mx-auto max-w-7xl px-6 py-28 relative z-20 border-t border-white/15">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
@@ -560,57 +554,79 @@ export default async function Home() {
 
             <div className="p-8 rounded-3xl border border-white/15 bg-white/[0.05] backdrop-blur-xl shadow-lg">
               <div className="w-12 h-12 rounded-2xl bg-white/10 text-cyan-400 font-bold flex items-center justify-center text-sm mb-6 border border-white/20 shadow-inner">02</div>
-              <h3 className="text-lg font-bold text-white mb-2">Conecta la Operación</h3>
+              <h3 className="text-lg font-bold text-white mb-2">Sincroniza Operación</h3>
               <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed">
-                Sincroniza comandas en tiempo real y permite que los clientes sigan sus pedidos de forma digital y fluida.
+                Conecta las comandas del salón directo con la caja y mantén las métricas en tiempo real actualizadas.
               </p>
             </div>
 
             <div className="p-8 rounded-3xl border border-white/15 bg-white/[0.05] backdrop-blur-xl shadow-lg">
               <div className="w-12 h-12 rounded-2xl bg-white/10 text-cyan-400 font-bold flex items-center justify-center text-sm mb-6 border border-white/20 shadow-inner">03</div>
-              <h3 className="text-lg font-bold text-white mb-2">Fideliza y Crece</h3>
+              <h3 className="text-lg font-bold text-white mb-2">Fideliza y Escala</h3>
               <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed">
-                Integra Mogu Puntos y la comunidad Mogu Travel para escalar tu servicio gastronómico sin límites.
+                Integra a tus clientes a Mogu Puntos y formen parte de la comunidad global de Mogu Travel.
               </p>
             </div>
           </div>
         </section>
 
-        {/* 8. PREGUNTAS FRECUENTES (FAQ / GEO) */}
-        <section id="faq" className="mx-auto max-w-7xl px-6 py-28 relative z-20 border-t border-white/15">
+        <section id="faq" className="mx-auto max-w-5xl px-6 py-28 relative z-20 border-t border-white/15">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
-              Respuestas Clave
+              Resolucion de Dudas
             </span>
             <h2 className="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tight">Preguntas Frecuentes</h2>
             <p className="text-[#D4CEC7] text-sm md:text-base font-normal mt-3">
-              Todo lo que necesitas saber sobre Mogu SpA y nuestra plataforma de operaciones gastronómicas.
+              Todo lo que necesitas saber sobre la plataforma, conexion de caja, garzones y la comunidad Mogu Travel.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {faqs.map((faq, idx) => (
-              <div key={idx} className="p-8 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl">
-                <h3 className="text-lg font-bold text-white mb-3">{faq.question}</h3>
-                <p className="text-xs sm:text-sm text-white/80 leading-relaxed font-normal">{faq.answer}</p>
+              <div 
+                key={idx}
+                className="p-8 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30"
+              >
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-3">
+                    {faq.question}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-white/80 leading-relaxed font-normal">
+                    {faq.answer}
+                  </p>
+                </div>
+                <div className="mt-6 pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">
+                  FAQ 0{idx + 1} / MOGU
+                </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* 9. FOOTER */}
-        <footer id="contacto" className="border-t border-white/15 bg-[#0E0C0A]/80 backdrop-blur-md py-12 relative z-20">
-          <div className="mx-auto max-w-7xl px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="text-center md:text-left">
-              <span className="text-lg font-black text-white tracking-widest">MOGU<span className="text-cyan-400">.</span></span>
-              <p className="mt-1 text-xs text-[#D4CEC7] font-medium">
-                © {new Date().getFullYear()} Mogu SpA. Todos los derechos reservados. Cumplimiento Ley N° 19.496.
-              </p>
+        <footer className="border-t border-white/15 py-12 px-6 bg-[#0E0C0A]/90 relative z-20">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg overflow-hidden bg-white/10 border border-white/20 flex items-center justify-center">
+                <img 
+                  src="/logo-mogu.png" 
+                  alt="Mogu Logo" 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+              <span className="text-sm font-black tracking-widest text-white">
+                MOGU<span className="text-cyan-400">.</span> SpA
+              </span>
             </div>
-            <div className="flex gap-6 text-xs font-medium text-white/90">
-              <Link href="/terminos" className="hover:text-white transition">Términos</Link>
-              <Link href="/privacidad" className="hover:text-white transition">Privacidad</Link>
-              <Link href="/soporte" className="hover:text-white transition">Soporte</Link>
+
+            <p className="text-xs text-white/60">
+              &copy; {new Date().getFullYear()} Mogu SpA. Todos los derechos reservados.
+            </p>
+
+            <div className="flex items-center gap-6 text-xs font-medium text-white/80">
+              <Link href="/cafeterias" className="transition hover:text-cyan-300">Cafés y Restaurantes</Link>
+              <Link href="/comida-rapida" className="transition hover:text-cyan-300">Comida Rápida</Link>
+              <Link href="/travel" className="transition hover:text-cyan-300">Mogu Travel</Link>
+              <Link href="/login" className="transition hover:text-cyan-300">Iniciar Sesión</Link>
             </div>
           </div>
         </footer>
