@@ -68,12 +68,9 @@ export default function MobileStorePage({ params }) {
           if (sortedCategories.length > 0) {
             setActiveCategory(sortedCategories[0].id);
           }
-        } else {
-          setStoreData({ isError: true, message: `No se encontró ningún perfil con el slug: "${slug}" en la base de datos de producción.` });
         }
       } catch (err) {
         console.error('Error al cargar los datos del local:', err);
-        setStoreData({ isError: true, message: err.message || JSON.stringify(err) });
       } finally {
         setLoading(false);
       }
@@ -118,13 +115,10 @@ export default function MobileStorePage({ params }) {
     );
   }
 
-  if (!storeData || storeData.isError) {
+  if (!storeData) {
     return (
-      <div className="flex flex-col justify-center items-center h-screen bg-gray-50 text-gray-800 p-6 text-center">
-        <p className="text-red-600 font-bold mb-2">Local no encontrado o inactivo.</p>
-        <p className="text-xs bg-red-100 text-red-900 p-4 rounded-xl max-w-md overflow-auto font-mono text-left shadow-inner">
-          {storeData?.message || 'Error desconocido al conectar con la base de datos.'}
-        </p>
+      <div className="flex justify-center items-center h-screen bg-gray-50 text-gray-500 font-medium">
+        Local no encontrado o inactivo.
       </div>
     );
   }
@@ -147,7 +141,7 @@ export default function MobileStorePage({ params }) {
 
   return (
     <div 
-      className={`max-w-md mx-auto min-h-screen pb-24 relative shadow-2xl font-sans overflow-x-hidden border-x border-gray-200 transition-all ${borderRadius}`}
+      className={`w-full min-h-screen sm:max-w-md mx-auto pb-24 relative shadow-2xl font-sans overflow-x-hidden sm:border-x border-gray-200 transition-all rounded-none sm:${borderRadius}`}
       style={{ backgroundColor: secondaryColor }}
     >
       
