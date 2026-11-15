@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Store, Truck, ArrowLeft, Navigation } from 'lucide-react';
+import { Store, Truck, ArrowLeft, Navigation, Copy, Check } from 'lucide-react';
 
 export default function CartView({ cart, updateQuantity, storePhone, goToMenu, storeConfig }) {
   const buttonColor = storeConfig?.button_color || '#047857';
@@ -13,6 +13,7 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
   // Pasos del flujo: 'cart' | 'delivery_type' | 'location' | 'checkout'
   const [step, setStep] = useState('cart');
   const [deliveryType, setDeliveryType] = useState('delivery'); // 'delivery' o 'retiro'
+  const [copied, setCopied] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -31,9 +32,31 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
   const handleGetLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          alert(`GPS obtenido con éxito: Lat ${position.coords.latitude.toFixed(4)}, Lon ${position.coords.longitude.toFixed(4)}`);
-          setFormData(prev => ({ ...prev, address: 'Ubicación GPS Actual' }));
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          
+          try {
+            // Consultamos la dirección exacta mediante geocodificación inversa
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+            const data = await response.json();
+            
+            if (data && data.address) {
+              const street = data.address.road || data.address.pedestrian || data.address.suburb || 'Calle sin nombre';
+              const houseNumber = data.address.house_number || '';
+              const suburb = data.address.suburb || data.address.city || '';
+              
+              setFormData(prev => ({
+                ...prev,
+                address: `${street} ${houseNumber}`.trim(),
+                addressNumber: suburb ? `Sector/Comuna: ${suburb}` : prev.addressNumber
+              }));
+            } else {
+              setFormData(prev => ({ ...prev, address: `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}` }));
+            }
+          } catch (error) {
+            setFormData(prev => ({ ...prev, address: `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}` }));
+          }
         },
         () => {
           alert('No se pudo obtener la ubicación. Por favor ingrésala de forma manual.');
@@ -42,6 +65,13 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
     } else {
       alert('La geolocalización no está soportada en este navegador.');
     }
+  };
+
+  const copyBankData = () => {
+    const text = `Banco: ${storeConfig?.bank_name || 'Banco Estado'}\nTipo: ${storeConfig?.bank_account_type || 'Cuenta Corriente'}\nNº: ${storeConfig?.bank_account_number || '12345678'}\nRUT: ${storeConfig?.bank_rut || '76.123.456-7'}\nTitular: ${storeConfig?.bank_holder || storeConfig?.name || 'Comercio'}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleSendWhatsApp = (e) => {
@@ -350,6 +380,35 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
                 <span className="text-xs font-bold">Transferencia</span>
               </label>
             </div>
+
+            {/* DATOS BANCARIOS MOSTRADOS SOLO SI SE SELECCIONA TRANSFERENCIA */}
+            {formData.paymentMethod === 'Transferencia' && (
+              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 space-y-2 mt-3 animate-fadeIn">
+                <div className="flex justify-between items-center border-b pb-1.5">
+                  <span className="text-xs font-extrabold text-gray-800">Datos para Transferencia Bancaria</span>
+                  <button 
+                    type="button" 
+                    onClick={copyBankData}
+                    className="text-[11px] font-bold flex items-center gap-1 bg-white border border-gray-200 px-2 py-1 rounded-lg shadow-sm hover:bg-gray-100"
+                    style={{ color: primaryColor }}
+                  >
+                    {copied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                    {copied ? '¡Copiado!' : 'Copiar datos'}
+                  </button>
+                </div>
+                
+                <div className="text-[11px] space-y-1 text-gray-700 pt-1">
+                  <p><strong>Banco:</strong> {storeConfig?.bank_name || 'Banco Estado'}</p>
+                  <p><strong>Tipo de Cuenta:</strong> {storeConfig?.bank_account_type || 'Cuenta Corriente'}</p>
+                  <p><strong>Nº de Cuenta:</strong> {storeConfig?.bank_account_number || '12345678'}</p>
+                  <p><strong>RUT:</strong> {storeConfig?.bank_rut || '76.123.456-7'}</p>
+                  <p><strong>Titular:</strong> {storeConfig?.bank_holder || storeConfig?.name || 'Comercio'}</p>
+                </div>
+                <p className="text-[10px] text-gray-500 pt-1 italic">
+                  * Recuerda enviar el comprobante por WhatsApp junto con tu pedido.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="pt-2 border-t flex justify-between font-extrabold text-sm">
