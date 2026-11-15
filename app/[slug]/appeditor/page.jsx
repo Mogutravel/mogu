@@ -24,7 +24,7 @@ export default function AppEditorPage({ params }) {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploadingImg, setUploadingImg] = useState(null); // indicador de subida para cada campo
+  const [uploadingImg, setUploadingImg] = useState(null);
   const [message, setMessage] = useState('');
   const [activeTab, setActiveTab] = useState('estilo');
 
@@ -39,6 +39,13 @@ export default function AppEditorPage({ params }) {
   const [buttonColor, setButtonColor] = useState('#047857');
   const [borderRadius, setBorderRadius] = useState('rounded-2xl');
   const [shadowStyle, setShadowStyle] = useState('shadow-md');
+
+  // Estados bancarios para transferencia
+  const [bankName, setBankName] = useState('');
+  const [bankAccountType, setBankAccountType] = useState('Cuenta Corriente');
+  const [bankAccountNumber, setBankAccountNumber] = useState('');
+  const [bankRut, setBankRut] = useState('');
+  const [bankHolder, setBankHolder] = useState('');
 
   const [sectionsConfig, setSectionsConfig] = useState({
     welcomeBanner: true,
@@ -103,6 +110,13 @@ export default function AppEditorPage({ params }) {
           setBanners(config.banners_list || []);
           setDailySpecialId(config.daily_special_item_id || '');
           setFavoriteIds(config.favorite_item_ids || []);
+
+          // Cargar datos bancarios
+          setBankName(config.bank_name || '');
+          setBankAccountType(config.bank_account_type || 'Cuenta Corriente');
+          setBankAccountNumber(config.bank_account_number || '');
+          setBankRut(config.bank_rut || '');
+          setBankHolder(config.bank_holder || '');
         }
       } catch (err) {
         console.error('Error cargando editor:', err);
@@ -114,7 +128,6 @@ export default function AppEditorPage({ params }) {
     loadData();
   }, [slug, router]);
 
-  // Función genérica para subir imagen a Supabase Storage
   const handleImageUpload = async (file, targetType, bannerIndex = null) => {
     if (!file || !profile) return;
     const identifier = bannerIndex !== null ? `banner-${bannerIndex}` : targetType;
@@ -126,7 +139,7 @@ export default function AppEditorPage({ params }) {
       const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('avatars') // o tu bucket de preferencia
+        .from('avatars')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
@@ -177,12 +190,6 @@ export default function AppEditorPage({ params }) {
     setBanners(banners.filter((_, i) => i !== index));
   };
 
-  const toggleFavorite = (itemId) => {
-    setFavoriteIds((prev) => 
-      prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
-    );
-  };
-
   const handleSaveAll = async (e) => {
     e.preventDefault();
     if (!profile) return;
@@ -210,6 +217,12 @@ export default function AppEditorPage({ params }) {
             banners_list: banners,
             daily_special_item_id: dailySpecialId || null,
             favorite_item_ids: favoriteIds,
+            // Datos bancarios
+            bank_name: bankName,
+            bank_account_type: bankAccountType,
+            bank_account_number: bankAccountNumber,
+            bank_rut: bankRut,
+            bank_holder: bankHolder,
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'profile_id' }
@@ -241,7 +254,7 @@ export default function AppEditorPage({ params }) {
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900 font-sans pb-24">
       
-      {/* BARRA SUPERIOR AMIGABLE */}
+      {/* BARRA SUPERIOR */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-3.5 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -283,10 +296,10 @@ export default function AppEditorPage({ params }) {
         </div>
       )}
 
-      {/* CONTENIDO PRINCIPAL: EDITOR + VISTA PREVIA */}
+      {/* CONTENIDO PRINCIPAL */}
       <main className="max-w-7xl mx-auto px-4 pt-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* COLUMNA IZQUIERDA: PESTAÑAS SIMPLES */}
+        {/* COLUMNA IZQUIERDA: PESTAÑAS */}
         <div className="lg:col-span-7 space-y-6">
           
           <div className="flex bg-white p-1.5 rounded-2xl border border-gray-200 shadow-sm gap-1">
@@ -310,7 +323,7 @@ export default function AppEditorPage({ params }) {
             </button>
           </div>
 
-          {/* ================= SECCIÓN 1: ESTILO Y APARIENCIA ================= */}
+          {/* SECCIÓN 1: ESTILO Y APARIENCIA + DATOS BANCARIOS */}
           {activeTab === 'estilo' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-6">
               
@@ -368,7 +381,7 @@ export default function AppEditorPage({ params }) {
                 </div>
               </div>
 
-              {/* NOMBRE Y LOGOTIPO CON CARGA DIRECTA Y ELIMINAR */}
+              {/* NOMBRE Y LOGOTIPO */}
               <div className="pt-4 border-t border-gray-100 space-y-4">
                 <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Nombre y Logotipo del Negocio</h3>
                 
@@ -423,13 +436,79 @@ export default function AppEditorPage({ params }) {
                     </div>
                   </div>
                 </div>
+              </div>
 
+              {/* DATOS DE TRANSFERENCIA BANCARIA */}
+              <div className="pt-6 border-t border-gray-100 space-y-4">
+                <div>
+                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Datos para Transferencias Bancarias 🏦</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Estos datos aparecerán en el carrito cuando tus clientes elijan pagar por transferencia.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre del Banco</label>
+                    <input
+                      type="text"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      placeholder="Ej: Banco Estado, Santander, Bci..."
+                      className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-emerald-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Tipo de Cuenta</label>
+                    <select
+                      value={bankAccountType}
+                      onChange={(e) => setBankAccountType(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-emerald-600 cursor-pointer"
+                    >
+                      <option value="Cuenta Corriente">Cuenta Corriente</option>
+                      <option value="Cuenta Vista / Rut">Cuenta Vista / RUT</option>
+                      <option value="Cuenta de Ahorros">Cuenta de Ahorros</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Número de Cuenta</label>
+                    <input
+                      type="text"
+                      value={bankAccountNumber}
+                      onChange={(e) => setBankAccountNumber(e.target.value)}
+                      placeholder="Ej: 12345678"
+                      className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-emerald-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">RUT del Titular</label>
+                    <input
+                      type="text"
+                      value={bankRut}
+                      onChange={(e) => setBankRut(e.target.value)}
+                      placeholder="Ej: 76.123.456-7"
+                      className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-emerald-600"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre del Titular / Razón Social</label>
+                    <input
+                      type="text"
+                      value={bankHolder}
+                      onChange={(e) => setBankHolder(e.target.value)}
+                      placeholder="Ej: Mogu SpA o Nombre Apellido"
+                      className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-emerald-600"
+                    />
+                  </div>
+                </div>
               </div>
 
             </div>
           )}
 
-          {/* ================= SECCIÓN 2: SECCIONES Y PROMOS ================= */}
+          {/* SECCIÓN 2: SECCIONES Y PROMOS */}
           {activeTab === 'contenido' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-6">
               
@@ -468,7 +547,7 @@ export default function AppEditorPage({ params }) {
                 />
               </div>
 
-              {/* BANNERS CON CARGA DIRECTA Y ELIMINAR */}
+              {/* BANNERS */}
               <div className="pt-4 border-t border-gray-100 space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Banners Publicitarios</h3>
@@ -503,7 +582,6 @@ export default function AppEditorPage({ params }) {
                           className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs outline-none"
                         />
 
-                        {/* Imagen del Banner con Carga Directa y Eliminar */}
                         <div className="flex items-center gap-3 pt-1">
                           {banner.image ? (
                             <div className="relative w-20 h-12 rounded-xl overflow-hidden border border-gray-300 flex-shrink-0">
@@ -540,7 +618,6 @@ export default function AppEditorPage({ params }) {
                             />
                           </label>
                         </div>
-
                       </div>
                     ))
                   )}
@@ -570,7 +647,7 @@ export default function AppEditorPage({ params }) {
 
         </div>
 
-        {/* COLUMNA DERECHA: SIMULADOR MÓVIL EN TIEMPO REAL */}
+        {/* COLUMNA DERECHA: SIMULADOR MÓVIL */}
         <div className="lg:col-span-5 flex flex-col items-center">
           <div className="sticky top-20 w-full max-w-sm bg-gray-900 border-[8px] border-gray-800 rounded-[48px] p-4 shadow-2xl relative overflow-hidden">
             
@@ -583,7 +660,6 @@ export default function AppEditorPage({ params }) {
               
               <div className="space-y-3.5">
                 
-                {/* Header Simulado */}
                 <div className="flex items-center justify-between bg-white p-3 rounded-2xl shadow-sm border border-black/5">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-emerald-100 overflow-hidden border">
@@ -599,7 +675,6 @@ export default function AppEditorPage({ params }) {
                   </div>
                 </div>
 
-                {/* 1. Saludo */}
                 {sectionsConfig.welcomeBanner && (
                   <div className="p-3 rounded-2xl text-white shadow-sm flex justify-between items-center" style={{ backgroundColor: primaryColor }}>
                     <div>
@@ -610,7 +685,6 @@ export default function AppEditorPage({ params }) {
                   </div>
                 )}
 
-                {/* 2. Banner */}
                 {sectionsConfig.promoCarousel && (
                   <div className="relative rounded-2xl overflow-hidden h-32 bg-gray-800 text-white shadow">
                     {banners.length > 0 && banners[0].image ? (
@@ -623,7 +697,6 @@ export default function AppEditorPage({ params }) {
                   </div>
                 )}
 
-                {/* 3. Plato del Día */}
                 {sectionsConfig.dailySpecial && (
                   <div className="bg-white p-3 rounded-2xl shadow-sm border border-black/5">
                     <span className="text-[10px] font-black text-emerald-700 block mb-1.5">🔥 Plato del Día</span>
