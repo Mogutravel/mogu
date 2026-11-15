@@ -14,6 +14,7 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
   const [step, setStep] = useState('cart');
   const [deliveryType, setDeliveryType] = useState('delivery'); // 'delivery' o 'retiro'
   const [copied, setCopied] = useState(false);
+  const [isLoadingGps, setIsLoadingGps] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -30,41 +31,49 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
   };
 
   const handleGetLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          
-          try {
-            // Consultamos la dirección exacta mediante geocodificación inversa
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
-            const data = await response.json();
-            
-            if (data && data.address) {
-              const street = data.address.road || data.address.pedestrian || data.address.suburb || 'Calle sin nombre';
-              const houseNumber = data.address.house_number || '';
-              const suburb = data.address.suburb || data.address.city || '';
-              
-              setFormData(prev => ({
-                ...prev,
-                address: `${street} ${houseNumber}`.trim(),
-                addressNumber: suburb ? `Sector/Comuna: ${suburb}` : prev.addressNumber
-              }));
-            } else {
-              setFormData(prev => ({ ...prev, address: `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}` }));
-            }
-          } catch (error) {
-            setFormData(prev => ({ ...prev, address: `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}` }));
-          }
-        },
-        () => {
-          alert('No se pudo obtener la ubicación. Por favor ingrésala de forma manual.');
-        }
-      );
-    } else {
-      alert('La geolocalización no está soportada en este navegador.');
+    if (!navigator.geolocation) {
+      alert('La geolocalización no está soportada en tu navegador.');
+      return;
     }
+
+    setIsLoadingGps(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        
+        try {
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+          const data = await response.json();
+          
+          if (data && data.address) {
+            const street = data.address.road || data.address.pedestrian || data.address.suburb || '';
+            const houseNumber = data.address.house_number || '';
+            const suburb = data.address.suburb || data.address.city || '';
+            
+            setFormData(prev => ({
+              ...prev,
+              address: street || prev.address,
+              addressNumber: houseNumber || prev.addressNumber,
+              notes: suburb && !prev.notes.includes(suburb) ? (prev.notes ? `${prev.notes} - Sector: ${suburb}` : `Sector: ${suburb}`) : prev.notes
+            }));
+            
+            alert('¡Ubicación GPS detectada con éxito! Verifica los datos.');
+          } else {
+            alert('No se pudo determinar la calle exacta. Por favor ingrésala manualmente.');
+          }
+        } catch (error) {
+          alert('Error al conectar con el servicio de mapas. Ingresa tu dirección manualmente.');
+        } finally {
+          setIsLoadingGps(false);
+        }
+      },
+      (error) => {
+        setIsLoadingGps(false);
+        alert('No se pudo obtener el permiso de ubicación. Por favor ingrésala de forma manual.');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
 
   const copyBankData = () => {
@@ -79,7 +88,7 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
     const itemsText = cart.map(i => `- ${i.quantity}x ${i.name} (${i.selectedSize || 'Estándar'}) - $${(i.finalPrice || i.price) * i.quantity}`).join('\n');
     
     const deliveryText = deliveryType === 'delivery' 
-      ? `📦 Tipo de Entrega: Delivery\n📍 Dirección: ${formData.address} ${formData.addressNumber}\n`
+      ? `📦 Tipo de Entrega: Delivery\n📍 Dirección: ${formData.address}, Nº ${formData.addressNumber}\n`
       : `🛍️ Tipo de Entrega: Retiro en Local\n`;
 
     const message = encodeURIComponent(
@@ -154,7 +163,7 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
         </>
       )}
 
-      {/* PASO 2: TIPO DE ENTREGA (Colores dinámicos del local) */}
+      {/* PASO 2: TIPO DE ENTREGA */}
       {step === 'delivery_type' && (
         <div className={`bg-white p-5 border border-gray-100 space-y-4 ${borderRadius} ${shadowStyle}`}>
           <div className="flex items-center justify-between">
@@ -169,7 +178,7 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
             <button
               type="button"
               onClick={() => setDeliveryType('delivery')}
-              className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition`}
+              className="p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition"
               style={{
                 borderColor: deliveryType === 'delivery' ? buttonColor : '#E5E7EB',
                 backgroundColor: deliveryType === 'delivery' ? `${buttonColor}15` : 'transparent'
@@ -182,7 +191,7 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
             <button
               type="button"
               onClick={() => setDeliveryType('retiro')}
-              className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition`}
+              className="p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition"
               style={{
                 borderColor: deliveryType === 'retiro' ? buttonColor : '#E5E7EB',
                 backgroundColor: deliveryType === 'retiro' ? `${buttonColor}15` : 'transparent'
@@ -203,7 +212,7 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
         </div>
       )}
 
-      {/* PASO 3: UBICACIÓN CON MAPA Y GPS FUNCIONAL */}
+      {/* PASO 3: UBICACIÓN Y GPS */}
       {step === 'location' && (
         <div className={`bg-white p-5 border border-gray-100 space-y-4 ${borderRadius} ${shadowStyle}`}>
           <div className="flex items-center justify-between">
@@ -218,43 +227,45 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
             <button
               type="button"
               onClick={handleGetLocation}
-              className="w-full py-3 border-2 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition"
+              disabled={isLoadingGps}
+              className="w-full py-3 border-2 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition active:scale-95"
               style={{ 
                 borderColor: buttonColor, 
                 backgroundColor: `${buttonColor}10`,
                 color: primaryColor 
               }}
             >
-              <Navigation size={16} style={{ color: buttonColor }} /> Usar mi ubicación GPS exacta (Recomendado)
+              <Navigation size={16} style={{ color: buttonColor }} className={isLoadingGps ? 'animate-spin' : ''} /> 
+              {isLoadingGps ? 'Obteniendo ubicación GPS...' : 'Usar mi ubicación GPS exacta (Recomendado)'}
             </button>
 
             <div>
-              <label className="text-[11px] font-bold text-gray-700 block mb-1">Dirección (Calle y Número)</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  name="address"
-                  placeholder="Ej: Av. Providencia 1234, Comuna"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  className="w-full p-3 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-emerald-600"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
+              <label className="text-[11px] font-bold text-gray-700 block mb-1">Calle / Avenida *</label>
               <input
                 type="text"
-                name="addressNumber"
-                placeholder="Nº Casa / Depto / Referencia (Ej: Casa esquina reja negra)"
-                value={formData.addressNumber}
+                name="address"
+                placeholder="Ej: Av. Providencia"
+                value={formData.address}
                 onChange={handleInputChange}
                 className="w-full p-3 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-emerald-600"
+                required
               />
             </div>
 
-            {/* Contenedor del Mapa interactivo */}
+            <div>
+              <label className="text-[11px] font-bold text-gray-700 block mb-1">Nº Casa / Depto / Referencia *</label>
+              <input
+                type="text"
+                name="addressNumber"
+                placeholder="Ej: 1234, Depto 42B (Casa reja negra)"
+                value={formData.addressNumber}
+                onChange={handleInputChange}
+                className="w-full p-3 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-emerald-600"
+                required
+              />
+            </div>
+
+            {/* Mapa integrado interactivo */}
             <div className="relative w-full h-52 rounded-2xl overflow-hidden border border-gray-200 shadow-inner bg-gray-100">
               <iframe 
                 title="Mapa de Ubicación"
@@ -268,14 +279,14 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
             </div>
 
             <p className="text-[11px] text-gray-500 text-center">
-              📍 Usa el GPS, selecciona una sugerencia o toca tu casa en el mapa para validar la zona.
+              📍 El GPS detecta tu calle; asegúrate de ingresar el número correcto de tu casa o depto.
             </p>
           </div>
 
           <button
             onClick={() => setStep('checkout')}
-            disabled={!formData.address}
-            className={`w-full py-3 text-white font-extrabold text-xs rounded-xl shadow-md transition active:scale-95 text-center mt-2 ${!formData.address ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={!formData.address || !formData.addressNumber}
+            className={`w-full py-3 text-white font-extrabold text-xs rounded-xl shadow-md transition active:scale-95 text-center mt-2 ${(!formData.address || !formData.addressNumber) ? 'opacity-50 cursor-not-allowed' : ''}`}
             style={{ backgroundColor: buttonColor }}
           >
             Continuar →
@@ -283,7 +294,7 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
         </div>
       )}
 
-      {/* PASO 4: DATOS DE CONTACTO Y PAGO (Solo Efectivo y Transferencia) */}
+      {/* PASO 4: DATOS DE CONTACTO Y PAGO */}
       {step === 'checkout' && (
         <form onSubmit={handleSendWhatsApp} className={`bg-white p-5 border border-gray-100 space-y-4 ${borderRadius} ${shadowStyle}`}>
           <div className="flex items-center justify-between">
