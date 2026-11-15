@@ -341,7 +341,7 @@ export default function AppleStyleMenuAdminPanel() {
     setIsModalOpen(true)
   }
 
-  // Guardar Plato
+  // Guardar Plato (CORREGIDO: usando el bucket 'avatars')
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formCategoryId || !formName.trim()) {
@@ -357,14 +357,15 @@ export default function AppleStyleMenuAdminPanel() {
         const fileExt = formImageFile.name.split('.').pop()
         const fileName = `dish-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`
         
+        // CORRECCIÓN: Se cambió 'menu-images' por 'avatars' para mantener la estructura anterior
         const { error: uploadError } = await supabase.storage
-          .from('menu-images')
+          .from('avatars')
           .upload(fileName, formImageFile, { upsert: true })
 
-        if (!uploadError) {
-          const { data: pub } = supabase.storage.from('menu-images').getPublicUrl(fileName)
-          finalImageUrl = pub.publicUrl
-        }
+        if (uploadError) throw uploadError
+
+        const { data: pub } = supabase.storage.from('avatars').getPublicUrl(fileName)
+        finalImageUrl = pub.publicUrl
       }
 
       const productPayload = {
