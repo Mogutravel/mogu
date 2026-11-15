@@ -220,11 +220,12 @@ export default function MobileStorePage({ params }) {
         {currentTab === 'perfil' && <ProfileView store={enrichedStore} />}
       </main>
 
-      {/* 3. Barra de navegación inferior */}
+      {/* 3. Barra de navegación inferior (AQUÍ FALTABA PASAR EL CART) */}
       <BottomNav 
         currentTab={currentTab} 
         setCurrentTab={setCurrentTab} 
         storeConfig={storeConfig} 
+        cart={cart}
       />
 
     </div>

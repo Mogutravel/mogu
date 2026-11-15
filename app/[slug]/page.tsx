@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-// NOTA: Eliminamos la importación de DeleteAccountButton de aquí
 import {
   FaWhatsapp,
   FaInstagram,
@@ -36,6 +35,7 @@ interface Profile {
   plan_id?: string | null
   has_menu?: boolean
   has_catalogo?: boolean
+  has_app?: boolean // <--- Habilitado para verificar si cuenta con la app de los planes Pro / Ecosystem
 }
 
 interface LinkItem {
@@ -424,6 +424,38 @@ export default function AppleDynamicPublicProfilePage() {
           </div>
         )}
 
+        {/* 📱 BOTÓN COMPRA A TRAVÉS DE NUESTRA APP (Activado automáticamente para planes Pro / Ecosystem) */}
+        {profile.has_app && (
+          <div className="mb-3">
+            <a
+              href={`https://mogu.cl/mobile/${profile.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative flex items-center justify-between p-4 bg-white/90 hover:bg-white backdrop-blur-xl border border-[#E5E5EA] hover:border-emerald-400/50 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 active:scale-[0.99] overflow-hidden"
+            >
+              <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-emerald-500/10 to-transparent group-hover:left-[100%] transition-all duration-1000 ease-in-out pointer-events-none" />
+
+              <div className="flex items-center space-x-3.5 z-10">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-lg flex-shrink-0 group-hover:scale-105 transition-transform">
+                  📱
+                </div>
+                <div className="text-left overflow-hidden">
+                  <h3 className="text-xs font-bold text-[#1D1D1F] tracking-tight group-hover:text-emerald-600 transition-colors">
+                    Compra a través de nuestra App
+                  </h3>
+                  <p className="text-[10px] text-[#86868B] mt-0.5 truncate font-normal">
+                    Pide directo en nuestra aplicación exclusiva
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-[#86868B] group-hover:text-emerald-600 group-hover:translate-x-1 transition-all z-10 flex-shrink-0 ml-2">
+                <FaArrowRight className="text-sm" />
+              </div>
+            </a>
+          </div>
+        )}
+
         {/* 🎁 BOTÓN TARJETA DE FIDELIZACIÓN */}
         {loyaltyProgram && (
           <div className="mb-3">
@@ -516,8 +548,6 @@ export default function AppleDynamicPublicProfilePage() {
             Quiero mi tarjeta Mogu 🚀
           </a>
         </div>
-
-        {/* NOTA: El botón DeleteAccountButton se ha removido de aquí */}
 
       </main>
 
