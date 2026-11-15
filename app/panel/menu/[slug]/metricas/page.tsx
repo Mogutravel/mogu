@@ -12,7 +12,8 @@ import {
   FiCreditCard, 
   FiShoppingBag, 
   FiClock,
-  FiCalendar
+  FiCalendar,
+  FiLock
 } from 'react-icons/fi'
 
 interface SaleHistoryItem {
@@ -32,6 +33,53 @@ export default function MetricasVentasPage() {
 
   const [salesHistory, setSalesHistory] = useState<SaleHistoryItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [isEcosystemPlan, setIsEcosystemPlan] = useState<boolean | null>(null)
+
+  // 1. Verificar plan del comercio antes de cargar las métricas
+  useEffect(() => {
+    async function checkPlanAndFetch() {
+      if (!slug) return
+      try {
+        setLoading(true)
+
+        // Consultamos el perfil y su configuración de tienda / plan
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('slug', slug)
+          .maybeSingle()
+
+        if (!profileData) {
+          setLoading(false)
+          return
+        }
+
+        const { data: configData } = await supabase
+          .from('store_config')
+          .select('plan_tier, plan')
+          .eq('profile_id', profileData.id)
+          .maybeSingle()
+
+        // Verificamos si el plan es ecosystem (ajusta según el campo que utilices en tu DB)
+        const currentPlan = configData?.plan_tier || configData?.plan || '';
+        const hasAccess = currentPlan.toLowerCase() === 'ecosystem';
+        
+        setIsEcosystemPlan(hasAccess)
+
+        // Si tiene acceso, cargamos las ventas
+        if (hasAccess) {
+          await fetchSalesHistory()
+        } else {
+          setLoading(false)
+        }
+      } catch (err) {
+        console.error('Error verificando plan o métricas:', err)
+        setLoading(false)
+      }
+    }
+
+    checkPlanAndFetch()
+  }, [slug])
 
   const fetchSalesHistory = async () => {
     if (!slug) return
@@ -51,9 +99,9 @@ export default function MetricasVentasPage() {
     }
   }
 
+  // Realtime exclusivo si tiene el plan
   useEffect(() => {
-    if (!slug) return
-    fetchSalesHistory()
+    if (!slug || !isEcosystemPlan) return
 
     const channel = supabase
       .channel(`metrics-realtime-${slug}`)
@@ -69,9 +117,51 @@ export default function MetricasVentasPage() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [slug])
+  }, [slug, isEcosystemPlan])
 
-  // Cálculos de Métricas Globales
+  // Si está validando el plan
+  if (isEcosystemPlan === null && loading) {
+    return (
+      <div className="min-h-screen bg-[#09090B] flex items-center justify-center text-white/50 text-xs font-sans">
+        Verificando privilegios del plan...
+      </div>
+    )
+  }
+
+  // SI NO ES PLAN ECOSYSTEM: Bloquear pantalla con aviso profesional
+  if (isEcosystemPlan === false) {
+    return (
+      <div className="min-h-screen bg-[#09090B] text-white font-sans p-6 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-[#141416] border border-[#27272A] rounded-3xl p-8 text-center space-y-5 shadow-2xl">
+          <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto text-emerald-400 text-2xl">
+            <FiLock />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-xl font-black tracking-tight">Función Exclusiva de Mogu Ecosystem</h1>
+            <p className="text-xs text-white/60 leading-relaxed">
+              Las métricas avanzadas, el desglose de ventas por hora y los reportes detallados están disponibles únicamente para comercios con el plan <span className="text-emerald-400 font-bold">Mogu Ecosystem</span>.
+            </p>
+          </div>
+          <div className="pt-2 flex flex-col gap-2.5">
+            <button
+              onClick={() => router.push(`/panel/menu/${slug}`)}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-lg transition cursor-pointer"
+            >
+              Volver al Panel Principal
+            </button>
+            <button
+              onClick={() => router.push(`/admin/${slug}`)}
+              className="w-full py-2.5 bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-white/70 hover:text-white font-bold text-xs rounded-xl transition cursor-pointer"
+            >
+              Ir a Ajustes del Local
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Cálculos de Métricas Globales (Solo para Ecosystem)
   const totalVentasGlobal = salesHistory.reduce((acc, curr) => acc + Number(curr.total_amount), 0)
   const totalTransacciones = salesHistory.length
   const totalEfectivo = salesHistory.filter(s => s.payment_method?.toLowerCase() === 'efectivo').reduce((acc, curr) => acc + Number(curr.total_amount), 0)

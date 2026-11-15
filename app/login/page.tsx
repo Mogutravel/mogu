@@ -35,23 +35,36 @@ export default function LoginPage() {
       if (signInError) throw signInError
 
       if (signInData.user) {
-        // 2. CONSULTAR PERFIL Y SU PLAN ASOCIADO
+        // 2. CONSULTAR PERFIL Y SU CONFIGURACIÓN DE PLAN (store_config o relaciones de planes)
         const { data: profile } = await supabase
           .from('profiles')
-          .select('slug, subscription_type, plan_id, plans(slug)')
+          .select('id, slug, subscription_type, plan_id, plans(slug)')
           .eq('user_id', signInData.user.id)
           .maybeSingle()
 
         if (profile) {
-          const planSlug = (profile.plans as any)?.slug
+          // Consultar también el store_config por si el plan se guarda ahí como plan_tier o plan
+          const { data: storeConfig } = await supabase
+            .from('store_config')
+            .select('plan_tier, plan')
+            .eq('profile_id', profile.id)
+            .maybeSingle()
 
-          // 3. SI ES PLAN MOGU START -> REDIRECCIÓN DIRECTA AL ADMIN
-          if (profile.subscription_type === 'free_start' || planSlug === 'mogu-start') {
+          const planSlug = (profile.plans as any)?.slug || ''
+          const storePlan = storeConfig?.plan_tier || storeConfig?.plan || ''
+          
+          // Verificamos si realmente cuenta con el plan Ecosystem
+          const isEcosystem = 
+            planSlug.toLowerCase() === 'ecosystem' || 
+            storePlan.toLowerCase() === 'ecosystem'
+
+          // 3. SI NO ES ECOSYSTEM (Ej: Start o Pro) -> REDIRECCIÓN DIRECTA AL ADMIN
+          if (!isEcosystem) {
             window.location.href = `/admin/${profile.slug}`
             return
           }
 
-          // 4. SI ES UN PLAN AVANZADO -> MOSTRAR SELECTOR DE ROL (Cocina / Caja / Admin)
+          // 4. SI ES PLAN ECOSYSTEM -> MOSTRAR SELECTOR DE ROL (Cocina / Caja / Admin)
           setActiveSlug(profile.slug)
           setShowRoleSelector(true)
         } else {
@@ -69,7 +82,7 @@ export default function LoginPage() {
     }
   }
 
-  // MANEJO DE RUTAS SEGÚN EL ROL SELECCIONADO (Para planes Pro / Empresa)
+  // MANEJO DE RUTAS SEGÚN EL ROL SELECCIONADO (Exclusivo Ecosystem)
   const handleSelectRole = async (role: 'cocina' | 'caja' | 'admin') => {
     if (!activeSlug) return
 
@@ -96,7 +109,7 @@ export default function LoginPage() {
     }
   }
 
-  // VALIDACIÓN DEL PIN DE ADMINISTRADOR (Para planes con PIN)
+  // VALIDACIÓN DEL PIN DE ADMINISTRADOR (Para Ecosystem)
   const handleVerifyPin = async (e: React.FormEvent) => {
     e.preventDefault()
     setCheckingPin(true)
@@ -189,7 +202,7 @@ export default function LoginPage() {
 
         </div>
       ) : (
-        /* VISTA DEL SELECTOR DE PERFIL POST-LOGIN (Planes Pro / Empresa) */
+        /* VISTA DEL SELECTOR DE PERFIL POST-LOGIN (Exclusivo Plan Ecosystem) */
         <div className="relative z-10 w-full max-w-md bg-neutral-900/50 backdrop-blur-2xl border border-neutral-800/80 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl text-center">
           <div>
             <h2 className="text-xl font-bold">¿Quién se está conectando?</h2>

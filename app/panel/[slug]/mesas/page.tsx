@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
   FiGrid,
@@ -11,7 +11,8 @@ import {
   FiCheck,
   FiArrowLeft,
   FiSmartphone,
-  FiPrinter
+  FiPrinter,
+  FiLock
 } from 'react-icons/fi'
 
 interface TableItem {
@@ -24,12 +25,57 @@ interface TableItem {
 
 export default function TablesManagementPage() {
   const params = useParams()
+  const router = useRouter()
   const slug = params?.slug as string
 
   const [tables, setTables] = useState<TableItem[]>([])
   const [loading, setLoading] = useState(true)
   const [copiedTable, setCopiedTable] = useState<number | null>(null)
   const [creating, setCreating] = useState(false)
+  const [isEcosystemPlan, setIsEcosystemPlan] = useState<boolean | null>(null)
+
+  // 1. Verificar plan del comercio antes de cargar las mesas
+  useEffect(() => {
+    async function checkPlanAndFetch() {
+      if (!slug) return
+      try {
+        setLoading(true)
+
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('slug', slug)
+          .maybeSingle()
+
+        if (!profileData) {
+          setLoading(false)
+          return
+        }
+
+        const { data: configData } = await supabase
+          .from('store_config')
+          .select('plan_tier, plan')
+          .eq('profile_id', profileData.id)
+          .maybeSingle()
+
+        const currentPlan = configData?.plan_tier || configData?.plan || ''
+        const hasAccess = currentPlan.toLowerCase() === 'ecosystem'
+        
+        setIsEcosystemPlan(hasAccess)
+
+        if (hasAccess) {
+          await fetchTables()
+        } else {
+          setLoading(false)
+        }
+      } catch (err) {
+        console.error('Error verificando plan o mesas:', err)
+        setLoading(false)
+      }
+    }
+
+    checkPlanAndFetch()
+  }, [slug])
 
   const fetchTables = async () => {
     if (!slug) return
@@ -49,10 +95,6 @@ export default function TablesManagementPage() {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    fetchTables()
-  }, [slug])
 
   // Agregar la siguiente mesa numérica consecutiva
   const handleAddTable = async () => {
@@ -106,6 +148,48 @@ export default function TablesManagementPage() {
     return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(targetUrl)}&color=09090b&bgcolor=ffffff`
   }
 
+  // Si está validando el plan
+  if (isEcosystemPlan === null && loading) {
+    return (
+      <div className="min-h-screen bg-[#09090B] flex items-center justify-center text-white/50 text-xs font-sans">
+        Verificando privilegios del plan...
+      </div>
+    )
+  }
+
+  // SI NO ES PLAN ECOSYSTEM: Bloquear pantalla con aviso profesional
+  if (isEcosystemPlan === false) {
+    return (
+      <div className="min-h-screen bg-[#09090B] text-white font-sans p-6 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-[#141416] border border-[#27272A] rounded-3xl p-8 text-center space-y-5 shadow-2xl">
+          <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto text-emerald-400 text-2xl">
+            <FiLock />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-xl font-black tracking-tight">Función Exclusiva de Mogu Ecosystem</h1>
+            <p className="text-xs text-white/60 leading-relaxed">
+              La gestión de mesas, tótems físicos, códigos QR inteligentes y etiquetas NFC está disponible únicamente para comercios con el plan <span className="text-emerald-400 font-bold">Mogu Ecosystem</span>.
+            </p>
+          </div>
+          <div className="pt-2 flex flex-col gap-2.5">
+            <button
+              onClick={() => router.push(`/panel/menu/${slug}`)}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-lg transition cursor-pointer"
+            >
+              Volver al Panel Principal
+            </button>
+            <button
+              onClick={() => router.push(`/admin/${slug}`)}
+              className="w-full py-2.5 bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-white/70 hover:text-white font-bold text-xs rounded-xl transition cursor-pointer"
+            >
+              Ir a Ajustes del Local
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#09090B] text-white font-sans p-6 md:p-10 pb-32">
       <div className="max-w-5xl mx-auto space-y-8">
@@ -114,7 +198,7 @@ export default function TablesManagementPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#27272A] pb-6">
           <div>
             <a
-              href={`/panel/${slug}`}
+              href={`/panel/menu/${slug}`}
               className="flex items-center gap-2 text-xs font-medium text-white/50 hover:text-white transition mb-3"
             >
               <FiArrowLeft /> Volver al panel de administración
