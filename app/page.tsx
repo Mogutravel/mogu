@@ -3,6 +3,7 @@ import { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import PhoneMockup from '@/components/PhoneMockup'
 import Navbar from '@/components/Navbar'
+import PricingSection from '@/components/PricingSection'
 import {
   ArrowRight,
   Check,
@@ -61,39 +62,154 @@ interface Plan {
   original_price: number | null
   badge: string | null
   interval: string
+  subtitle?: string
   features: string[]
 }
 
-async function getPlans(): Promise<Plan[]> {
+const DEFAULT_START_PLAN: Plan = {
+  id: 'mogu-start',
+  name: 'Mogu Start',
+  slug: 'mogu-start',
+  price: 0,
+  original_price: null,
+  badge: 'GRATIS PARA SIEMPRE',
+  interval: 'mensual',
+  subtitle: 'Tu identidad gastronómica en un solo enlace inteligente.',
+  features: [
+    'Perfil digital optimizado (mogu.cl/tu-local)',
+    'Enlaces externos ilimitados (Instagram, WhatsApp, ubicación, web)',
+    'Diseño 100% adaptado a dispositivos móviles',
+    'Código QR descargable para compartir tu perfil',
+  ],
+}
+
+const DEFAULT_MONTHLY_PLANS: Plan[] = [
+  {
+    id: 'mogu-core',
+    name: 'Mogu Core',
+    slug: 'mogu-core',
+    price: 14990,
+    original_price: null,
+    badge: 'NÚCLEO DIGITAL',
+    interval: 'mensual',
+    subtitle: 'Digitaliza tu carta y olvídate de reimprimir precios.',
+    features: [
+      'Todo lo incluido en Mogu Start',
+      'Menú digital interactivo con código QR',
+      'Hasta 100 productos activos en catálogo',
+      'Actualización de precios y disponibilidad en tiempo real',
+      'Gestión de categorías, fotos y modificadores de productos',
+      'Personalización con los colores y logo de tu marca',
+    ],
+  },
+  {
+    id: 'mogu-pro',
+    name: 'Mogu Pro',
+    slug: 'mogu-pro',
+    price: 29900,
+    original_price: null,
+    badge: 'MÁS ELEGIDO • 0% COMISIÓN',
+    interval: 'mensual',
+    subtitle: 'Tu propia app de pedidos y sistema de fidelización sin intermediarios.',
+    features: [
+      'Todo lo incluido en Mogu Core',
+      'App web de pedidos dedicada para retiro en local y delivery propio',
+      'Pedidos directos al WhatsApp de tu local (¡Conserva el 100% de tu margen con 0% de comisión!)',
+      'Catálogo optimizado de hasta 150 productos activos',
+      'Fidelización integrada: Motor de Mogu Puntos + Red Mogu Travel',
+    ],
+  },
+  {
+    id: 'mogu-ecosystem',
+    name: 'Mogu Ecosystem',
+    slug: 'mogu-ecosystem',
+    price: 49900,
+    original_price: null,
+    badge: 'OPERACIÓN TOTAL',
+    interval: 'mensual',
+    subtitle: 'Control absoluto de tu salón, cocina y caja con catálogo ilimitado.',
+    features: [
+      'Todo lo incluido en Mogu Pro',
+      'Catálogo de productos 100% ilimitado (sin restricciones)',
+      'Ecosistema operativo en vivo: Sincronización instantánea entre Caja, Cocina (KDS), Garzones y Admin',
+      'Analítica financiera avanzada, cierres seguros por PIN y métricas de ventas',
+      'Hasta 10 estaciones conectadas y visibilidad destacada en Mogu Travel',
+    ],
+  },
+]
+
+const DEFAULT_ANNUAL_PLANS: Plan[] = [
+  {
+    id: 'mogu-core-anual',
+    name: 'Mogu Core',
+    slug: 'mogu-core-anual',
+    price: 149900,
+    original_price: 179880,
+    badge: '2 MESES GRATIS',
+    interval: 'anual',
+    subtitle: 'Digitaliza tu carta y olvídate de reimprimir precios todo el año.',
+    features: [
+      'Todo lo incluido en Mogu Start',
+      'Menú digital interactivo con código QR',
+      'Hasta 100 productos activos en catálogo',
+      'Actualización de precios y disponibilidad en tiempo real',
+      'Gestión de categorías, fotos y modificadores de productos',
+      'Personalización con los colores y logo de tu marca',
+    ],
+  },
+  {
+    id: 'mogu-pro-anual',
+    name: 'Mogu Pro',
+    slug: 'mogu-pro-anual',
+    price: 299900,
+    original_price: 358800,
+    badge: 'MÁS ELEGIDO • AHORRA $58.900',
+    interval: 'anual',
+    subtitle: 'Tu propia app de pedidos y sistema de fidelización sin intermediarios.',
+    features: [
+      'Todo lo incluido en Mogu Core',
+      'App web de pedidos dedicada para retiro en local y delivery propio',
+      'Pedidos directos al WhatsApp de tu local (¡Conserva el 100% de tu margen con 0% de comisión!)',
+      'Catálogo optimizado de hasta 150 productos activos',
+      'Fidelización integrada: Motor de Mogu Puntos + Red Mogu Travel',
+    ],
+  },
+  {
+    id: 'mogu-ecosystem-anual',
+    name: 'Mogu Ecosystem',
+    slug: 'mogu-ecosystem-anual',
+    price: 399000,
+    original_price: 598800,
+    badge: 'OPERACIÓN TOTAL • AHORRA $199.800',
+    interval: 'anual',
+    subtitle: 'Control absoluto de tu salón, cocina y caja con catálogo ilimitado.',
+    features: [
+      'Todo lo incluido en Mogu Pro',
+      'Catálogo de productos 100% ilimitado (sin restricciones)',
+      'Ecosistema operativo en vivo: Sincronización instantánea entre Caja, Cocina (KDS), Garzones y Admin',
+      'Analítica financiera avanzada, cierres seguros por PIN y métricas de ventas',
+      'Hasta 10 estaciones conectadas y visibilidad destacada en Mogu Travel',
+    ],
+  },
+]
+
+async function getStartPlan(): Promise<Plan> {
   try {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('plans')
       .select('*')
-      .eq('is_active', true)
-      .order('price', { ascending: true })
-
-    if (error) {
-      console.error('Error cargando planes Cloud:', error)
-      return []
-    }
-
-    return data || []
-  } catch (err) {
-    console.error('Error de conexión planes:', err)
-    return []
+      .eq('slug', 'mogu-start')
+      .single()
+    return data ? { ...DEFAULT_START_PLAN, ...data } : DEFAULT_START_PLAN
+  } catch {
+    return DEFAULT_START_PLAN
   }
 }
 
-const formatPrice = (amount: number) => {
-  return new Intl.NumberFormat('es-CL', {
-    style: 'currency',
-    currency: 'CLP',
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
 export default async function Home() {
-  const planes = await getPlans()
+  const startPlan = await getStartPlan()
+  const monthlyPlans = DEFAULT_MONTHLY_PLANS
+  const annualPlans = DEFAULT_ANNUAL_PLANS
 
   const faqs = [
     {
@@ -114,7 +230,7 @@ export default async function Home() {
     {
       question: '¿Qué es la comunidad Mogu Travel y los Mogu Puntos?',
       answer:
-        'Es la red internacional de fidelización de Mogu que conecta locales gastronómicos con clientes frecuentes y una comunidad global de viajeros, permitiendo acumular y canjear Mogu Puntos por recompensas e incentivos de consumo.',
+        'Es la red internacional de fidelización incluida desde el plan Mogu Pro y Mogu Ecosystem que conecta locales gastronómicos con clientes frecuentes y una comunidad global de viajeros, permitiendo acumular y canjear Mogu Puntos por recompensas e incentivos de consumo.',
     },
     {
       question: '¿Puedo modificar mi carta, colores y precios por mi cuenta?',
@@ -124,7 +240,7 @@ export default async function Home() {
     {
       question: '¿Cuáles son los planes de Mogu para restaurantes?',
       answer:
-        'Ofrecemos el Plan Mogu Start ($0, ideal con perfil digital y enlace personalizado), Plan Mogu Pro ($79.900 + IVA/año, con carta o menú digital QR/NFC y gestión de promociones) y Mogu Ecosystem ($119.900 + IVA/año, que incluye caja registradora, módulo de garzones y sala, y KDS en tiempo real).',
+        'Contamos con Mogu Start ($0, perfil digital con enlaces ilimitados), Mogu Core ($14.990 + IVA/mes, carta digital QR hasta 100 productos), Mogu Pro ($29.900 + IVA/mes, app de pedidos hasta 150 productos + comunidad y fidelización) y Mogu Ecosystem ($49.900 + IVA/mes, catálogo ilimitado + caja, garzones, KDS en tiempo real y fidelización). Todos los planes de pago cuentan con opción anual.',
     },
   ]
 
@@ -622,122 +738,12 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* SECCIÓN DE PLANES Y PRECIOS */}
-        <section id="ecosistema" className="mx-auto max-w-7xl px-6 py-28 relative z-20 border-t border-white/15">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
-              Planes Mogu SpA
-            </span>
-            <h2 className="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tight">
-              Planes de Software y Operaciones
-            </h2>
-            <p className="text-[#D4CEC7] text-sm md:text-base font-normal mt-3">
-              Selecciona el nivel ideal para tu restaurante o café, adaptado a tu volumen de productos y herramientas de caja.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto items-stretch">
-            {planes.map((plan) => {
-              const isPopular = plan.slug === 'mogu-ecosystem' || plan.badge?.includes('POPULAR')
-
-              if (isPopular) {
-                return (
-                  <div
-                    key={plan.id}
-                    className="p-8 rounded-3xl bg-gradient-to-b from-white/20 to-white/5 backdrop-blur-xl border-2 border-cyan-400 shadow-[0_0_50px_-10px_rgba(6,182,212,0.4)] relative flex flex-col justify-between md:-translate-y-3"
-                  >
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                      <span className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-[10px] font-extrabold uppercase px-4 py-1.5 rounded-full tracking-widest shadow-lg">
-                        MÁS POPULAR
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] font-bold uppercase px-3.5 py-1 rounded-full bg-cyan-400/20 text-cyan-300 border border-cyan-400/40 tracking-wider">
-                        {plan.name}
-                      </span>
-                      <h3 className="text-2xl font-bold text-white mt-4">{plan.name}</h3>
-                      <div className="flex items-baseline gap-2 mt-2">
-                        <p className="text-3xl font-extrabold text-white">
-                          {formatPrice(plan.price)}
-                        </p>
-                        {plan.original_price && (
-                          <span className="text-xs text-white/50 line-through">
-                            {formatPrice(plan.original_price)}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-xs text-[#D4CEC7] block font-medium mt-1">
-                        + IVA / pago {plan.interval}
-                      </span>
-
-                      <ul className="space-y-3.5 mt-6 text-xs font-normal text-white">
-                        {plan.features?.map((feature, idx) => (
-                          <li key={idx} className="flex items-center gap-2.5">
-                            <Check className="w-4 h-4 text-cyan-400 shrink-0" />
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <Link
-                      href={`/checkout/${plan.slug}`}
-                      className="group w-full mt-8 py-3.5 text-xs font-bold uppercase tracking-wider rounded-2xl bg-white hover:bg-slate-100 text-[#0E0C0A] text-center transition-all shadow-[0_0_25px_rgba(255,255,255,0.4)] hover:scale-[1.02] flex items-center justify-center gap-2"
-                    >
-                      <span>Elegir {plan.name}</span>
-                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                    </Link>
-                  </div>
-                )
-              }
-
-              return (
-                <div
-                  key={plan.id}
-                  className="p-8 rounded-3xl bg-white/[0.06] backdrop-blur-xl border border-white/15 flex flex-col justify-between transition-all hover:border-white/30 shadow-xl"
-                >
-                  <div>
-                    <span className="text-[10px] font-bold uppercase px-3.5 py-1 rounded-full bg-white/10 text-white tracking-wider">
-                      {plan.name}
-                    </span>
-                    <h3 className="text-2xl font-bold text-white mt-4">{plan.name}</h3>
-                    <div className="flex items-baseline gap-2 mt-2">
-                      <p className="text-3xl font-extrabold text-white">
-                        {formatPrice(plan.price)}
-                      </p>
-                      {plan.original_price && (
-                        <span className="text-xs text-white/50 line-through">
-                          {formatPrice(plan.original_price)}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs text-[#D4CEC7] block font-medium mt-1">
-                      + IVA / pago {plan.interval}
-                    </span>
-
-                    <ul className="space-y-3.5 mt-6 text-xs font-normal text-white">
-                      {plan.features?.map((feature, idx) => (
-                        <li key={idx} className="flex items-center gap-2.5">
-                          <Check className="w-4 h-4 text-cyan-400 shrink-0" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <Link
-                    href={`/checkout/${plan.slug}`}
-                    className="group w-full mt-8 py-3.5 text-xs font-bold uppercase tracking-wider rounded-2xl bg-white/10 hover:bg-white hover:text-[#0E0C0A] text-white text-center transition-all border border-white/20 shadow-md flex items-center justify-center gap-2"
-                  >
-                    <span>Elegir {plan.name}</span>
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                  </Link>
-                </div>
-              )
-            })}
-          </div>
-        </section>
+        {/* COMPONENTE INTERACTIVO DE PRECIOS Y PLANES (MENSUAL / ANUAL) */}
+        <PricingSection
+          startPlan={startPlan}
+          monthlyPlans={DEFAULT_MONTHLY_PLANS}
+          annualPlans={DEFAULT_ANNUAL_PLANS}
+        />
 
         {/* TESTIMONIOS */}
         <section id="testimonios" className="mx-auto max-w-7xl px-6 py-28 relative z-20 border-t border-white/15">
