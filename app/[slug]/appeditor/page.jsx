@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { 
   FiCheck, FiLoader, FiExternalLink, FiArrowLeft, FiSmartphone, 
-  FiLayout, FiImage, FiSliders, FiPlus, FiTrash2, FiStar, FiUploadCloud, FiX 
+  FiLayout, FiImage, FiSliders, FiPlus, FiTrash2, FiStar, FiUploadCloud, FiX, FiCheckSquare, FiSquare 
 } from 'react-icons/fi';
 
 const VISUAL_PRESETS = [
@@ -188,6 +188,14 @@ export default function AppEditorPage({ params }) {
 
   const removeBanner = (index) => {
     setBanners(banners.filter((_, i) => i !== index));
+  };
+
+  const toggleFavoriteItem = (itemId) => {
+    if (favoriteIds.includes(itemId)) {
+      setFavoriteIds(favoriteIds.filter(id => id !== itemId));
+    } else {
+      setFavoriteIds([...favoriteIds, itemId]);
+    }
   };
 
   const handleSaveAll = async (e) => {
@@ -465,7 +473,7 @@ export default function AppEditorPage({ params }) {
                       className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-emerald-600 cursor-pointer"
                     >
                       <option value="Cuenta Corriente">Cuenta Corriente</option>
-                      <option value="Cuenta Vista / Rut">Cuenta Vista / RUT</option>
+                      <option value="Cuenta Vista / RUT">Cuenta Vista / RUT</option>
                       <option value="Cuenta de Ahorros">Cuenta de Ahorros</option>
                     </select>
                   </div>
@@ -625,7 +633,7 @@ export default function AppEditorPage({ params }) {
               </div>
 
               {/* SELECCIÓN COMERCIAL */}
-              <div className="pt-4 border-t border-gray-100 space-y-3">
+              <div className="pt-4 border-t border-gray-100 space-y-4">
                 <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Plato del Día y Favoritos</h3>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Selecciona el Plato del Día</label>
@@ -640,6 +648,56 @@ export default function AppEditorPage({ params }) {
                     ))}
                   </select>
                 </div>
+
+                {/* NUEVA SECCIÓN: GESTIONAR LOS MÁS PEDIDOS / FAVORITOS */}
+                <div className="space-y-2 pt-2">
+                  <div className="flex justify-between items-center">
+                    <label className="block text-xs font-semibold text-gray-600">Selecciona "Los Más Pedidos" (Favoritos)</label>
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold">
+                      {favoriteIds.length} seleccionados
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-gray-400">Marca los productos que aparecerán en la sección de favoritos de tu app.</p>
+                  
+                  <div className="max-h-56 overflow-y-auto space-y-1.5 border border-gray-200 rounded-2xl p-2 bg-gray-50">
+                    {menuItems.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic text-center py-4">No hay productos activos en tu menú.</p>
+                    ) : (
+                      menuItems.map(item => {
+                        const isSelected = favoriteIds.includes(item.id);
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={() => toggleFavoriteItem(item.id)}
+                            className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition border ${
+                              isSelected ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-white border-gray-200 hover:bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 truncate">
+                              {item.image_url ? (
+                                <img src={item.image_url} alt="" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+                              ) : (
+                                <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center text-[10px] flex-shrink-0">🍽️</div>
+                              )}
+                              <div className="truncate">
+                                <p className="text-xs font-bold truncate">{item.name}</p>
+                                <p className="text-[10px] text-gray-500">${item.price}</p>
+                              </div>
+                            </div>
+                            <div className="flex-shrink-0">
+                              {isSelected ? (
+                                <FiCheckSquare className="text-emerald-600 text-base" />
+                              ) : (
+                                <FiSquare className="text-gray-400 text-base" />
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
               </div>
 
             </div>
@@ -709,6 +767,36 @@ export default function AppEditorPage({ params }) {
                         <p className="text-[10px] text-gray-500">$9.990</p>
                       </div>
                       <span className="text-[10px] text-white px-3 py-1 rounded-lg font-bold" style={{ backgroundColor: buttonColor }}>+ Pedir</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* VISTA PREVIA DE FAVORITOS / LOS MÁS PEDIDOS */}
+                {sectionsConfig.favorites && (
+                  <div className="bg-white p-3 rounded-2xl shadow-sm border border-black/5 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-black text-emerald-700 block">⭐ Los Más Pedidos</span>
+                      <span className="text-[9px] text-gray-400">{favoriteIds.length} ítems</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {favoriteIds.length === 0 ? (
+                        <div className="col-span-2 py-3 text-center text-[10px] text-gray-400 border border-dashed border-gray-200 rounded-xl">
+                          Selecciona tus favoritos abajo
+                        </div>
+                      ) : (
+                        menuItems
+                          .filter(item => favoriteIds.includes(item.id))
+                          .slice(0, 4)
+                          .map(fav => (
+                            <div key={fav.id} className="bg-gray-50 p-2 rounded-xl border border-gray-100 flex flex-col justify-between">
+                              <p className="text-[10px] font-bold truncate">{fav.name}</p>
+                              <div className="flex justify-between items-center mt-1">
+                                <span className="text-[9px] text-gray-500">${fav.price}</span>
+                                <span className="text-[9px] px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: buttonColor }}>+</span>
+                              </div>
+                            </div>
+                          ))
+                      )}
                     </div>
                   </div>
                 )}
