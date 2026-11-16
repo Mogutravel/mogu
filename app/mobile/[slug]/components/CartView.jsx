@@ -1,10 +1,10 @@
 'use client';
 import { useState } from 'react';
-import { Store, Truck, ArrowLeft, Navigation, Copy, Check } from 'lucide-react';
+import { Store, Truck, ArrowLeft, Navigation, Copy, Check, Trash2 } from 'lucide-react';
 
 export default function CartView({ cart, updateQuantity, storePhone, goToMenu, storeConfig }) {
-  const buttonColor = storeConfig?.button_color || '#047857';
-  const primaryColor = storeConfig?.primary_color || '#065F46';
+  const buttonColor = storeConfig?.button_color || '#10B981';
+  const primaryColor = storeConfig?.primary_color || '#10B981';
   const borderRadius = storeConfig?.border_radius || 'rounded-2xl';
   const shadowStyle = storeConfig?.shadow_style || 'shadow-sm';
 
@@ -55,7 +55,7 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
               ...prev,
               address: street || prev.address,
               addressNumber: houseNumber || prev.addressNumber,
-              notes: suburb && !prev.notes.includes(suburb) ? (prev.notes ? `${prev.notes} - Sector: ${suburb}` : `Sector: ${suburb}`) : prev.notes
+              notes: suburb && !prev.notes.includes(suburb) ? (prev.notes ? `${prev.notes} Sector: ${suburb}` : `Sector: ${suburb}`) : prev.notes
             }));
             
             alert('¡Ubicación GPS detectada con éxito! Verifica los datos.');
@@ -85,7 +85,7 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
 
   const handleSendWhatsApp = (e) => {
     e.preventDefault();
-    const itemsText = cart.map(i => `- ${i.quantity}x ${i.name} (${i.selectedSize || 'Estándar'}) - $${(i.finalPrice || i.price) * i.quantity}`).join('\n');
+    const itemsText = cart.map(i => `- ${i.quantity}x ${i.name} (${i.selectedSize || 'Estándar'}) - $${((i.finalPrice || i.price) * i.quantity).toLocaleString('es-CL')}`).join('\n');
     
     const deliveryText = deliveryType === 'delivery' 
       ? `📦 Tipo de Entrega: Delivery\n📍 Dirección: ${formData.address}, Nº ${formData.addressNumber}\n`
@@ -100,7 +100,7 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
       `📞 Teléfono: ${formData.phone}\n` +
       (formData.email ? `✉️ Email: ${formData.email}\n` : '') +
       (formData.notes ? `📝 Observaciones: ${formData.notes}\n` : '') +
-      `\n💰 Total a Pagar: $${totalPrice}`
+      `\n💰 Total a Pagar: $${totalPrice.toLocaleString('es-CL')}`
     );
 
     window.open(`https://wa.me/${storePhone}?text=${message}`, '_blank');
@@ -108,13 +108,23 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
 
   if (cart.length === 0) {
     return (
-      <div className="space-y-4 pt-2">
-        <h3 className="font-extrabold text-gray-900 text-base">Tu Carrito de Compras</h3>
-        <div className={`bg-white p-8 text-center space-y-3 border border-gray-100 ${borderRadius} ${shadowStyle}`}>
-          <p className="text-xs text-gray-400">Tu carrito está vacío.</p>
+      <div className="space-y-4 pt-2 pb-24">
+        <div>
+          <span className="text-[10px] font-extrabold uppercase tracking-[0.2em]" style={{ color: primaryColor }}>
+            Tu pedido
+          </span>
+          <h3 className="font-black text-zinc-900 text-xl tracking-tight">Carrito de Compras</h3>
+        </div>
+
+        <div className={`bg-white/95 backdrop-blur-sm p-10 text-center space-y-3 border border-zinc-200/80 ${borderRadius} ${shadowStyle}`}>
+          <div className="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-400 mx-auto mb-2">
+            🛒
+          </div>
+          <p className="text-sm font-bold text-zinc-800">Tu carrito está vacío</p>
+          <p className="text-xs text-zinc-400 max-w-[220px] mx-auto">Explora el catálogo y añade deliciosos productos para continuar.</p>
           <button
             onClick={goToMenu}
-            className="text-xs font-bold text-white px-4 py-2.5 rounded-xl shadow transition"
+            className="mt-2 text-xs font-extrabold text-white px-5 py-3 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
             style={{ backgroundColor: buttonColor }}
           >
             Ver Menú y Productos
@@ -125,87 +135,126 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
   }
 
   return (
-    <div className="space-y-4 pt-2 pb-20">
+    <div className="space-y-4 pt-2 pb-24">
+      {/* Encabezado con Indicador de Pasos */}
+      <div className="flex items-end justify-between">
+        <div>
+          <span className="text-[10px] font-extrabold uppercase tracking-[0.2em]" style={{ color: primaryColor }}>
+            Checkout seguro
+          </span>
+          <h3 className="font-black text-zinc-900 text-xl tracking-tight">
+            {step === 'cart' && 'Tu Carrito de Compras'}
+            {step === 'delivery_type' && 'Método de Entrega'}
+            {step === 'location' && 'Dirección de Envío'}
+            {step === 'checkout' && 'Datos y Pago'}
+          </h3>
+        </div>
+
+        <div className="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-600">
+          {step === 'cart' && 'Paso 1 de 3'}
+          {step === 'delivery_type' && 'Paso 2 de 3'}
+          {step === 'location' && 'Paso 2.5 de 3'}
+          {step === 'checkout' && 'Paso 3 de 3'}
+        </div>
+      </div>
+
       {/* PASO 1: VISTA DEL CARRITO */}
       {step === 'cart' && (
-        <>
-          <h3 className="font-extrabold text-gray-900 text-base">Tu Carrito de Compras</h3>
-          <div className="space-y-3">
+        <div className="space-y-3">
+          <div className="space-y-2.5">
             {cart.map((item, index) => (
-              <div key={index} className={`bg-white p-3.5 border border-gray-100 flex justify-between items-center ${borderRadius} ${shadowStyle}`}>
-                <div>
-                  <h4 className="font-bold text-xs text-gray-800">{item.name} {item.selectedSize && `(${item.selectedSize})`}</h4>
-                  <p className="text-xs font-black mt-0.5" style={{ color: primaryColor }}>${item.finalPrice || item.price}</p>
+              <div key={index} className={`bg-white p-4 border border-zinc-200/80 flex justify-between items-center gap-3 ${borderRadius} ${shadowStyle}`}>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-extrabold text-xs text-zinc-900 truncate">
+                    {item.name} {item.selectedSize && `(${item.selectedSize})`}
+                  </h4>
+                  <p className="text-xs font-black mt-1" style={{ color: primaryColor }}>
+                    ${((item.finalPrice || item.price) * item.quantity).toLocaleString('es-CL')}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => updateQuantity(index, -1)} className="w-7 h-7 bg-gray-100 rounded-lg font-bold text-gray-600">-</button>
-                  <span className="text-xs font-bold">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(index, 1)} className="w-7 h-7 bg-gray-100 rounded-lg font-bold text-gray-600">+</button>
+                <div className="flex items-center gap-2 bg-zinc-50 p-1 rounded-xl border border-zinc-200/60">
+                  <button 
+                    onClick={() => updateQuantity(index, -1)} 
+                    className="w-7 h-7 bg-white rounded-lg font-bold text-zinc-700 shadow-sm flex items-center justify-center hover:bg-zinc-100 transition active:scale-95 cursor-pointer"
+                  >
+                    -
+                  </button>
+                  <span className="text-xs font-extrabold px-1 text-zinc-800">{item.quantity}</span>
+                  <button 
+                    onClick={() => updateQuantity(index, 1)} 
+                    className="w-7 h-7 bg-white rounded-lg font-bold text-zinc-700 shadow-sm flex items-center justify-center hover:bg-zinc-100 transition active:scale-95 cursor-pointer"
+                  >
+                    +
+                  </button>
                 </div>
               </div>
             ))}
-
-            <div className={`bg-white p-4 border border-gray-100 space-y-3 ${borderRadius} ${shadowStyle}`}>
-              <div className="flex justify-between font-extrabold text-sm">
-                <span>Total a Pagar:</span>
-                <span style={{ color: primaryColor }}>${totalPrice}</span>
-              </div>
-
-              <button
-                onClick={() => setStep('delivery_type')}
-                className="w-full py-3 text-white font-extrabold text-xs rounded-xl shadow-md transition active:scale-95 text-center block"
-                style={{ backgroundColor: buttonColor }}
-              >
-                Continuar con el Pedido 🚀
-              </button>
-            </div>
           </div>
-        </>
+
+          <div className={`bg-white p-5 border border-zinc-200/80 space-y-4 ${borderRadius} ${shadowStyle}`}>
+            <div className="flex justify-between items-center font-black text-sm pt-1">
+              <span className="text-zinc-600">Total a Pagar:</span>
+              <span className="text-base" style={{ color: primaryColor }}>${totalPrice.toLocaleString('es-CL')}</span>
+            </div>
+
+            <button
+              onClick={() => setStep('delivery_type')}
+              className="w-full py-3.5 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 text-center block cursor-pointer"
+              style={{ 
+                backgroundColor: buttonColor,
+                boxShadow: `0 8px 20px -6px ${buttonColor}85`
+              }}
+            >
+              Continuar con el Pedido 🚀
+            </button>
+          </div>
+        </div>
       )}
 
       {/* PASO 2: TIPO DE ENTREGA */}
       {step === 'delivery_type' && (
-        <div className={`bg-white p-5 border border-gray-100 space-y-4 ${borderRadius} ${shadowStyle}`}>
+        <div className={`bg-white p-6 border border-zinc-200/80 space-y-5 ${borderRadius} ${shadowStyle}`}>
           <div className="flex items-center justify-between">
-            <button onClick={() => setStep('cart')} className="text-gray-500 hover:text-gray-800 flex items-center gap-1 text-xs font-bold">
-              <ArrowLeft size={16} /> Atrás
+            <button onClick={() => setStep('cart')} className="text-zinc-500 hover:text-zinc-800 flex items-center gap-1 text-xs font-bold cursor-pointer">
+              <ArrowLeft size={16} /> Volver al carrito
             </button>
-            <h3 className="font-extrabold text-gray-900 text-sm">Tipo de Entrega</h3>
-            <div className="w-10"></div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="grid grid-cols-2 gap-3.5">
             <button
               type="button"
               onClick={() => setDeliveryType('delivery')}
-              className="p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition"
+              className="p-5 rounded-2xl border-2 flex flex-col items-center justify-center gap-2.5 transition-all cursor-pointer"
               style={{
-                borderColor: deliveryType === 'delivery' ? buttonColor : '#E5E7EB',
-                backgroundColor: deliveryType === 'delivery' ? `${buttonColor}15` : 'transparent'
+                borderColor: deliveryType === 'delivery' ? primaryColor : '#E4E4E7',
+                backgroundColor: deliveryType === 'delivery' ? `${primaryColor}10` : '#FAFAFA'
               }}
             >
-              <Truck size={28} style={{ color: deliveryType === 'delivery' ? buttonColor : '#4B5563' }} />
-              <span className="text-xs font-bold" style={{ color: deliveryType === 'delivery' ? primaryColor : '#4B5563' }}>Delivery</span>
+              <Truck size={30} style={{ color: deliveryType === 'delivery' ? primaryColor : '#71717A' }} />
+              <span className="text-xs font-black" style={{ color: deliveryType === 'delivery' ? primaryColor : '#52525B' }}>Delivery</span>
             </button>
 
             <button
               type="button"
               onClick={() => setDeliveryType('retiro')}
-              className="p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition"
+              className="p-5 rounded-2xl border-2 flex flex-col items-center justify-center gap-2.5 transition-all cursor-pointer"
               style={{
-                borderColor: deliveryType === 'retiro' ? buttonColor : '#E5E7EB',
-                backgroundColor: deliveryType === 'retiro' ? `${buttonColor}15` : 'transparent'
+                borderColor: deliveryType === 'retiro' ? primaryColor : '#E4E4E7',
+                backgroundColor: deliveryType === 'retiro' ? `${primaryColor}10` : '#FAFAFA'
               }}
             >
-              <Store size={28} style={{ color: deliveryType === 'retiro' ? buttonColor : '#4B5563' }} />
-              <span className="text-xs font-bold" style={{ color: deliveryType === 'retiro' ? primaryColor : '#4B5563' }}>Retiro</span>
+              <Store size={30} style={{ color: deliveryType === 'retiro' ? primaryColor : '#71717A' }} />
+              <span className="text-xs font-black" style={{ color: deliveryType === 'retiro' ? primaryColor : '#52525B' }}>Retiro en Local</span>
             </button>
           </div>
 
           <button
             onClick={() => setStep(deliveryType === 'delivery' ? 'location' : 'checkout')}
-            className="w-full py-3 text-white font-extrabold text-xs rounded-xl shadow-md transition active:scale-95 text-center mt-4"
-            style={{ backgroundColor: buttonColor }}
+            className="w-full py-3.5 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 text-center cursor-pointer"
+            style={{ 
+              backgroundColor: buttonColor,
+              boxShadow: `0 8px 20px -6px ${buttonColor}85`
+            }}
           >
             Continuar →
           </button>
@@ -214,158 +263,158 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
 
       {/* PASO 3: UBICACIÓN Y GPS */}
       {step === 'location' && (
-        <div className={`bg-white p-5 border border-gray-100 space-y-4 ${borderRadius} ${shadowStyle}`}>
+        <div className={`bg-white p-6 border border-zinc-200/80 space-y-4 ${borderRadius} ${shadowStyle}`}>
           <div className="flex items-center justify-between">
-            <button onClick={() => setStep('delivery_type')} className="text-gray-500 hover:text-gray-800 flex items-center gap-1 text-xs font-bold">
+            <button onClick={() => setStep('delivery_type')} className="text-zinc-500 hover:text-zinc-800 flex items-center gap-1 text-xs font-bold cursor-pointer">
               <ArrowLeft size={16} /> Atrás
             </button>
-            <h3 className="font-extrabold text-gray-900 text-sm">Tu Ubicación</h3>
-            <div className="w-10"></div>
           </div>
 
-          <div className="space-y-3 pt-1">
+          <div className="space-y-3.5">
             <button
               type="button"
               onClick={handleGetLocation}
               disabled={isLoadingGps}
-              className="w-full py-3 border-2 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition active:scale-95"
+              className="w-full py-3.5 border-2 rounded-2xl font-extrabold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer"
               style={{ 
-                borderColor: buttonColor, 
-                backgroundColor: `${buttonColor}10`,
+                borderColor: primaryColor, 
+                backgroundColor: `${primaryColor}12`,
                 color: primaryColor 
               }}
             >
-              <Navigation size={16} style={{ color: buttonColor }} className={isLoadingGps ? 'animate-spin' : ''} /> 
+              <Navigation size={16} className={isLoadingGps ? 'animate-spin' : ''} /> 
               {isLoadingGps ? 'Obteniendo ubicación GPS...' : 'Usar mi ubicación GPS exacta (Recomendado)'}
             </button>
 
             <div>
-              <label className="text-[11px] font-bold text-gray-700 block mb-1">Calle / Avenida *</label>
+              <label className="text-[11px] font-bold text-zinc-700 block mb-1">Calle / Avenida *</label>
               <input
                 type="text"
                 name="address"
-                placeholder="Ej: Av. Providencia"
+                placeholder="Ej: Av. Principal"
                 value={formData.address}
                 onChange={handleInputChange}
-                className="w-full p-3 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-emerald-600"
+                className="w-full p-3 border border-zinc-200 rounded-xl text-xs focus:outline-none focus:ring-2 bg-zinc-50/50"
+                style={{ '--tw-ring-color': primaryColor }}
                 required
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-gray-700 block mb-1">Nº Casa / Depto / Referencia *</label>
+              <label className="text-[11px] font-bold text-zinc-700 block mb-1">Nº Casa / Depto / Referencia *</label>
               <input
                 type="text"
                 name="addressNumber"
-                placeholder="Ej: 1234, Depto 42B (Casa reja negra)"
+                placeholder="Ej: 1234, Depto 42B"
                 value={formData.addressNumber}
                 onChange={handleInputChange}
-                className="w-full p-3 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-emerald-600"
+                className="w-full p-3 border border-zinc-200 rounded-xl text-xs focus:outline-none focus:ring-2 bg-zinc-50/50"
                 required
               />
             </div>
 
             {/* Mapa integrado interactivo */}
-            <div className="relative w-full h-52 rounded-2xl overflow-hidden border border-gray-200 shadow-inner bg-gray-100">
+            <div className="relative w-full h-44 rounded-2xl overflow-hidden border border-zinc-200 shadow-inner bg-zinc-100">
               <iframe 
                 title="Mapa de Ubicación"
                 className="w-full h-full border-0 pointer-events-auto"
                 src="https://www.openstreetmap.org/export/embed.html?bbox=-71.24,-34.99,-71.22,-34.97&layer=mapnik"
               />
-              <div className="absolute top-3 left-3 flex flex-col bg-white rounded-lg shadow-md border border-gray-300 z-10 overflow-hidden">
-                <button type="button" className="w-8 h-8 flex items-center justify-center font-bold text-gray-700 hover:bg-gray-100 border-b border-gray-200">+</button>
-                <button type="button" className="w-8 h-8 flex items-center justify-center font-bold text-gray-700 hover:bg-gray-100">-</button>
-              </div>
             </div>
 
-            <p className="text-[11px] text-gray-500 text-center">
-              📍 El GPS detecta tu calle; asegúrate de ingresar el número correcto de tu casa o depto.
+            <p className="text-[11px] text-zinc-400 text-center">
+              📍 Asegúrate de verificar que el número de casa o departamento sea correcto.
             </p>
           </div>
 
           <button
             onClick={() => setStep('checkout')}
             disabled={!formData.address || !formData.addressNumber}
-            className={`w-full py-3 text-white font-extrabold text-xs rounded-xl shadow-md transition active:scale-95 text-center mt-2 ${(!formData.address || !formData.addressNumber) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`w-full py-3.5 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 text-center cursor-pointer ${(!formData.address || !formData.addressNumber) ? 'opacity-50 cursor-not-allowed' : ''}`}
             style={{ backgroundColor: buttonColor }}
           >
-            Continuar →
+            Continuar al Pago →
           </button>
         </div>
       )}
 
       {/* PASO 4: DATOS DE CONTACTO Y PAGO */}
       {step === 'checkout' && (
-        <form onSubmit={handleSendWhatsApp} className={`bg-white p-5 border border-gray-100 space-y-4 ${borderRadius} ${shadowStyle}`}>
+        <form onSubmit={handleSendWhatsApp} className={`bg-white p-6 border border-zinc-200/80 space-y-4 ${borderRadius} ${shadowStyle}`}>
           <div className="flex items-center justify-between">
             <button 
               type="button" 
               onClick={() => setStep(deliveryType === 'delivery' ? 'location' : 'delivery_type')} 
-              className="text-gray-500 hover:text-gray-800 flex items-center gap-1 text-xs font-bold"
+              className="text-zinc-500 hover:text-zinc-800 flex items-center gap-1 text-xs font-bold cursor-pointer"
             >
               <ArrowLeft size={16} /> Atrás
             </button>
-            <h3 className="font-extrabold text-gray-900 text-sm">Datos y Pago</h3>
-            <div className="w-10"></div>
           </div>
 
-          <div className="space-y-3 pt-1">
-            <h4 className="font-bold text-xs text-gray-800 border-b pb-1">Datos de Contacto</h4>
+          <div className="space-y-3.5 pt-1">
+            <h4 className="font-extrabold text-xs text-zinc-900 border-b pb-1.5 uppercase tracking-wider">Datos de Contacto</h4>
             
             <div>
-              <label className="text-[11px] font-bold text-gray-700 block mb-1">Tu Nombre *</label>
+              <label className="text-[11px] font-bold text-zinc-700 block mb-1">Tu Nombre *</label>
               <input
                 type="text"
                 name="name"
                 placeholder="Ej: Juan Pérez"
                 value={formData.name}
                 onChange={handleInputChange}
-                className="w-full p-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-emerald-600"
+                className="w-full p-3 border border-zinc-200 rounded-xl text-xs focus:outline-none bg-zinc-50/50"
                 required
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-gray-700 block mb-1">Teléfono *</label>
+              <label className="text-[11px] font-bold text-zinc-700 block mb-1">Teléfono *</label>
               <input
                 type="tel"
                 name="phone"
                 placeholder="+569 1234 5678"
                 value={formData.phone}
                 onChange={handleInputChange}
-                className="w-full p-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-emerald-600"
+                className="w-full p-3 border border-zinc-200 rounded-xl text-xs focus:outline-none bg-zinc-50/50"
                 required
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-gray-700 block mb-1">Email (Opcional)</label>
+              <label className="text-[11px] font-bold text-zinc-700 block mb-1">Email (Opcional)</label>
               <input
                 type="email"
                 name="email"
                 placeholder="ejemplo@correo.com"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full p-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-emerald-600"
+                className="w-full p-3 border border-zinc-200 rounded-xl text-xs focus:outline-none bg-zinc-50/50"
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-gray-700 block mb-1">Observaciones Generales</label>
+              <label className="text-[11px] font-bold text-zinc-700 block mb-1">Observaciones Generales</label>
               <textarea
                 name="notes"
                 placeholder="Ej: Timbre malo, dejar en conserjería..."
                 value={formData.notes}
                 onChange={handleInputChange}
                 rows="2"
-                className="w-full p-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-emerald-600"
+                className="w-full p-3 border border-zinc-200 rounded-xl text-xs focus:outline-none bg-zinc-50/50 resize-none"
               />
             </div>
 
-            <h4 className="font-bold text-xs text-gray-800 border-b pb-1 pt-2">Método de Pago</h4>
+            <h4 className="font-extrabold text-xs text-zinc-900 border-b pb-1.5 pt-2 uppercase tracking-wider">Método de Pago</h4>
             
             <div className="grid grid-cols-2 gap-3">
-              <label className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 cursor-pointer transition ${formData.paymentMethod === 'Efectivo' ? 'border-emerald-600 bg-emerald-50/50 text-emerald-800' : 'border-gray-200 text-gray-600'}`}>
+              <label 
+                className="p-3.5 rounded-xl border-2 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all"
+                style={{
+                  borderColor: formData.paymentMethod === 'Efectivo' ? primaryColor : '#E4E4E7',
+                  backgroundColor: formData.paymentMethod === 'Efectivo' ? `${primaryColor}10` : '#FAFAFA',
+                  color: formData.paymentMethod === 'Efectivo' ? primaryColor : '#52525B'
+                }}
+              >
                 <input 
                   type="radio" 
                   name="paymentMethod" 
@@ -375,10 +424,17 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
                   className="hidden" 
                 />
                 <span className="text-base">💵</span>
-                <span className="text-xs font-bold">Efectivo</span>
+                <span className="text-xs font-black">Efectivo</span>
               </label>
 
-              <label className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 cursor-pointer transition ${formData.paymentMethod === 'Transferencia' ? 'border-emerald-600 bg-emerald-50/50 text-emerald-800' : 'border-gray-200 text-gray-600'}`}>
+              <label 
+                className="p-3.5 rounded-xl border-2 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all"
+                style={{
+                  borderColor: formData.paymentMethod === 'Transferencia' ? primaryColor : '#E4E4E7',
+                  backgroundColor: formData.paymentMethod === 'Transferencia' ? `${primaryColor}10` : '#FAFAFA',
+                  color: formData.paymentMethod === 'Transferencia' ? primaryColor : '#52525B'
+                }}
+              >
                 <input 
                   type="radio" 
                   name="paymentMethod" 
@@ -388,49 +444,52 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
                   className="hidden" 
                 />
                 <span className="text-base">🏦</span>
-                <span className="text-xs font-bold">Transferencia</span>
+                <span className="text-xs font-black">Transferencia</span>
               </label>
             </div>
 
-            {/* DATOS BANCARIOS MOSTRADOS SOLO SI SE SELECCIONA TRANSFERENCIA */}
+            {/* DATOS BANCARIOS ADAPTADOS */}
             {formData.paymentMethod === 'Transferencia' && (
-              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 space-y-2 mt-3 animate-fadeIn">
-                <div className="flex justify-between items-center border-b pb-1.5">
-                  <span className="text-xs font-extrabold text-gray-800">Datos para Transferencia Bancaria</span>
+              <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-4 space-y-2 mt-3 animate-fadeIn">
+                <div className="flex justify-between items-center border-b border-zinc-200 pb-2">
+                  <span className="text-xs font-black text-zinc-800">Datos Bancarios</span>
                   <button 
                     type="button" 
                     onClick={copyBankData}
-                    className="text-[11px] font-bold flex items-center gap-1 bg-white border border-gray-200 px-2 py-1 rounded-lg shadow-sm hover:bg-gray-100"
+                    className="text-[11px] font-bold flex items-center gap-1 bg-white border border-zinc-200 px-2.5 py-1 rounded-lg shadow-sm hover:bg-zinc-100 cursor-pointer"
                     style={{ color: primaryColor }}
                   >
-                    {copied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                    {copied ? <Check size={12} /> : <Copy size={12} />}
                     {copied ? '¡Copiado!' : 'Copiar datos'}
                   </button>
                 </div>
                 
-                <div className="text-[11px] space-y-1 text-gray-700 pt-1">
+                <div className="text-[11px] space-y-1 text-zinc-600 pt-1">
                   <p><strong>Banco:</strong> {storeConfig?.bank_name || 'Banco Estado'}</p>
-                  <p><strong>Tipo de Cuenta:</strong> {storeConfig?.bank_account_type || 'Cuenta Corriente'}</p>
-                  <p><strong>Nº de Cuenta:</strong> {storeConfig?.bank_account_number || '12345678'}</p>
+                  <p><strong>Tipo:</strong> {storeConfig?.bank_account_type || 'Cuenta Corriente'}</p>
+                  <p><strong>Nº:</strong> {storeConfig?.bank_account_number || '12345678'}</p>
                   <p><strong>RUT:</strong> {storeConfig?.bank_rut || '76.123.456-7'}</p>
                   <p><strong>Titular:</strong> {storeConfig?.bank_holder || storeConfig?.name || 'Comercio'}</p>
                 </div>
-                <p className="text-[10px] text-gray-500 pt-1 italic">
+                <p className="text-[10px] text-zinc-400 pt-1 italic">
                   * Recuerda enviar el comprobante por WhatsApp junto con tu pedido.
                 </p>
               </div>
             )}
           </div>
 
-          <div className="pt-2 border-t flex justify-between font-extrabold text-sm">
-            <span>Total a Pagar:</span>
-            <span style={{ color: primaryColor }}>${totalPrice}</span>
+          <div className="pt-3 border-t border-zinc-100 flex justify-between items-center font-black text-sm">
+            <span className="text-zinc-600">Total a Pagar:</span>
+            <span className="text-base" style={{ color: primaryColor }}>${totalPrice.toLocaleString('es-CL')}</span>
           </div>
 
           <button
             type="submit"
-            className="w-full py-3 text-white font-extrabold text-xs rounded-xl shadow-md transition active:scale-95 text-center block"
-            style={{ backgroundColor: buttonColor }}
+            className="w-full py-4 text-white font-black text-xs rounded-xl shadow-lg transition-all active:scale-95 text-center block cursor-pointer"
+            style={{ 
+              backgroundColor: buttonColor,
+              boxShadow: `0 10px 25px -5px ${buttonColor}80`
+            }}
           >
             Confirmar Pedido y Enviar por WhatsApp 📲
           </button>

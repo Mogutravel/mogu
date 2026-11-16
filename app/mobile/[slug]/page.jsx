@@ -10,6 +10,7 @@ import PointsView from './components/PointsView';
 import OrdersView from './components/OrdersView';
 import ProfileView from './components/ProfileView';
 import BottomNav from './components/BottomNav';
+import { UtensilsCrossed } from 'lucide-react';
 
 export default function MobileStorePage({ params }) {
   const resolvedParams = use(params);
@@ -25,6 +26,7 @@ export default function MobileStorePage({ params }) {
   useEffect(() => {
     async function loadStoreAndMenu() {
       try {
+        // Consulta optimizada para traer solo datos esenciales y filtrar productos activos directamente
         const { data, error } = await supabase
           .from('profiles')
           .select(`
@@ -61,10 +63,19 @@ export default function MobileStorePage({ params }) {
 
         if (data) {
           setStoreData(data);
-          const sortedCategories = (data.menu_categories || []).sort(
-            (a, b) => (a.position || 0) - (b.position || 0)
-          );
+          
+          // Ordenar categorías y filtrar solo ítems activos para mayor ligereza en memoria
+          const sortedCategories = (data.menu_categories || [])
+            .map(cat => ({
+              ...cat,
+              menu_items: (cat.menu_items || [])
+                .filter(item => item.active)
+                .sort((a, b) => (a.position || 0) - (b.position || 0))
+            }))
+            .sort((a, b) => (a.position || 0) - (b.position || 0));
+
           setCategories(sortedCategories);
+          
           if (sortedCategories.length > 0) {
             setActiveCategory(sortedCategories[0].id);
           }
@@ -109,31 +120,39 @@ export default function MobileStorePage({ params }) {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-50 text-emerald-800 font-bold">
-        Cargando experiencia Mogu...
+      <div className="flex flex-col justify-center items-center h-screen bg-[#0E0C0A] text-white font-sans relative overflow-hidden">
+        <div className="absolute -top-32 -left-32 w-72 h-72 rounded-full blur-3xl pointer-events-none animate-pulse opacity-20 bg-emerald-500" />
+        <div className="absolute -bottom-32 -right-32 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col items-center p-8 backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl shadow-2xl">
+          <div className="w-12 h-12 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mb-4" />
+          <p className="text-sm font-medium tracking-wide text-zinc-200">Cargando experiencia Mogu...</p>
+        </div>
       </div>
     );
   }
 
   if (!storeData) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-50 text-gray-500 font-medium">
-        Local no encontrado o inactivo.
+      <div className="flex flex-col justify-center items-center h-screen bg-[#0E0C0A] text-white font-sans p-6 text-center">
+        <div className="max-w-xs p-8 backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl shadow-2xl">
+          <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-rose-400 text-2xl font-bold">
+            !
+          </div>
+          <h2 className="text-lg font-bold text-white mb-2">Local no disponible</h2>
+          <p className="text-xs text-zinc-400">El establecimiento que buscas no se encuentra activo o la URL es incorrecta.</p>
+        </div>
       </div>
     );
   }
 
-  // Extraer configuración visual de forma robusta
   const rawConfig = storeData.store_config;
   const storeConfig = Array.isArray(rawConfig) ? rawConfig[0] || {} : rawConfig || {};
 
-  // Variables globales de diseño extraídas del editor
-  const primaryColor = storeConfig.primary_color || '#065F46';
-  const secondaryColor = storeConfig.secondary_color || '#F9FAFB';
-  const buttonColor = storeConfig.button_color || '#047857';
-  const borderRadius = storeConfig.border_radius || 'rounded-2xl';
+  const primaryColor = storeConfig.primary_color || '#10B981';
+  const secondaryColor = storeConfig.secondary_color || '#0E0C0A';
+  const borderRadius = storeConfig.border_radius || 'rounded-3xl';
 
-  // Objeto enriquecido con la config unificada para los hijos
   const enrichedStore = {
     ...storeData,
     store_config: storeConfig,
@@ -141,93 +160,117 @@ export default function MobileStorePage({ params }) {
 
   return (
     <div 
-      className={`w-full min-h-screen sm:max-w-md mx-auto pb-24 relative shadow-2xl font-sans overflow-x-hidden sm:border-x border-gray-200 transition-all rounded-none sm:${borderRadius}`}
+      className={`w-full min-h-screen sm:max-w-md mx-auto pb-28 relative shadow-2xl font-sans overflow-x-hidden sm:border-x border-white/10 transition-all duration-300 rounded-none sm:${borderRadius}`}
       style={{ backgroundColor: secondaryColor }}
     >
-      
-      {/* 1. Header con colores dinámicos */}
-      <Header 
-        store={enrichedStore} 
-        categories={categories} 
-        activeCategory={activeCategory} 
-        setActiveCategory={setActiveCategory}
-        currentTab={currentTab}
-        cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)}
-        onCartClick={() => setCurrentTab('carrito')}
-      />
+      {/* Malla de Degradados Dinámicos */}
+      <div className="absolute top-0 left-0 w-full h-96 overflow-hidden pointer-events-none z-0">
+        <div 
+          className="absolute -top-24 -left-24 w-80 h-80 rounded-full blur-[100px] opacity-25 transition-all duration-700" 
+          style={{ backgroundColor: primaryColor }}
+        />
+        <div className="absolute top-12 -right-24 w-72 h-72 bg-purple-500/15 rounded-full blur-[90px] pointer-events-none" />
+      </div>
 
-      {/* 2. Contenido principal */}
-      <main className="p-4">
-        {currentTab === 'inicio' && (
-          <div>
-            {/* Feed Principal */}
-            <HomeFeed 
-              store={enrichedStore} 
-              categories={categories} 
-              onAddToCart={addToCart} 
-            />
+      <div className="relative z-10">
+        <Header 
+          store={enrichedStore} 
+          categories={categories} 
+          activeCategory={activeCategory} 
+          setActiveCategory={setActiveCategory}
+          currentTab={currentTab}
+          cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)}
+          onCartClick={() => setCurrentTab('carrito')}
+        />
 
-            {/* Menú Completo */}
-            <div className="mt-8 pt-6 border-t border-black/5">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-extrabold text-gray-900 text-base">Explorar Menú Completo</h3>
-              </div>
-              
-              {/* Pestañas de categorías con color principal dinámico */}
-              <div className="flex overflow-x-auto space-x-2 pb-3 no-scrollbar text-xs mb-3">
-                {categories.map((cat) => {
-                  const isActive = activeCategory === cat.id;
-                  return (
-                    <button
-                      key={cat.id}
-                      onClick={() => setActiveCategory(cat.id)}
-                      className={`whitespace-nowrap px-3.5 py-2 rounded-xl font-bold transition-all shadow-sm ${
-                        isActive ? 'text-white shadow-md' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-                      }`}
-                      style={isActive ? { backgroundColor: primaryColor } : {}}
-                    >
-                      {cat.name}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Catálogo */}
-              <MenuCatalog 
+        <main className="px-4 pt-3 transition-all duration-300 animate-fadeIn">
+          {currentTab === 'inicio' && (
+            <div className="space-y-6">
+              <HomeFeed 
+                store={enrichedStore} 
                 categories={categories} 
-                activeCategory={activeCategory} 
                 onAddToCart={addToCart} 
-                storeConfig={storeConfig}
               />
+
+              {/* Menú Completo */}
+              <div className="pt-3">
+                {/* Título Explorar Menú */}
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <div>
+                    <span 
+                      className="text-[10px] font-extrabold uppercase tracking-[0.2em]"
+                      style={{ color: primaryColor }}
+                    >
+                      Catálogo digital
+                    </span>
+                    <h3 className="font-black text-zinc-900 text-lg tracking-tight flex items-center gap-2 mt-0.5">
+                      <UtensilsCrossed size={18} style={{ color: primaryColor }} />
+                      Explorar Menú
+                    </h3>
+                  </div>
+                </div>
+                
+                {/* Barra de categorías flotante */}
+                <div className="sticky top-16 z-20 backdrop-blur-md bg-white/90 dark:bg-[#0E0C0A]/90 py-3 -mx-4 px-4 border-y border-zinc-200/80 dark:border-white/10 shadow-sm mb-4">
+                  <div className="flex overflow-x-auto space-x-2 no-scrollbar text-xs">
+                    {categories.map((cat) => {
+                      const isActive = activeCategory === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => setActiveCategory(cat.id)}
+                          className={`whitespace-nowrap px-4 py-2.5 rounded-full font-extrabold transition-all duration-300 transform active:scale-95 shadow-sm cursor-pointer ${
+                            isActive 
+                              ? 'text-white shadow-md' 
+                              : 'bg-zinc-100 dark:bg-white/10 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-white/15 hover:bg-zinc-200 dark:hover:bg-white/20'
+                          }`}
+                          style={isActive ? { 
+                            backgroundColor: primaryColor, 
+                            boxShadow: `0 6px 20px -4px ${primaryColor}80`,
+                            borderColor: 'transparent'
+                          } : {}}
+                        >
+                          {cat.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <MenuCatalog 
+                  categories={categories} 
+                  activeCategory={activeCategory} 
+                  onAddToCart={addToCart} 
+                  storeConfig={storeConfig}
+                />
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {currentTab === 'puntos' && <PointsView />}
-        
-        {currentTab === 'carrito' && (
-          <CartView 
-            cart={cart} 
-            updateQuantity={updateQuantity} 
-            storePhone={storeData.phone} 
-            goToMenu={() => setCurrentTab('inicio')} 
-            storeConfig={storeConfig}
-          />
-        )}
-        
-        {currentTab === 'pedidos' && <OrdersView />}
-        
-        {currentTab === 'perfil' && <ProfileView store={enrichedStore} />}
-      </main>
+          {currentTab === 'puntos' && <PointsView />}
+          
+          {currentTab === 'carrito' && (
+            <CartView 
+              cart={cart} 
+              updateQuantity={updateQuantity} 
+              storePhone={storeData.phone} 
+              goToMenu={() => setCurrentTab('inicio')} 
+              storeConfig={storeConfig}
+            />
+          )}
+          
+          {currentTab === 'pedidos' && <OrdersView />}
+          
+          {currentTab === 'perfil' && <ProfileView store={enrichedStore} />}
+        </main>
+      </div>
 
-      {/* 3. Barra de navegación inferior (AQUÍ FALTABA PASAR EL CART) */}
       <BottomNav 
         currentTab={currentTab} 
         setCurrentTab={setCurrentTab} 
         storeConfig={storeConfig} 
         cart={cart}
       />
-
     </div>
   );
 }
