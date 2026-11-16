@@ -1,6 +1,6 @@
 'use client';
-import { useState } from 'react';
-import { Store, Truck, ArrowLeft, Navigation, Copy, Check, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Store, Truck, ArrowLeft, Navigation, Copy, Check } from 'lucide-react';
 
 export default function CartView({ cart, updateQuantity, storePhone, goToMenu, storeConfig }) {
   const buttonColor = storeConfig?.button_color || '#10B981';
@@ -10,9 +10,8 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
 
   const totalPrice = cart.reduce((acc, item) => acc + (item.finalPrice || item.price) * item.quantity, 0);
 
-  // Pasos del flujo: 'cart' | 'delivery_type' | 'location' | 'checkout'
   const [step, setStep] = useState('cart');
-  const [deliveryType, setDeliveryType] = useState('delivery'); // 'delivery' o 'retiro'
+  const [deliveryType, setDeliveryType] = useState('delivery');
   const [copied, setCopied] = useState(false);
   const [isLoadingGps, setIsLoadingGps] = useState(false);
   
@@ -23,11 +22,94 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
     notes: '',
     address: '',
     addressNumber: '',
-    paymentMethod: 'Efectivo' // 'Efectivo' o 'Transferencia'
+    paymentMethod: 'Efectivo'
   });
 
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
+
+  // Inicializar mapa interactivo con Pin de Persona / Avatar Original
+  useEffect(() => {
+    if (step === 'location' && typeof window !== 'undefined') {
+      import('leaflet').then((L) => {
+        const defaultLat = -34.9828;
+        const defaultLng = -71.2394;
+
+        if (!mapInstanceRef.current && mapRef.current) {
+          const map = L.map(mapRef.current, {
+            zoomControl: false
+          }).setView([defaultLat, defaultLng], 14);
+
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+          }).addTo(map);
+
+          L.control.zoom({ position: 'topright' }).addTo(map);
+
+          // Pin original con silueta de persona / avatar interactivo y sombra luminosa
+          const personPin = L.divIcon({
+            className: 'person-map-pin',
+            html: `
+              <div style="position: relative; display: flex; align-items: center; justify-content: center;">
+                <div style="position: absolute; width: 44px; height: 44px; background-color: ${primaryColor}40; border-radius: 50%; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+                <div style="background: linear-gradient(135deg, ${primaryColor}, #111827); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(0,0,0,0.4); border: 2.5px solid white; position: relative; z-index: 10;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                </div>
+              </div>
+            `,
+            iconSize: [44, 44],
+            iconAnchor: [22, 22],
+            popupAnchor: [0, -22]
+          });
+
+          const marker = L.marker([defaultLat, defaultLng], { draggable: true, icon: personPin }).addTo(map);
+          markerRef.current = marker;
+
+          map.on('click', async (e) => {
+            const { lat, lng } = e.latlng;
+            marker.setLatLng([lat, lng]);
+            await reverseGeocode(lat, lng);
+          });
+
+          marker.on('dragend', async () => {
+            const pos = marker.getLatLng();
+            await reverseGeocode(pos.lat, pos.lng);
+          });
+
+          mapInstanceRef.current = map;
+        } else {
+          setTimeout(() => {
+            mapInstanceRef.current?.invalidateSize();
+          }, 200);
+        }
+      });
+    }
+  }, [step, primaryColor]);
+
+  const reverseGeocode = async (lat, lon) => {
+    try {
+      setIsLoadingGps(true);
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+      const data = await response.json();
+
+      if (data && data.address) {
+        const street = data.address.road || data.address.pedestrian || data.address.suburb || '';
+        const houseNumber = data.address.house_number || '';
+        const suburb = data.address.suburb || data.address.city || '';
+
+        setFormData(prev => ({
+          ...prev,
+          address: street || prev.address,
+          addressNumber: houseNumber || prev.addressNumber,
+          notes: suburb && !prev.notes.includes(suburb) ? (prev.notes ? `${prev.notes} Sector: ${suburb}` : `Sector: ${suburb}`) : prev.notes
+        }));
+      }
+    } catch (error) {
+      console.error('Error al obtener dirección del mapa:', error);
+    } finally {
+      setIsLoadingGps(false);
+    }
   };
 
   const handleGetLocation = () => {
@@ -42,38 +124,24 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
         
-        try {
-          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
-          const data = await response.json();
-          
-          if (data && data.address) {
-            const street = data.address.road || data.address.pedestrian || data.address.suburb || '';
-            const houseNumber = data.address.house_number || '';
-            const suburb = data.address.suburb || data.address.city || '';
-            
-            setFormData(prev => ({
-              ...prev,
-              address: street || prev.address,
-              addressNumber: houseNumber || prev.addressNumber,
-              notes: suburb && !prev.notes.includes(suburb) ? (prev.notes ? `${prev.notes} Sector: ${suburb}` : `Sector: ${suburb}`) : prev.notes
-            }));
-            
-            alert('¡Ubicación GPS detectada con éxito! Verifica los datos.');
-          } else {
-            alert('No se pudo determinar la calle exacta. Por favor ingrésala manualmente.');
-          }
-        } catch (error) {
-          alert('Error al conectar con el servicio de mapas. Ingresa tu dirección manualmente.');
-        } finally {
-          setIsLoadingGps(false);
+        if (mapInstanceRef.current && markerRef.current) {
+          mapInstanceRef.current.setView([lat, lon], 16);
+          markerRef.current.setLatLng([lat, lon]);
         }
-      },
-      (error) => {
+        await reverseGeocode(lat, lon);
         setIsLoadingGps(false);
-        alert('No se pudo obtener el permiso de ubicación. Por favor ingrésala de forma manual.');
+        alert('¡Ubicación GPS detectada con éxito!');
+      },
+      () => {
+        setIsLoadingGps(false);
+        alert('No se pudo obtener el permiso de ubicación.');
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
+  };
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const copyBankData = () => {
@@ -121,7 +189,6 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
             🛒
           </div>
           <p className="text-sm font-bold text-zinc-800">Tu carrito está vacío</p>
-          <p className="text-xs text-zinc-400 max-w-[220px] mx-auto">Explora el catálogo y añade deliciosos productos para continuar.</p>
           <button
             onClick={goToMenu}
             className="mt-2 text-xs font-extrabold text-white px-5 py-3 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
@@ -136,7 +203,6 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
 
   return (
     <div className="space-y-4 pt-2 pb-24">
-      {/* Encabezado con Indicador de Pasos */}
       <div className="flex items-end justify-between">
         <div>
           <span className="text-[10px] font-extrabold uppercase tracking-[0.2em]" style={{ color: primaryColor }}>
@@ -149,16 +215,11 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
             {step === 'checkout' && 'Datos y Pago'}
           </h3>
         </div>
-
         <div className="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-600">
-          {step === 'cart' && 'Paso 1 de 3'}
-          {step === 'delivery_type' && 'Paso 2 de 3'}
-          {step === 'location' && 'Paso 2.5 de 3'}
-          {step === 'checkout' && 'Paso 3 de 3'}
+          {step === 'location' ? 'Paso 2.5 de 3' : 'Paso en curso'}
         </div>
       </div>
 
-      {/* PASO 1: VISTA DEL CARRITO */}
       {step === 'cart' && (
         <div className="space-y-3">
           <div className="space-y-2.5">
@@ -173,19 +234,9 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
                   </p>
                 </div>
                 <div className="flex items-center gap-2 bg-zinc-50 p-1 rounded-xl border border-zinc-200/60">
-                  <button 
-                    onClick={() => updateQuantity(index, -1)} 
-                    className="w-7 h-7 bg-white rounded-lg font-bold text-zinc-700 shadow-sm flex items-center justify-center hover:bg-zinc-100 transition active:scale-95 cursor-pointer"
-                  >
-                    -
-                  </button>
+                  <button onClick={() => updateQuantity(index, -1)} className="w-7 h-7 bg-white rounded-lg font-bold text-zinc-700 shadow-sm flex items-center justify-center">-</button>
                   <span className="text-xs font-extrabold px-1 text-zinc-800">{item.quantity}</span>
-                  <button 
-                    onClick={() => updateQuantity(index, 1)} 
-                    className="w-7 h-7 bg-white rounded-lg font-bold text-zinc-700 shadow-sm flex items-center justify-center hover:bg-zinc-100 transition active:scale-95 cursor-pointer"
-                  >
-                    +
-                  </button>
+                  <button onClick={() => updateQuantity(index, 1)} className="w-7 h-7 bg-white rounded-lg font-bold text-zinc-700 shadow-sm flex items-center justify-center">+</button>
                 </div>
               </div>
             ))}
@@ -200,10 +251,7 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
             <button
               onClick={() => setStep('delivery_type')}
               className="w-full py-3.5 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 text-center block cursor-pointer"
-              style={{ 
-                backgroundColor: buttonColor,
-                boxShadow: `0 8px 20px -6px ${buttonColor}85`
-              }}
+              style={{ backgroundColor: buttonColor }}
             >
               Continuar con el Pedido 🚀
             </button>
@@ -211,14 +259,11 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
         </div>
       )}
 
-      {/* PASO 2: TIPO DE ENTREGA */}
       {step === 'delivery_type' && (
         <div className={`bg-white p-6 border border-zinc-200/80 space-y-5 ${borderRadius} ${shadowStyle}`}>
-          <div className="flex items-center justify-between">
-            <button onClick={() => setStep('cart')} className="text-zinc-500 hover:text-zinc-800 flex items-center gap-1 text-xs font-bold cursor-pointer">
-              <ArrowLeft size={16} /> Volver al carrito
-            </button>
-          </div>
+          <button onClick={() => setStep('cart')} className="text-zinc-500 hover:text-zinc-800 flex items-center gap-1 text-xs font-bold cursor-pointer">
+            <ArrowLeft size={16} /> Volver al carrito
+          </button>
 
           <div className="grid grid-cols-2 gap-3.5">
             <button
@@ -251,24 +296,18 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
           <button
             onClick={() => setStep(deliveryType === 'delivery' ? 'location' : 'checkout')}
             className="w-full py-3.5 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 text-center cursor-pointer"
-            style={{ 
-              backgroundColor: buttonColor,
-              boxShadow: `0 8px 20px -6px ${buttonColor}85`
-            }}
+            style={{ backgroundColor: buttonColor }}
           >
             Continuar →
           </button>
         </div>
       )}
 
-      {/* PASO 3: UBICACIÓN Y GPS */}
       {step === 'location' && (
         <div className={`bg-white p-6 border border-zinc-200/80 space-y-4 ${borderRadius} ${shadowStyle}`}>
-          <div className="flex items-center justify-between">
-            <button onClick={() => setStep('delivery_type')} className="text-zinc-500 hover:text-zinc-800 flex items-center gap-1 text-xs font-bold cursor-pointer">
-              <ArrowLeft size={16} /> Atrás
-            </button>
-          </div>
+          <button onClick={() => setStep('delivery_type')} className="text-zinc-500 hover:text-zinc-800 flex items-center gap-1 text-xs font-bold cursor-pointer">
+            <ArrowLeft size={16} /> Atrás
+          </button>
 
           <div className="space-y-3.5">
             <button
@@ -287,6 +326,16 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
             </button>
 
             <div>
+              <label className="text-[11px] font-bold text-zinc-700 block mb-1">
+                📍 Mueve el avatar o haz clic en el mapa para ubicar tu entrega:
+              </label>
+              <div 
+                ref={mapRef} 
+                className="relative w-full h-56 rounded-2xl overflow-hidden border border-zinc-200 shadow-inner z-10"
+              />
+            </div>
+
+            <div>
               <label className="text-[11px] font-bold text-zinc-700 block mb-1">Calle / Avenida *</label>
               <input
                 type="text"
@@ -294,8 +343,7 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
                 placeholder="Ej: Av. Principal"
                 value={formData.address}
                 onChange={handleInputChange}
-                className="w-full p-3 border border-zinc-200 rounded-xl text-xs focus:outline-none focus:ring-2 bg-zinc-50/50"
-                style={{ '--tw-ring-color': primaryColor }}
+                className="w-full p-3 border border-zinc-200 rounded-xl text-xs focus:outline-none bg-zinc-50/50"
                 required
               />
             </div>
@@ -308,23 +356,10 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
                 placeholder="Ej: 1234, Depto 42B"
                 value={formData.addressNumber}
                 onChange={handleInputChange}
-                className="w-full p-3 border border-zinc-200 rounded-xl text-xs focus:outline-none focus:ring-2 bg-zinc-50/50"
+                className="w-full p-3 border border-zinc-200 rounded-xl text-xs focus:outline-none bg-zinc-50/50"
                 required
               />
             </div>
-
-            {/* Mapa integrado interactivo */}
-            <div className="relative w-full h-44 rounded-2xl overflow-hidden border border-zinc-200 shadow-inner bg-zinc-100">
-              <iframe 
-                title="Mapa de Ubicación"
-                className="w-full h-full border-0 pointer-events-auto"
-                src="https://www.openstreetmap.org/export/embed.html?bbox=-71.24,-34.99,-71.22,-34.97&layer=mapnik"
-              />
-            </div>
-
-            <p className="text-[11px] text-zinc-400 text-center">
-              📍 Asegúrate de verificar que el número de casa o departamento sea correcto.
-            </p>
           </div>
 
           <button
@@ -338,18 +373,15 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
         </div>
       )}
 
-      {/* PASO 4: DATOS DE CONTACTO Y PAGO */}
       {step === 'checkout' && (
         <form onSubmit={handleSendWhatsApp} className={`bg-white p-6 border border-zinc-200/80 space-y-4 ${borderRadius} ${shadowStyle}`}>
-          <div className="flex items-center justify-between">
-            <button 
-              type="button" 
-              onClick={() => setStep(deliveryType === 'delivery' ? 'location' : 'delivery_type')} 
-              className="text-zinc-500 hover:text-zinc-800 flex items-center gap-1 text-xs font-bold cursor-pointer"
-            >
-              <ArrowLeft size={16} /> Atrás
-            </button>
-          </div>
+          <button 
+            type="button" 
+            onClick={() => setStep(deliveryType === 'delivery' ? 'location' : 'delivery_type')} 
+            className="text-zinc-500 hover:text-zinc-800 flex items-center gap-1 text-xs font-bold cursor-pointer"
+          >
+            <ArrowLeft size={16} /> Atrás
+          </button>
 
           <div className="space-y-3.5 pt-1">
             <h4 className="font-extrabold text-xs text-zinc-900 border-b pb-1.5 uppercase tracking-wider">Datos de Contacto</h4>
@@ -377,18 +409,6 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
                 onChange={handleInputChange}
                 className="w-full p-3 border border-zinc-200 rounded-xl text-xs focus:outline-none bg-zinc-50/50"
                 required
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-bold text-zinc-700 block mb-1">Email (Opcional)</label>
-              <input
-                type="email"
-                name="email"
-                placeholder="ejemplo@correo.com"
-                value={formData.email}
-                onChange={handleInputChange}
-                className="w-full p-3 border border-zinc-200 rounded-xl text-xs focus:outline-none bg-zinc-50/50"
               />
             </div>
 
@@ -448,7 +468,6 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
               </label>
             </div>
 
-            {/* DATOS BANCARIOS ADAPTADOS */}
             {formData.paymentMethod === 'Transferencia' && (
               <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-4 space-y-2 mt-3 animate-fadeIn">
                 <div className="flex justify-between items-center border-b border-zinc-200 pb-2">
@@ -456,24 +475,19 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
                   <button 
                     type="button" 
                     onClick={copyBankData}
-                    className="text-[11px] font-bold flex items-center gap-1 bg-white border border-zinc-200 px-2.5 py-1 rounded-lg shadow-sm hover:bg-zinc-100 cursor-pointer"
+                    className="text-[11px] font-bold flex items-center gap-1 bg-white border border-zinc-200 px-2.5 py-1 rounded-lg shadow-sm hover:bg-gray-100 cursor-pointer"
                     style={{ color: primaryColor }}
                   >
                     {copied ? <Check size={12} /> : <Copy size={12} />}
                     {copied ? '¡Copiado!' : 'Copiar datos'}
                   </button>
                 </div>
-                
                 <div className="text-[11px] space-y-1 text-zinc-600 pt-1">
                   <p><strong>Banco:</strong> {storeConfig?.bank_name || 'Banco Estado'}</p>
-                  <p><strong>Tipo:</strong> {storeConfig?.bank_account_type || 'Cuenta Corriente'}</p>
                   <p><strong>Nº:</strong> {storeConfig?.bank_account_number || '12345678'}</p>
                   <p><strong>RUT:</strong> {storeConfig?.bank_rut || '76.123.456-7'}</p>
                   <p><strong>Titular:</strong> {storeConfig?.bank_holder || storeConfig?.name || 'Comercio'}</p>
                 </div>
-                <p className="text-[10px] text-zinc-400 pt-1 italic">
-                  * Recuerda enviar el comprobante por WhatsApp junto con tu pedido.
-                </p>
               </div>
             )}
           </div>
@@ -486,10 +500,7 @@ export default function CartView({ cart, updateQuantity, storePhone, goToMenu, s
           <button
             type="submit"
             className="w-full py-4 text-white font-black text-xs rounded-xl shadow-lg transition-all active:scale-95 text-center block cursor-pointer"
-            style={{ 
-              backgroundColor: buttonColor,
-              boxShadow: `0 10px 25px -5px ${buttonColor}80`
-            }}
+            style={{ backgroundColor: buttonColor }}
           >
             Confirmar Pedido y Enviar por WhatsApp 📲
           </button>

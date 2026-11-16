@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 /* ============================================================
    MOGU Design System — Phase 1 Foundations
