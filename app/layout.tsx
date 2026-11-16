@@ -33,6 +33,16 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.png',
   },
   manifest: '/site.webmanifest',
+  // --- CONFIGURACIÓN PARA PANTALLA COMPLETA E INMERSIVA EN MÓVILES ---
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Mogu',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
+  // ------------------------------------------------------------------
   openGraph: {
     title: "Mogu | Software de Gestión y Operaciones Gastronómicas",
     description: "Conecta tu caja, garzones y administración en una sola plataforma. Gestión en tiempo real para restaurantes y cafés.",
