@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { Menu, X, ArrowRight } from 'lucide-react'
 
@@ -48,6 +48,24 @@ export default function Navbar() {
     }
   }, [isOpen])
 
+  const scrollToSection = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    sectionId: string
+  ) => {
+    closeMenu()
+    const target = document.getElementById(sectionId)
+    if (target) {
+      e.preventDefault()
+      const headerOffset = 96
+      const targetPosition =
+        target.getBoundingClientRect().top + window.scrollY - headerOffset
+      window.scrollTo({
+        top: Math.max(0, targetPosition),
+        behavior: 'smooth',
+      })
+    }
+  }
+
   return (
     <header
       ref={navRef}
@@ -76,13 +94,24 @@ export default function Navbar() {
           <Link href="/comida-rapida" className="transition hover:text-white">
             Comida Rápida
           </Link>
-          <Link href="/travel" className="transition hover:text-cyan-300 font-semibold text-cyan-400">
+          <Link
+            href="/travel"
+            className="transition hover:text-cyan-300 font-semibold text-cyan-400"
+          >
             Mogu Travel
           </Link>
-          <Link href="#ecosistema" className="transition hover:text-white">
+          <Link
+            href="/#planes"
+            onClick={(e) => scrollToSection(e, 'planes')}
+            className="transition hover:text-white"
+          >
             Planes
           </Link>
-          <Link href="#faq" className="transition hover:text-white">
+          <Link
+            href="/#faq"
+            onClick={(e) => scrollToSection(e, 'faq')}
+            className="transition hover:text-white"
+          >
             FAQ
           </Link>
         </nav>
@@ -141,15 +170,15 @@ export default function Navbar() {
               Mogu Travel
             </Link>
             <Link
-              href="#ecosistema"
-              onClick={closeMenu}
+              href="/#planes"
+              onClick={(e) => scrollToSection(e, 'planes')}
               className="px-3 py-2.5 rounded-xl hover:bg-white/10 hover:text-white transition"
             >
               Planes
             </Link>
             <Link
-              href="#faq"
-              onClick={closeMenu}
+              href="/#faq"
+              onClick={(e) => scrollToSection(e, 'faq')}
               className="px-3 py-2.5 rounded-xl hover:bg-white/10 hover:text-white transition"
             >
               FAQ
