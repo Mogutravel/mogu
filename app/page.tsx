@@ -382,10 +382,11 @@ export default function HomePage() {
 
     const calculateScroll = () => {
       rafId = null;
+      const vh = window.innerHeight || 1;
 
       if (stageRef.current) {
         const rect = stageRef.current.getBoundingClientRect();
-        const scrollable = rect.height - window.innerHeight;
+        const scrollable = rect.height - vh;
         if (scrollable > 0) {
           setProgress(clamp01(-rect.top / scrollable));
         }
@@ -393,7 +394,7 @@ export default function HomePage() {
 
       if (orderFlowRef.current) {
         const rect = orderFlowRef.current.getBoundingClientRect();
-        const scrollable = rect.height - window.innerHeight;
+        const scrollable = rect.height - vh;
         if (scrollable > 0) {
           const p = clamp01(-rect.top / scrollable);
           setFlowProgress(p);
@@ -409,7 +410,7 @@ export default function HomePage() {
 
       if (apartmentStageRef.current) {
         const rect = apartmentStageRef.current.getBoundingClientRect();
-        const scrollable = rect.height - window.innerHeight;
+        const scrollable = rect.height - vh;
         if (scrollable > 0) {
           setHomeProgress(clamp01(-rect.top / scrollable));
         }
@@ -423,43 +424,42 @@ export default function HomePage() {
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll, { passive: true });
     calculateScroll();
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
       if (rafId !== null) window.cancelAnimationFrame(rafId);
     };
   }, []);
 
-  // Escena 01: Zoom óptico controlado (máx 1.48x) para evitar pixelado en la fotografía
   const photoZoom = mapRange(progress, [0, 0.46], [1, 1.48]);
   const photoBlur = mapRange(progress, [0.24, 0.46], [0, 2.5]);
   const act1Opacity = mapRange(progress, [0, 0.28, 0.46], [1, 1, 0]);
   const headerFade = mapRange(progress, [0, 0.18], [1, 0]);
 
-  // El teléfono HD emerge con nitidez total cuando termina el zoom de la foto
   const phoneOpacity = mapRange(progress, [0.34, 0.52, 1], [0, 1, 1]);
-  const phoneScale = mapRange(progress, [0.34, 0.54], [0.84, 1]);
-  const phoneY = mapRange(progress, [0.34, 0.54], [24, 0]);
+  const phoneScale = mapRange(progress, [0.34, 0.54], [0.9, 1]);
+  const phoneY = mapRange(progress, [0.34, 0.54], [20, 0]);
 
-  const kitchenScale = mapRange(flowProgress, [0, 0.35, 0.48], [0.96, 1.02, 0.96]);
+  const kitchenScale = mapRange(flowProgress, [0, 0.35, 0.48], [0.97, 1.02, 0.97]);
   const kitchenOpacity = mapRange(
     flowProgress,
     [0, 0.14, 0.45, 0.62],
-    [0.45, 1, 1, 0.55]
+    [0.55, 1, 1, 0.6]
   );
 
-  const waiterY = mapRange(flowProgress, [0.24, 0.52, 0.78], [32, 0, -14]);
+  const waiterY = mapRange(flowProgress, [0.24, 0.52, 0.78], [24, 0, -10]);
   const waiterOpacity = mapRange(
     flowProgress,
     [0.24, 0.45, 0.78, 0.95],
-    [0.45, 1, 1, 0.65]
+    [0.55, 1, 1, 0.7]
   );
 
-  const posY = mapRange(flowProgress, [0.52, 0.82, 1], [36, 0, 0]);
-  const posOpacity = mapRange(flowProgress, [0.52, 0.76, 1], [0.4, 1, 1]);
+  const posY = mapRange(flowProgress, [0.52, 0.82, 1], [28, 0, 0]);
+  const posOpacity = mapRange(flowProgress, [0.52, 0.76, 1], [0.5, 1, 1]);
 
-  // Escena 02 (junta de amigos): zoom óptico controlado al teléfono del centro (50% 54%)
   const friendsPhotoZoom = mapRange(homeProgress, [0, 0.42], [1, 1.42]);
   const friendsPhotoBlur = mapRange(homeProgress, [0.22, 0.42], [0, 2.2]);
   const aptSceneOpacity = mapRange(homeProgress, [0, 0.26, 0.44], [1, 1, 0]);
@@ -470,8 +470,8 @@ export default function HomePage() {
     [0.32, 0.5, 0.95, 1],
     [0, 1, 1, 0.96]
   );
-  const homePhoneY = mapRange(homeProgress, [0.32, 0.52], [32, 0]);
-  const homePhoneScale = mapRange(homeProgress, [0.32, 0.52], [0.88, 1]);
+  const homePhoneY = mapRange(homeProgress, [0.32, 0.52], [24, 0]);
+  const homePhoneScale = mapRange(homeProgress, [0.32, 0.52], [0.9, 1]);
   const homeFlowOpacity = mapRange(homeProgress, [0.44, 0.65], [0, 1]);
 
   const toggleDish = (id: number) => {
@@ -594,14 +594,14 @@ export default function HomePage() {
   return (
     <div
       style={{ backgroundColor: "#0E0C0A", overflowX: "clip" }}
-      className="min-h-screen text-[#D4CEC7] font-sans antialiased selection:bg-cyan-400 selection:text-[#0E0C0A]"
+      className="min-h-dvh text-[#D4CEC7] font-sans antialiased selection:bg-cyan-400 selection:text-[#0E0C0A]"
     >
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
       />
 
-      <div className="fixed inset-0 w-full h-full bg-gradient-to-b from-[#4c1d95] via-[#1e40af] to-[#0E0C0A] opacity-90 pointer-events-none" />
+      <div className="fixed inset-0 w-full h-dvh bg-gradient-to-b from-[#4c1d95] via-[#1e40af] to-[#0E0C0A] opacity-90 pointer-events-none" />
       <div className="fixed -top-24 left-1/2 -translate-x-1/2 w-[960px] h-[460px] rounded-full bg-cyan-400/15 blur-[160px] pointer-events-none" />
 
       <div className="relative z-10">
@@ -615,41 +615,45 @@ export default function HomePage() {
         {/* =====================================================================
             ESCENA 01: ZOOM ÓPTICO SIN PIXELADO -> TELÉFONO INTERACTIVO HD
            ===================================================================== */}
-        <section ref={stageRef} className="relative h-[290vh]">
-          <div className="sticky top-0 h-screen w-full flex items-center justify-center pt-20 pb-6 px-4 sm:px-8">
+        <section
+          ref={stageRef}
+          style={{ touchAction: "pan-y" }}
+          className="relative h-[250vh] sm:h-[290vh]"
+        >
+          <div className="sticky top-0 h-dvh w-full flex items-center justify-center pt-20 sm:pt-20 pb-4 sm:pb-6 px-3.5 sm:px-8">
             <div
               style={{
                 opacity: act1Opacity,
                 pointerEvents: act1Opacity < 0.2 ? "none" : "auto",
                 willChange: "opacity",
               }}
-              className="relative z-20 w-full max-w-5xl mx-auto h-full max-h-[760px] flex flex-col items-center justify-between text-center"
+              className="relative z-20 w-full max-w-5xl mx-auto h-full max-h-[760px] flex flex-col items-center justify-between text-center gap-2"
             >
               <div
                 style={{
                   opacity: headerFade,
                   willChange: "opacity",
                 }}
-                className="space-y-3 pt-1"
+                className="space-y-2 sm:space-y-3 pt-1"
               >
-                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.08] border border-white/15 backdrop-blur-md text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-300">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.08] border border-white/15 backdrop-blur-md text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-300">
                   <span className="w-1.5 h-1.5 rounded-full bg-cyan-300 animate-pulse" />
                   Escena 01 • En la Mesa del Restaurante
                 </div>
-                <h2 className="text-3xl sm:text-5xl lg:text-[3.5rem] font-extrabold tracking-tight text-white leading-[1.08]">
+                <h2 className="text-2xl sm:text-5xl lg:text-[3.5rem] font-extrabold tracking-tight text-white leading-[1.1]">
                   Se sientan, escanean y disfrutan.{" "}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-100 to-teal-200">
                     Piden a su ritmo y cierran la cuenta sin esperas.
                   </span>
                 </h2>
-                <p className="text-xs sm:text-base text-white/85 max-w-xl mx-auto leading-relaxed">
+                <p className="text-xs sm:text-base text-white/85 max-w-xl mx-auto leading-relaxed px-2">
                   Desliza para acercarte al teléfono en la mesa y probar cómo
                   ordenan, siguen su comanda o piden la cuenta al instante.
                 </p>
               </div>
 
-              <div className="relative w-full flex-1 flex flex-col items-center justify-end pb-2">
-                <div className="relative w-full max-w-3xl h-[260px] sm:h-[340px] lg:h-[380px] rounded-[36px] overflow-hidden border border-white/10 shadow-[0_-15px_60px_rgba(6,182,212,0.12)] bg-[#15120f] flex items-center justify-center">
+              <div className="relative w-full flex-1 min-h-0 flex flex-col items-center justify-end pb-1">
+                <div className="relative w-full max-w-3xl flex-1 min-h-[190px] max-h-[380px] rounded-[28px] sm:rounded-[36px] overflow-hidden border border-white/10 shadow-[0_-15px_60px_rgba(6,182,212,0.12)] bg-[#15120f] flex items-center justify-center">
                   {!bistroImgError ? (
                     <Image
                       src="/images/bistro-mesa.jpg"
@@ -689,15 +693,15 @@ export default function HomePage() {
                   <div className="absolute inset-x-0 top-0 h-1/6 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
                 </div>
 
-                <div className="w-full max-w-3xl bg-gradient-to-b from-transparent to-[#0E0C0A] pt-4 pb-4 px-6 flex flex-col items-center">
+                <div className="w-full max-w-3xl bg-gradient-to-b from-transparent to-[#0E0C0A] pt-3 pb-2 sm:pb-4 px-4 sm:px-6 flex flex-col items-center shrink-0">
                   <button
                     type="button"
                     onClick={() => scrollToSection(stageRef, 0.65)}
-                    className="px-4 py-2 rounded-2xl bg-cyan-400/10 hover:bg-cyan-400/20 border border-cyan-400/45 text-xs font-bold text-cyan-300 transition cursor-pointer"
+                    className="min-h-[44px] px-4 py-2 rounded-2xl bg-cyan-400/15 hover:bg-cyan-400/25 active:scale-[0.99] border border-cyan-400/45 text-xs font-bold text-cyan-300 transition cursor-pointer"
                   >
                     Acercar al teléfono en la mesa ↓
                   </button>
-                  <p className="mt-2 text-xs sm:text-sm text-cyan-200/90 font-medium">
+                  <p className="mt-1.5 text-[11px] sm:text-sm text-cyan-200/90 font-medium">
                     Haz scroll para acercarte al teléfono en alta definición ↓
                   </p>
                 </div>
@@ -712,18 +716,18 @@ export default function HomePage() {
                 pointerEvents: phoneOpacity < 0.35 ? "none" : "auto",
                 willChange: "transform, opacity",
               }}
-              className="absolute inset-x-0 z-30 max-w-6xl mx-auto px-4 sm:px-6 pt-14 sm:pt-16 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center"
+              className="absolute inset-x-0 z-30 max-w-6xl mx-auto px-3.5 sm:px-6 pt-16 sm:pt-16 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-10 items-center"
             >
-              <div className="lg:col-span-5 flex justify-center">
-                <div className="w-[308px] sm:w-[342px] max-h-[75vh] h-[565px] rounded-[40px] bg-[#0B0A09] border-[5px] border-white/15 shadow-[0_28px_90px_rgba(6,182,212,0.24)] overflow-hidden flex flex-col">
-                  <div className="h-6 bg-black flex items-center justify-center shrink-0">
-                    <div className="w-24 h-3.5 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-end pr-2">
+              <div className="lg:col-span-5 flex justify-center w-full">
+                <div className="w-full max-w-[338px] sm:max-w-[342px] h-[min(66dvh,545px)] sm:h-[min(75dvh,565px)] rounded-[34px] sm:rounded-[40px] bg-[#0B0A09] border-[4px] sm:border-[5px] border-white/15 shadow-[0_24px_80px_rgba(6,182,212,0.24)] overflow-hidden flex flex-col">
+                  <div className="h-5 sm:h-6 bg-black flex items-center justify-center shrink-0">
+                    <div className="w-20 sm:w-24 h-3 sm:h-3.5 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-end pr-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                     </div>
                   </div>
 
-                  <div className="px-3.5 pt-2.5 pb-2 border-b border-white/10 bg-white/[0.02] shrink-0 space-y-2">
-                    <div className="flex items-center justify-between">
+                  <div className="px-3 sm:px-3.5 pt-2 pb-2 border-b border-white/10 bg-white/[0.02] shrink-0 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 block">
                           Mesa 04 • Local Aliado Mogu
@@ -734,16 +738,16 @@ export default function HomePage() {
                             : "Estado y Cuenta"}
                         </h3>
                       </div>
-                      <span className="px-2.5 py-1 rounded-full bg-cyan-400/15 border border-cyan-400/30 text-[10px] font-bold text-cyan-200">
+                      <span className="px-2.5 py-1 rounded-full bg-cyan-400/15 border border-cyan-400/30 text-[10px] font-bold text-cyan-200 shrink-0">
                         {formatCLP(accountSubtotal)}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-white/[0.05] border border-white/10 text-[10px] font-bold">
+                    <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-white/[0.05] border border-white/10 text-[11px] font-bold">
                       <button
                         type="button"
                         onClick={() => setPhoneTab("menu")}
-                        className={`py-1.5 rounded-lg transition cursor-pointer ${
+                        className={`min-h-[36px] py-1.5 rounded-lg transition cursor-pointer ${
                           phoneTab === "menu"
                             ? "bg-cyan-400 text-[#0E0C0A]"
                             : "text-white/75 hover:text-white"
@@ -754,7 +758,7 @@ export default function HomePage() {
                       <button
                         type="button"
                         onClick={() => setPhoneTab("estado")}
-                        className={`py-1.5 rounded-lg transition cursor-pointer ${
+                        className={`min-h-[36px] py-1.5 rounded-lg transition cursor-pointer ${
                           phoneTab === "estado"
                             ? "bg-cyan-400 text-[#0E0C0A]"
                             : "text-white/75 hover:text-white"
@@ -767,7 +771,7 @@ export default function HomePage() {
 
                   {phoneTab === "menu" ? (
                     <>
-                      <div className="p-3 space-y-2 flex-1 overflow-y-auto">
+                      <div className="p-2.5 sm:p-3 space-y-2 flex-1 overflow-y-auto overscroll-contain">
                         {DINE_IN_DISHES.map((dish) => {
                           const active = selectedIds.includes(dish.id);
                           return (
@@ -775,7 +779,7 @@ export default function HomePage() {
                               key={dish.id}
                               type="button"
                               onClick={() => toggleDish(dish.id)}
-                              className={`w-full text-left p-2.5 rounded-2xl border transition-all duration-150 flex items-center justify-between gap-2 cursor-pointer ${
+                              className={`w-full min-h-[54px] text-left p-2.5 rounded-2xl border transition-all duration-150 flex items-center justify-between gap-2 cursor-pointer active:scale-[0.99] ${
                                 active
                                   ? "bg-cyan-400/15 border-cyan-400/65"
                                   : "bg-white/[0.04] border-white/10 hover:border-white/25"
@@ -812,7 +816,7 @@ export default function HomePage() {
                         })}
                       </div>
 
-                      <div className="p-3 bg-[#0B0A09] border-t border-white/10 space-y-2 shrink-0">
+                      <div className="p-2.5 sm:p-3 bg-[#0B0A09] border-t border-white/10 space-y-2 shrink-0">
                         <div className="flex items-center justify-between text-[11px] px-1">
                           <span className="text-white/70">
                             Selección: {formatCLP(draftTotal)} (+{draftPoints}{" "}
@@ -821,7 +825,7 @@ export default function HomePage() {
                           <button
                             type="button"
                             onClick={() => setPhoneTab("estado")}
-                            className="text-cyan-300 font-bold hover:underline cursor-pointer"
+                            className="text-cyan-300 font-bold hover:underline cursor-pointer py-1"
                           >
                             Ver cuenta →
                           </button>
@@ -829,7 +833,7 @@ export default function HomePage() {
                         <button
                           type="button"
                           onClick={handleSendDineInOrder}
-                          className="w-full py-2.5 rounded-xl bg-white hover:bg-slate-100 text-[#0E0C0A] font-extrabold text-xs uppercase tracking-wider transition cursor-pointer shadow-lg"
+                          className="w-full min-h-[44px] py-2.5 rounded-xl bg-white hover:bg-slate-100 active:scale-[0.99] text-[#0E0C0A] font-extrabold text-xs uppercase tracking-wider transition cursor-pointer shadow-lg"
                         >
                           Enviar pedido a cocina
                         </button>
@@ -837,7 +841,7 @@ export default function HomePage() {
                     </>
                   ) : (
                     <>
-                      <div className="p-3 space-y-2.5 flex-1 overflow-y-auto">
+                      <div className="p-2.5 sm:p-3 space-y-2.5 flex-1 overflow-y-auto overscroll-contain">
                         {lastOrderBanner && (
                           <div className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-400/35 text-[10px] text-emerald-200 font-semibold">
                             ✓ {lastOrderBanner}
@@ -848,7 +852,7 @@ export default function HomePage() {
                           <button
                             type="button"
                             onClick={handleRequestWaiter}
-                            className={`p-2 rounded-xl border text-[10px] font-bold transition cursor-pointer ${
+                            className={`min-h-[42px] p-2 rounded-xl border text-[11px] font-bold transition cursor-pointer active:scale-[0.99] ${
                               waiterRequested
                                 ? "bg-cyan-400/20 border-cyan-400 text-cyan-200"
                                 : "bg-white/[0.05] border-white/15 text-white hover:border-cyan-400/50"
@@ -861,7 +865,7 @@ export default function HomePage() {
                           <button
                             type="button"
                             onClick={handleRequestBill}
-                            className={`p-2 rounded-xl border text-[10px] font-bold transition cursor-pointer ${
+                            className={`min-h-[42px] p-2 rounded-xl border text-[11px] font-bold transition cursor-pointer active:scale-[0.99] ${
                               billRequested
                                 ? "bg-amber-400/20 border-amber-300 text-amber-200"
                                 : "bg-white/[0.05] border-white/15 text-white hover:border-cyan-400/50"
@@ -929,11 +933,11 @@ export default function HomePage() {
                         </div>
                       </div>
 
-                      <div className="p-3 bg-[#0B0A09] border-t border-white/10 shrink-0">
+                      <div className="p-2.5 sm:p-3 bg-[#0B0A09] border-t border-white/10 shrink-0">
                         <button
                           type="button"
                           onClick={() => setPhoneTab("menu")}
-                          className="w-full py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-[#0E0C0A] font-extrabold text-xs uppercase tracking-wider transition cursor-pointer"
+                          className="w-full min-h-[44px] py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 active:scale-[0.99] text-[#0E0C0A] font-extrabold text-xs uppercase tracking-wider transition cursor-pointer"
                         >
                           ← Volver a la carta para pedir más
                         </button>
@@ -943,15 +947,15 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="lg:col-span-7 space-y-4">
-                <span className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">
+              <div className="lg:col-span-7 space-y-2.5 sm:space-y-4 text-center lg:text-left">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-cyan-300 block">
                   Experiencia del Comensal en Mesa
                 </span>
-                <h3 className="text-2xl sm:text-4xl font-extrabold text-white leading-tight">
+                <h3 className="text-lg sm:text-4xl font-extrabold text-white leading-tight">
                   Piden otra ronda, siguen su orden o llaman al mesero desde el
                   mismo lugar.
                 </h3>
-                <p className="text-xs sm:text-sm text-white/80 leading-relaxed max-w-xl">
+                <p className="hidden sm:block text-sm text-white/80 leading-relaxed max-w-xl">
                   El cliente alterna entre la{" "}
                   <strong className="text-white">carta</strong> para sumar platos
                   o bebidas y su{" "}
@@ -960,7 +964,7 @@ export default function HomePage() {
                   cuenta con total claridad.
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/15 backdrop-blur-xl">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300">
                       01 • Pedidos y Estado en Vivo
@@ -988,25 +992,25 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <div className="pt-2 flex flex-wrap gap-2">
+                <div className="pt-1 sm:pt-2 flex flex-wrap justify-center lg:justify-start gap-2">
                   <button
                     type="button"
                     onClick={() => scrollToFlowStage("cocina")}
-                    className="px-4 py-2 rounded-xl bg-white text-[#0E0C0A] text-xs font-extrabold uppercase tracking-wider transition cursor-pointer"
+                    className="min-h-[40px] px-3.5 sm:px-4 py-2 rounded-xl bg-white text-[#0E0C0A] text-[11px] sm:text-xs font-extrabold uppercase tracking-wider transition cursor-pointer active:scale-[0.98]"
                   >
                     Ver viaje a Cocina ↓
                   </button>
                   <button
                     type="button"
                     onClick={() => scrollToFlowStage("mesero")}
-                    className="px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-xs font-bold text-white transition cursor-pointer"
+                    className="min-h-[40px] px-3.5 sm:px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-[11px] sm:text-xs font-bold text-white transition cursor-pointer active:scale-[0.98]"
                   >
                     Celular Mesero ↓
                   </button>
                   <button
                     type="button"
                     onClick={() => scrollToFlowStage("caja")}
-                    className="px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-xs font-bold text-white transition cursor-pointer"
+                    className="min-h-[40px] px-3.5 sm:px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-[11px] sm:text-xs font-bold text-white transition cursor-pointer active:scale-[0.98]"
                   >
                     Caja ↓
                   </button>
@@ -1021,25 +1025,26 @@ export default function HomePage() {
            ===================================================================== */}
         <section
           ref={orderFlowRef}
-          className="relative h-[340vh] border-t border-white/15"
+          style={{ touchAction: "pan-y" }}
+          className="relative h-[280vh] sm:h-[340vh] border-t border-white/15"
         >
-          <div className="sticky top-0 h-screen w-full flex flex-col justify-center pt-20 pb-6 px-4 sm:px-8">
-            <div className="max-w-6xl w-full mx-auto space-y-5">
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
+          <div className="sticky top-0 h-dvh w-full flex flex-col justify-center pt-20 sm:pt-20 pb-4 sm:pb-6 px-3.5 sm:px-8">
+            <div className="max-w-6xl w-full mx-auto space-y-3 sm:space-y-5">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-2.5 sm:gap-3">
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-cyan-300">
+                  <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-cyan-300">
                     Recorrido en Tiempo Real • Mesa 04
                   </span>
-                  <h2 className="text-2xl sm:text-4xl font-extrabold text-white mt-0.5">
+                  <h2 className="text-xl sm:text-4xl font-extrabold text-white mt-0.5 leading-tight">
                     De la mesa a cocina, al celular del mesero y a caja
                   </h2>
                 </div>
 
-                <div className="inline-flex rounded-2xl bg-white/[0.06] border border-white/15 p-1 self-start md:self-auto">
+                <div className="grid grid-cols-3 sm:inline-flex rounded-2xl bg-white/[0.06] border border-white/15 p-1 w-full sm:w-auto self-start md:self-auto">
                   <button
                     type="button"
                     onClick={() => scrollToFlowStage("cocina")}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    className={`min-h-[38px] px-2.5 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition cursor-pointer ${
                       activeStationTab === "cocina"
                         ? "bg-cyan-400 text-[#0E0C0A]"
                         : "text-white/75 hover:text-white"
@@ -1050,18 +1055,18 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => scrollToFlowStage("mesero")}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    className={`min-h-[38px] px-2.5 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition cursor-pointer ${
                       activeStationTab === "mesero"
                         ? "bg-cyan-400 text-[#0E0C0A]"
                         : "text-white/75 hover:text-white"
                     }`}
                   >
-                    2. Celular Mesero
+                    2. Mesero
                   </button>
                   <button
                     type="button"
                     onClick={() => scrollToFlowStage("caja")}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    className={`min-h-[38px] px-2.5 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition cursor-pointer ${
                       activeStationTab === "caja"
                         ? "bg-cyan-400 text-[#0E0C0A]"
                         : "text-white/75 hover:text-white"
@@ -1072,26 +1077,26 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-5 items-stretch">
                 <div
                   style={{
                     opacity: kitchenOpacity,
                     transform: `scale(${kitchenScale})`,
                     willChange: "transform, opacity",
                   }}
-                  className={`lg:col-span-5 p-5 rounded-3xl border backdrop-blur-xl transition flex flex-col justify-between ${
+                  className={`lg:col-span-5 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border backdrop-blur-xl transition flex flex-col justify-between ${
                     activeStationTab === "cocina"
                       ? "bg-white/[0.09] border-cyan-400/60 shadow-[0_0_40px_rgba(6,182,212,0.16)]"
                       : "bg-white/[0.05] border-white/15"
                   }`}
                 >
-                  <div className="space-y-3.5">
-                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="space-y-2 sm:space-y-3.5">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2 sm:pb-3">
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-300 block">
+                        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-cyan-300 block">
                           01 • Pantalla Cocina (KDS)
                         </span>
-                        <h3 className="text-base font-extrabold text-white">
+                        <h3 className="text-sm sm:text-base font-extrabold text-white">
                           Comanda Entrante • Mesa 04
                         </h3>
                       </div>
@@ -1100,11 +1105,11 @@ export default function HomePage() {
                       </span>
                     </div>
 
-                    <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
+                    <div className="space-y-1.5 sm:space-y-2 max-h-[135px] sm:max-h-[240px] overflow-y-auto overscroll-contain pr-1">
                       {placedOrders.map((item) => (
                         <div
                           key={item.uid}
-                          className="p-3 rounded-2xl bg-[#0B0A09]/80 border border-white/10 flex items-center justify-between gap-2"
+                          className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-[#0B0A09]/80 border border-white/10 flex items-center justify-between gap-2"
                         >
                           <div className="min-w-0">
                             <span className="text-[9px] font-bold uppercase tracking-wider text-cyan-300">
@@ -1122,7 +1127,7 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  <div className="pt-4 mt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-white/75">
+                  <div className="hidden sm:flex pt-4 mt-4 border-t border-white/10 items-center justify-between text-[11px] text-white/75">
                     <span>Orden de llegada sincronizada</span>
                     <span className="font-bold text-cyan-300">Sin papel</span>
                   </div>
@@ -1134,18 +1139,18 @@ export default function HomePage() {
                     transform: `translateY(${waiterY}px)`,
                     willChange: "transform, opacity",
                   }}
-                  className="lg:col-span-3 flex justify-center"
+                  className="lg:col-span-3 flex justify-center w-full"
                 >
                   <div
-                    className={`w-full max-w-[295px] rounded-[34px] bg-[#0B0A09] border-[4px] p-3.5 flex flex-col justify-between transition ${
+                    className={`w-full lg:max-w-[295px] rounded-2xl sm:rounded-[34px] bg-[#0B0A09] border-2 sm:border-[4px] p-3 sm:p-3.5 flex flex-col justify-between transition ${
                       activeStationTab === "mesero"
                         ? "border-cyan-400/75 shadow-[0_0_45px_rgba(6,182,212,0.22)]"
                         : "border-white/15"
                     }`}
                   >
-                    <div className="space-y-3">
-                      <div className="w-16 h-1.5 rounded-full bg-white/15 mx-auto" />
-                      <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                    <div className="space-y-2 sm:space-y-3">
+                      <div className="hidden sm:block w-16 h-1.5 rounded-full bg-white/15 mx-auto" />
+                      <div className="flex items-center justify-between border-b border-white/10 pb-1.5 sm:pb-2">
                         <div>
                           <span className="text-[9px] font-bold uppercase tracking-widest text-cyan-300 block">
                             02 • Celular Mesero
@@ -1157,25 +1162,30 @@ export default function HomePage() {
                         <span className="w-2 h-2 rounded-full bg-emerald-400" />
                       </div>
 
-                      <div className="p-3 rounded-2xl bg-cyan-400/10 border border-cyan-400/30 space-y-1">
-                        <p className="text-[10px] font-bold text-cyan-200 uppercase">
-                          Alertas de Mesa 04
-                        </p>
-                        <p className="text-xs font-bold text-white">
-                          {waiterRequested
-                            ? "Cliente solicita ayuda en mesa"
-                            : billRequested
-                            ? "Cliente pidió la cuenta"
-                            : `${totalItemsInAccount} ${
-                                totalItemsInAccount === 1 ? "ítem" : "ítems"
-                              } registrados`}
-                        </p>
-                        <p className="text-[10px] text-white/70">
+                      <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-cyan-400/10 border border-cyan-400/30 flex items-center justify-between sm:block gap-2 sm:space-y-1">
+                        <div>
+                          <p className="text-[9px] sm:text-[10px] font-bold text-cyan-200 uppercase">
+                            Alertas de Mesa 04
+                          </p>
+                          <p className="text-xs font-bold text-white">
+                            {waiterRequested
+                              ? "Cliente solicita ayuda en mesa"
+                              : billRequested
+                              ? "Cliente pidió la cuenta"
+                              : `${totalItemsInAccount} ${
+                                  totalItemsInAccount === 1 ? "ítem" : "ítems"
+                                } registrados`}
+                          </p>
+                        </div>
+                        <p className="hidden sm:block text-[10px] text-white/70">
                           Sincronizado con el teléfono del comensal.
                         </p>
+                        <span className="sm:hidden text-xs font-extrabold text-cyan-300 shrink-0">
+                          {formatCLP(accountSubtotal)}
+                        </span>
                       </div>
 
-                      <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1.5">
+                      <div className="hidden sm:block p-3 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1.5">
                         <div className="flex items-center justify-between text-[11px]">
                           <span className="text-white/70">Estado de mesa</span>
                           <span className="font-bold text-cyan-300">
@@ -1191,7 +1201,7 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    <div className="pt-3 mt-3 border-t border-white/10 text-center text-[10px] font-bold text-cyan-300 uppercase tracking-wider">
+                    <div className="hidden sm:block pt-3 mt-3 border-t border-white/10 text-center text-[10px] font-bold text-cyan-300 uppercase tracking-wider">
                       Garzón Conectado en Salón
                     </div>
                   </div>
@@ -1203,19 +1213,19 @@ export default function HomePage() {
                     transform: `translateY(${posY}px)`,
                     willChange: "transform, opacity",
                   }}
-                  className={`lg:col-span-4 p-5 rounded-3xl border backdrop-blur-xl transition flex flex-col justify-between ${
+                  className={`lg:col-span-4 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border backdrop-blur-xl transition flex flex-col justify-between ${
                     activeStationTab === "caja"
                       ? "bg-white/[0.09] border-cyan-400/60 shadow-[0_0_40px_rgba(6,182,212,0.16)]"
                       : "bg-white/[0.05] border-white/15"
                   }`}
                 >
-                  <div className="space-y-3.5">
-                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="space-y-2 sm:space-y-3.5">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2 sm:pb-3">
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-300 block">
+                        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-cyan-300 block">
                           03 • Panel de Caja
                         </span>
-                        <h3 className="text-base font-extrabold text-white">
+                        <h3 className="text-sm sm:text-base font-extrabold text-white">
                           Cuenta Mesa 04 y Cobro
                         </h3>
                       </div>
@@ -1230,7 +1240,7 @@ export default function HomePage() {
                       </span>
                     </div>
 
-                    <div className="p-3.5 rounded-2xl bg-[#0B0A09]/80 border border-white/10 space-y-2">
+                    <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-[#0B0A09]/80 border border-white/10 space-y-1.5 sm:space-y-2">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-white/70">Total Mesa 04</span>
                         <span className="font-extrabold text-white">
@@ -1243,28 +1253,28 @@ export default function HomePage() {
                           +{accountPoints} pts
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-xs pt-2 border-t border-white/10">
+                      <div className="flex items-center justify-between text-xs pt-1.5 sm:pt-2 border-t border-white/10">
                         <span className="text-white/70">Medios de pago</span>
-                        <span className="font-semibold text-white/90">
+                        <span className="font-semibold text-white/90 text-[11px] sm:text-xs">
                           POS • Efectivo • Transferencia
                         </span>
                       </div>
                     </div>
 
-                    <p className="text-xs text-white/75 leading-relaxed">
+                    <p className="hidden sm:block text-xs text-white/75 leading-relaxed">
                       Cuando el cliente pide la cuenta desde su teléfono, caja y
                       salón reciben el aviso con el monto listo para cobrar.
                     </p>
                   </div>
 
-                  <div className="pt-4 mt-4 border-t border-white/10 flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-bold text-cyan-300">
+                  <div className="pt-2.5 sm:pt-4 mt-2.5 sm:mt-4 border-t border-white/10 flex items-center justify-between gap-2">
+                    <span className="hidden sm:inline text-[11px] font-bold text-cyan-300">
                       Caja + Salón al día
                     </span>
                     <button
                       type="button"
                       onClick={() => scrollToSection(apartmentStageRef, 0.05)}
-                      className="text-xs font-bold text-white hover:text-cyan-300 transition cursor-pointer"
+                      className="w-full sm:w-auto min-h-[38px] text-center sm:text-right text-xs font-bold text-cyan-300 sm:text-white hover:text-cyan-300 transition cursor-pointer"
                     >
                       Siguiente: Pedido en casa ↓
                     </button>
@@ -1281,43 +1291,44 @@ export default function HomePage() {
         <section
           id="pedido-desde-casa"
           ref={apartmentStageRef}
-          className="relative h-[300vh] border-t border-white/15"
+          style={{ touchAction: "pan-y" }}
+          className="relative h-[260vh] sm:h-[300vh] border-t border-white/15"
         >
-          <div className="sticky top-0 h-screen w-full flex items-center justify-center pt-20 pb-6 px-4 sm:px-8">
+          <div className="sticky top-0 h-dvh w-full flex items-center justify-center pt-20 sm:pt-20 pb-4 sm:pb-6 px-3.5 sm:px-8">
             <div
               style={{
                 opacity: aptSceneOpacity,
                 pointerEvents: aptSceneOpacity < 0.2 ? "none" : "auto",
                 willChange: "opacity",
               }}
-              className="relative z-20 w-full max-w-5xl mx-auto h-full max-h-[760px] flex flex-col items-center justify-between text-center"
+              className="relative z-20 w-full max-w-5xl mx-auto h-full max-h-[760px] flex flex-col items-center justify-between text-center gap-2"
             >
               <div
                 style={{
                   opacity: aptHeaderFade,
                   willChange: "opacity",
                 }}
-                className="space-y-3 pt-1"
+                className="space-y-2 sm:space-y-3 pt-1"
               >
-                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-purple-500/20 border border-purple-400/35 backdrop-blur-md text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-200">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/35 backdrop-blur-md text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-200">
                   <span className="w-1.5 h-1.5 rounded-full bg-cyan-300 animate-pulse" />
                   Escena 02 • Junta en el Departamento
                 </div>
-                <h2 className="text-3xl sm:text-5xl lg:text-[3.4rem] font-extrabold tracking-tight text-white leading-[1.08]">
+                <h2 className="text-2xl sm:text-5xl lg:text-[3.4rem] font-extrabold tracking-tight text-white leading-[1.1]">
                   Junta de amigos en el departamento,{" "}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-100 to-purple-200">
                     piden comida por la app directo al local.
                   </span>
                 </h2>
-                <p className="text-xs sm:text-base text-white/80 max-w-xl mx-auto leading-relaxed">
+                <p className="text-xs sm:text-base text-white/80 max-w-xl mx-auto leading-relaxed px-2">
                   Están reunidos en casa y deciden pedir algo para comer: abren la
                   app del local en Mogu, eligen delivery o retiro y envían su
                   orden sin comisiones.
                 </p>
               </div>
 
-              <div className="relative w-full flex-1 flex flex-col items-center justify-end pb-2">
-                <div className="relative w-full max-w-3xl h-[260px] sm:h-[340px] lg:h-[380px] rounded-[36px] overflow-hidden border border-white/10 shadow-[0_-15px_60px_rgba(168,85,247,0.16)] bg-[#15121d] flex items-center justify-center">
+              <div className="relative w-full flex-1 min-h-0 flex flex-col items-center justify-end pb-1">
+                <div className="relative w-full max-w-3xl flex-1 min-h-[190px] max-h-[380px] rounded-[28px] sm:rounded-[36px] overflow-hidden border border-white/10 shadow-[0_-15px_60px_rgba(168,85,247,0.16)] bg-[#15121d] flex items-center justify-center">
                   {!friendsImgError ? (
                     <Image
                       src="/images/amigos-depto.jpg"
@@ -1356,15 +1367,15 @@ export default function HomePage() {
                   <div className="absolute inset-x-0 top-0 h-1/6 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
                 </div>
 
-                <div className="w-full max-w-3xl bg-gradient-to-b from-transparent to-[#0E0C0A] pt-4 pb-4 px-6 flex flex-col items-center">
+                <div className="w-full max-w-3xl bg-gradient-to-b from-transparent to-[#0E0C0A] pt-3 pb-2 sm:pb-4 px-4 sm:px-6 flex flex-col items-center shrink-0">
                   <button
                     type="button"
                     onClick={() => scrollToSection(apartmentStageRef, 0.65)}
-                    className="px-4 py-2 rounded-2xl bg-white/[0.06] hover:bg-white/[0.1] border border-cyan-400/35 text-xs font-bold text-cyan-300 transition cursor-pointer"
+                    className="min-h-[44px] px-4 py-2 rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] active:scale-[0.99] border border-cyan-400/35 text-xs font-bold text-cyan-300 transition cursor-pointer"
                   >
                     Abrir App Mogu • Pedido para la Junta ↓
                   </button>
-                  <p className="mt-2 text-xs sm:text-sm text-cyan-200/90 font-medium">
+                  <p className="mt-1.5 text-[11px] sm:text-sm text-cyan-200/90 font-medium">
                     Sigue bajando para acercarte a la app y pedir hacia el
                     departamento ↓
                   </p>
@@ -1379,18 +1390,18 @@ export default function HomePage() {
                 pointerEvents: homePhoneOpacity < 0.35 ? "none" : "auto",
                 willChange: "transform, opacity",
               }}
-              className="absolute inset-x-0 z-30 max-w-6xl mx-auto px-4 sm:px-6 pt-14 sm:pt-16 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center"
+              className="absolute inset-x-0 z-30 max-w-6xl mx-auto px-3.5 sm:px-6 pt-16 sm:pt-16 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-10 items-center"
             >
-              <div className="lg:col-span-5 flex justify-center">
-                <div className="w-[300px] sm:w-[334px] max-h-[73vh] h-[548px] rounded-[40px] bg-[#0B0A09] border-[5px] border-white/15 shadow-[0_28px_90px_rgba(168,85,247,0.22)] overflow-hidden flex flex-col">
-                  <div className="h-6 bg-black flex items-center justify-center shrink-0">
-                    <div className="w-24 h-3.5 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-end pr-2">
+              <div className="lg:col-span-5 flex justify-center w-full">
+                <div className="w-full max-w-[334px] h-[min(64dvh,530px)] sm:h-[min(73dvh,548px)] rounded-[34px] sm:rounded-[40px] bg-[#0B0A09] border-[4px] sm:border-[5px] border-white/15 shadow-[0_24px_80px_rgba(168,85,247,0.22)] overflow-hidden flex flex-col">
+                  <div className="h-5 sm:h-6 bg-black flex items-center justify-center shrink-0">
+                    <div className="w-20 sm:w-24 h-3 sm:h-3.5 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-end pr-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                     </div>
                   </div>
 
-                  <div className="px-4 py-2.5 border-b border-white/10 bg-white/[0.02] shrink-0 space-y-2">
-                    <div className="flex items-center justify-between">
+                  <div className="px-3.5 sm:px-4 py-2 sm:py-2.5 border-b border-white/10 bg-white/[0.02] shrink-0 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 block">
                           App del Local • Depto 402
@@ -1399,19 +1410,19 @@ export default function HomePage() {
                           Bistró & Delivery Mogu
                         </h3>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-[10px] font-bold text-emerald-300">
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-[10px] font-bold text-emerald-300 shrink-0">
                         +{homePoints} pts
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-white/[0.05] border border-white/10 text-[10px] font-bold">
+                    <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-white/[0.05] border border-white/10 text-[11px] font-bold">
                       <button
                         type="button"
                         onClick={() => {
                           setDeliveryMode("Delivery");
                           setHomeOrderSent(false);
                         }}
-                        className={`py-1 rounded-lg transition cursor-pointer ${
+                        className={`min-h-[36px] py-1 rounded-lg transition cursor-pointer ${
                           deliveryMode === "Delivery"
                             ? "bg-cyan-400 text-[#0E0C0A]"
                             : "text-white/75 hover:text-white"
@@ -1425,7 +1436,7 @@ export default function HomePage() {
                           setDeliveryMode("Retiro");
                           setHomeOrderSent(false);
                         }}
-                        className={`py-1 rounded-lg transition cursor-pointer ${
+                        className={`min-h-[36px] py-1 rounded-lg transition cursor-pointer ${
                           deliveryMode === "Retiro"
                             ? "bg-cyan-400 text-[#0E0C0A]"
                             : "text-white/75 hover:text-white"
@@ -1436,7 +1447,7 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  <div className="p-3.5 space-y-2.5 flex-1 overflow-y-auto">
+                  <div className="p-2.5 sm:p-3.5 space-y-2 sm:space-y-2.5 flex-1 overflow-y-auto overscroll-contain">
                     {HOME_ORDER_DISHES.map((dish) => {
                       const active = homeSelectedIds.includes(dish.id);
                       return (
@@ -1444,7 +1455,7 @@ export default function HomePage() {
                           key={dish.id}
                           type="button"
                           onClick={() => toggleHomeDish(dish.id)}
-                          className={`w-full text-left p-2.5 rounded-2xl border transition-all duration-150 flex items-center justify-between gap-2.5 cursor-pointer ${
+                          className={`w-full min-h-[54px] text-left p-2.5 rounded-2xl border transition-all duration-150 flex items-center justify-between gap-2.5 cursor-pointer active:scale-[0.99] ${
                             active
                               ? "bg-cyan-400/15 border-cyan-400/65"
                               : "bg-white/[0.04] border-white/10 hover:border-white/25"
@@ -1488,7 +1499,7 @@ export default function HomePage() {
                     )}
                   </div>
 
-                  <div className="p-3.5 bg-[#0B0A09] border-t border-white/10 space-y-2 shrink-0">
+                  <div className="p-2.5 sm:p-3.5 bg-[#0B0A09] border-t border-white/10 space-y-2 shrink-0">
                     <div className="flex items-center justify-between text-[11px] px-1">
                       <span className="text-white/70">
                         {deliveryMode} • 0% comisión
@@ -1500,7 +1511,7 @@ export default function HomePage() {
                     <button
                       type="button"
                       onClick={handleSendHomeOrder}
-                      className="w-full py-2.5 rounded-xl bg-white hover:bg-slate-100 active:scale-[0.99] text-[#0E0C0A] font-extrabold text-xs uppercase tracking-wider transition cursor-pointer shadow-lg"
+                      className="w-full min-h-[44px] py-2.5 rounded-xl bg-white hover:bg-slate-100 active:scale-[0.99] text-[#0E0C0A] font-extrabold text-xs uppercase tracking-wider transition cursor-pointer shadow-lg"
                     >
                       Pedir ahora ({deliveryMode})
                     </button>
@@ -1510,15 +1521,15 @@ export default function HomePage() {
 
               <div
                 style={{ opacity: homeFlowOpacity }}
-                className="lg:col-span-7 space-y-4"
+                className="lg:col-span-7 space-y-2.5 sm:space-y-4 text-center lg:text-left"
               >
-                <span className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-cyan-300 block">
                   Canal Directo del Local • Sin Apps Intermediarias
                 </span>
-                <h3 className="text-2xl sm:text-4xl font-extrabold text-white leading-tight">
+                <h3 className="text-lg sm:text-4xl font-extrabold text-white leading-tight">
                   Piden para la junta y la orden entra directo a tu operación.
                 </h3>
-                <p className="text-xs sm:text-sm text-white/80 leading-relaxed max-w-xl">
+                <p className="hidden sm:block text-sm text-white/80 leading-relaxed max-w-xl">
                   Cuando están reunidos en el departamento y deciden pedir algo
                   para comer, ordenan desde el canal propio de tu local en Mogu,
                   con{" "}
@@ -1526,7 +1537,7 @@ export default function HomePage() {
                   y conexión directa con cocina y caja.
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/15 backdrop-blur-xl">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300">
                       01 • Venta Directa
@@ -1554,16 +1565,16 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <div className="pt-2 flex flex-wrap items-center gap-3">
+                <div className="pt-1 sm:pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-2.5 sm:gap-3">
                   <Link
                     href="/checkout/mogu-start"
-                    className="rounded-xl bg-white hover:bg-slate-100 px-6 py-3 text-xs font-bold uppercase tracking-wider text-[#0E0C0A] transition shadow-xl"
+                    className="min-h-[44px] rounded-xl bg-white hover:bg-slate-100 active:scale-[0.99] px-5 sm:px-6 py-3 text-xs font-bold uppercase tracking-wider text-[#0E0C0A] transition shadow-xl flex items-center justify-center"
                   >
                     Crea la app de tu local gratis
                   </Link>
                   <Link
                     href="/comida-rapida"
-                    className="rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 px-6 py-3 text-xs font-semibold uppercase tracking-wider text-white transition"
+                    className="min-h-[44px] rounded-xl bg-white/10 hover:bg-white/20 active:scale-[0.99] border border-white/20 px-5 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-white transition flex items-center justify-center"
                   >
                     Ver Retiro y Delivery
                   </Link>
@@ -1578,32 +1589,32 @@ export default function HomePage() {
            ===================================================================== */}
         <section
           id="ecosistema"
-          className="mx-auto max-w-7xl px-6 py-28 relative z-20 border-t border-white/15"
+          className="mx-auto max-w-7xl px-4 sm:px-6 py-16 sm:py-28 relative z-20 border-t border-white/15 scroll-mt-24"
         >
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <span className="text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
+          <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-16 space-y-3 sm:space-y-4">
+            <span className="text-[10px] sm:text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-3.5 py-1.5 rounded-full border border-white/20 shadow-sm">
               Ecosistema Todo en Uno
             </span>
-            <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight">
+            <h2 className="text-2xl sm:text-5xl font-extrabold text-white tracking-tight">
               Reemplaza sistemas antiguos y costosos por una plataforma ágil
             </h2>
-            <p className="text-[#D4CEC7] text-sm md:text-base font-normal leading-relaxed">
+            <p className="text-[#D4CEC7] text-xs sm:text-base font-normal leading-relaxed">
               Así funciona Mogu en la operación diaria de tu local: conectamos la
               nueva App de pedidos de tus clientes directamente con tu cocina,
               garzones y caja en tiempo real.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-            <div className="p-8 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-10 sm:mb-16">
+            <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <span className="w-11 h-11 rounded-2xl bg-cyan-400/20 text-cyan-300 font-bold flex items-center justify-center text-sm border border-cyan-400/30">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-cyan-400/20 text-cyan-300 font-bold flex items-center justify-center text-sm border border-cyan-400/30">
                     01
                   </span>
                   <Smartphone className="w-5 h-5 text-cyan-300/70" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-2 sm:mb-3">
                   El cliente pide sin fricciones
                 </h3>
                 <p className="text-xs sm:text-sm text-white/80 leading-relaxed font-normal">
@@ -1613,20 +1624,20 @@ export default function HomePage() {
                   a domicilio.
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
+              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 border-t border-white/10 text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
                 Salón, Retiro en Local y Delivery
               </div>
             </div>
 
-            <div className="p-8 rounded-3xl bg-white/[0.07] backdrop-blur-xl border border-cyan-400/45 shadow-[0_0_35px_rgba(6,182,212,0.18)] flex flex-col justify-between md:-translate-y-2">
+            <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white/[0.07] backdrop-blur-xl border border-cyan-400/45 shadow-[0_0_35px_rgba(6,182,212,0.18)] flex flex-col justify-between md:-translate-y-2">
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <span className="w-11 h-11 rounded-2xl bg-cyan-400 text-[#0E0C0A] font-extrabold flex items-center justify-center text-sm shadow-md">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-cyan-400 text-[#0E0C0A] font-extrabold flex items-center justify-center text-sm shadow-md">
                     02
                   </span>
                   <Monitor className="w-5 h-5 text-cyan-300" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-2 sm:mb-3">
                   La orden entra directo a cocina
                 </h3>
                 <p className="text-xs sm:text-sm text-white/85 leading-relaxed font-normal">
@@ -1636,20 +1647,20 @@ export default function HomePage() {
                   espera.
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
+              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 border-t border-white/10 text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
                 Sincronización Instantánea KDS
               </div>
             </div>
 
-            <div className="p-8 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between">
+            <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <span className="w-11 h-11 rounded-2xl bg-cyan-400/20 text-cyan-300 font-bold flex items-center justify-center text-sm border border-cyan-400/30">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-cyan-400/20 text-cyan-300 font-bold flex items-center justify-center text-sm border border-cyan-400/30">
                     03
                   </span>
                   <BarChart3 className="w-5 h-5 text-cyan-300/70" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-2 sm:mb-3">
                   Control de caja y resultados
                 </h3>
                 <p className="text-xs sm:text-sm text-white/80 leading-relaxed font-normal">
@@ -1658,20 +1669,20 @@ export default function HomePage() {
                   transferencias) protegido por PIN de seguridad.
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
+              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 border-t border-white/10 text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
                 Métricas Financieras en Vivo
               </div>
             </div>
           </div>
 
-          <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-white/10 via-white/[0.04] to-cyan-950/30 backdrop-blur-xl border border-cyan-400/30 shadow-2xl mb-16">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-              <div className="lg:col-span-7 space-y-6">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-400/15 border border-cyan-400/30 text-cyan-300 text-[11px] font-bold uppercase tracking-wider">
+          <div className="p-5 sm:p-8 md:p-12 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-white/10 via-white/[0.04] to-cyan-950/30 backdrop-blur-xl border border-cyan-400/30 shadow-2xl mb-10 sm:mb-16">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 sm:gap-10 items-center">
+              <div className="lg:col-span-7 space-y-4 sm:space-y-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-400/15 border border-cyan-400/30 text-cyan-300 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
                   <ShoppingBag className="w-3.5 h-3.5" />
                   <span>Nueva App Móvil del Cliente</span>
                 </div>
-                <h3 className="text-2xl md:text-4xl font-extrabold text-white leading-tight">
+                <h3 className="text-xl sm:text-2xl md:text-4xl font-extrabold text-white leading-tight">
                   Tu propia App de pedidos sin descargas ni comisiones por venta
                 </h3>
                 <p className="text-xs sm:text-sm text-white/85 leading-relaxed">
@@ -1681,8 +1692,8 @@ export default function HomePage() {
                   segundos.
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  <div className="p-4 rounded-2xl bg-[#0E0C0A]/60 border border-white/10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-1 sm:pt-2">
+                  <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0E0C0A]/60 border border-white/10">
                     <h4 className="text-sm font-bold text-white mb-1">
                       Retiro en Local y Delivery
                     </h4>
@@ -1692,7 +1703,7 @@ export default function HomePage() {
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-[#0E0C0A]/60 border border-white/10">
+                  <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0E0C0A]/60 border border-white/10">
                     <h4 className="text-sm font-bold text-white mb-1">
                       Personalización Visual Total
                     </h4>
@@ -1702,7 +1713,7 @@ export default function HomePage() {
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-[#0E0C0A]/60 border border-white/10">
+                  <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0E0C0A]/60 border border-white/10">
                     <h4 className="text-sm font-bold text-white mb-1">
                       Carta Digital Multi-Vista
                     </h4>
@@ -1712,7 +1723,7 @@ export default function HomePage() {
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-[#0E0C0A]/60 border border-white/10">
+                  <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0E0C0A]/60 border border-white/10">
                     <h4 className="text-sm font-bold text-white mb-1">
                       Saldo de Puntos y Recompensas
                     </h4>
@@ -1724,17 +1735,17 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="lg:col-span-5 p-6 sm:p-8 rounded-3xl bg-[#0E0C0A]/85 border border-white/15 space-y-6">
-                <div className="border-b border-white/10 pb-4">
+              <div className="lg:col-span-5 p-5 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#0E0C0A]/85 border border-white/15 space-y-5 sm:space-y-6">
+                <div className="border-b border-white/10 pb-3 sm:pb-4">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-400">
                     Resultados en tu Negocio
                   </span>
-                  <h4 className="text-lg font-extrabold text-white mt-1">
+                  <h4 className="text-base sm:text-lg font-extrabold text-white mt-1">
                     Por qué los locales migran a Mogu
                   </h4>
                 </div>
 
-                <ul className="space-y-4 text-xs text-white/85">
+                <ul className="space-y-3.5 sm:space-y-4 text-xs text-white/85">
                   <li className="flex items-start gap-3">
                     <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
                     <div>
@@ -1773,10 +1784,10 @@ export default function HomePage() {
                   </li>
                 </ul>
 
-                <div className="pt-2">
+                <div className="pt-1 sm:pt-2">
                   <Link
                     href="/checkout/mogu-start"
-                    className="group w-full py-3.5 px-6 rounded-xl bg-white hover:bg-slate-100 text-[#0E0C0A] text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2 shadow-lg"
+                    className="group w-full min-h-[44px] py-3.5 px-6 rounded-xl bg-white hover:bg-slate-100 active:scale-[0.99] text-[#0E0C0A] text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2 shadow-lg"
                   >
                     <span>Crea tu perfil digital gratis</span>
                     <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
@@ -1786,8 +1797,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="p-7 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="p-6 sm:p-7 rounded-2xl sm:rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">
@@ -1795,7 +1806,7 @@ export default function HomePage() {
                   </span>
                   <Monitor className="w-4 h-4 text-white/40" />
                 </div>
-                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">
+                <h3 className="text-base sm:text-lg font-extrabold text-white mt-3 sm:mt-4 mb-2">
                   KDS Cocina en Tiempo Real
                 </h3>
                 <p className="text-xs text-white/80 leading-relaxed">
@@ -1804,12 +1815,12 @@ export default function HomePage() {
                   despacho.
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">
+              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">
                 01 / KDS DISPLAY
               </div>
             </div>
 
-            <div className="p-7 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
+            <div className="p-6 sm:p-7 rounded-2xl sm:rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">
@@ -1817,7 +1828,7 @@ export default function HomePage() {
                   </span>
                   <LayoutGrid className="w-4 h-4 text-white/40" />
                 </div>
-                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">
+                <h3 className="text-base sm:text-lg font-extrabold text-white mt-3 sm:mt-4 mb-2">
                   Control de Caja y Mesas en Vivo
                 </h3>
                 <p className="text-xs text-white/80 leading-relaxed">
@@ -1825,12 +1836,12 @@ export default function HomePage() {
                   listas para cobrar, conectando garzones y caja sin demoras.
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">
+              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">
                 02 / LIVE FLOOR & POS
               </div>
             </div>
 
-            <div className="p-7 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
+            <div className="p-6 sm:p-7 rounded-2xl sm:rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">
@@ -1838,7 +1849,7 @@ export default function HomePage() {
                   </span>
                   <QrCode className="w-4 h-4 text-white/40" />
                 </div>
-                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">
+                <h3 className="text-base sm:text-lg font-extrabold text-white mt-3 sm:mt-4 mb-2">
                   Gestión de QRs y Etiquetas NFC
                 </h3>
                 <p className="text-xs text-white/80 leading-relaxed">
@@ -1846,12 +1857,12 @@ export default function HomePage() {
                   NFC para tótems de mesa con identificación automática.
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">
+              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">
                 03 / QR & NFC MANAGER
               </div>
             </div>
 
-            <div className="p-7 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
+            <div className="p-6 sm:p-7 rounded-2xl sm:rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">
@@ -1859,7 +1870,7 @@ export default function HomePage() {
                   </span>
                   <BarChart3 className="w-4 h-4 text-white/40" />
                 </div>
-                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">
+                <h3 className="text-base sm:text-lg font-extrabold text-white mt-3 sm:mt-4 mb-2">
                   Métricas y Desglose de Ventas
                 </h3>
                 <p className="text-xs text-white/80 leading-relaxed">
@@ -1867,12 +1878,12 @@ export default function HomePage() {
                   efectivo, tarjeta POS y transferencias por mesa y hora.
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">
+              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">
                 04 / SALES ANALYTICS
               </div>
             </div>
 
-            <div className="p-7 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
+            <div className="p-6 sm:p-7 rounded-2xl sm:rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">
@@ -1880,7 +1891,7 @@ export default function HomePage() {
                   </span>
                   <Lock className="w-4 h-4 text-white/40" />
                 </div>
-                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">
+                <h3 className="text-base sm:text-lg font-extrabold text-white mt-3 sm:mt-4 mb-2">
                   Acceso Administrador por PIN
                 </h3>
                 <p className="text-xs text-white/80 leading-relaxed">
@@ -1888,12 +1899,12 @@ export default function HomePage() {
                   cierres de caja mediante PIN numérico exclusivo.
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">
+              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">
                 05 / ADMIN SECURITY
               </div>
             </div>
 
-            <div className="p-7 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
+            <div className="p-6 sm:p-7 rounded-2xl sm:rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">
@@ -1901,7 +1912,7 @@ export default function HomePage() {
                   </span>
                   <Sliders className="w-4 h-4 text-white/40" />
                 </div>
-                <h3 className="text-lg font-extrabold text-white mt-4 mb-2">
+                <h3 className="text-base sm:text-lg font-extrabold text-white mt-3 sm:mt-4 mb-2">
                   Editor Visual en Tiempo Real
                 </h3>
                 <p className="text-xs text-white/80 leading-relaxed">
@@ -1909,7 +1920,7 @@ export default function HomePage() {
                   en vivo cómo lucirá tu app en el celular del cliente.
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">
+              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">
                 06 / LIVE STUDIO
               </div>
             </div>
@@ -1919,28 +1930,28 @@ export default function HomePage() {
         {/* =====================================================================
             SECCIÓN MOGU TRAVEL
            ===================================================================== */}
-        <section className="mx-auto max-w-7xl px-6 py-28 relative z-25 border-t border-white/15">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <span className="text-xs font-black uppercase px-4 py-1.5 rounded-full bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-cyan-300 border border-cyan-400/30 tracking-widest shadow-lg">
+        <section className="mx-auto max-w-7xl px-4 sm:px-6 py-16 sm:py-28 relative z-25 border-t border-white/15">
+          <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-16 space-y-3 sm:space-y-4">
+            <span className="text-[10px] sm:text-xs font-black uppercase px-3.5 py-1.5 rounded-full bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-cyan-300 border border-cyan-400/30 tracking-widest shadow-lg">
               Comunidad Global Mogu Travel
             </span>
-            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight">
+            <h2 className="text-2xl sm:text-5xl font-black text-white tracking-tight">
               Una red internacional que conecta viajeros y locales
             </h2>
-            <p className="text-sm md:text-base text-white/70 leading-relaxed font-normal">
+            <p className="text-xs sm:text-base text-white/70 leading-relaxed font-normal">
               Mogu Travel no es solo fidelización; es una comunidad en
               movimiento. Explora el ecosistema de pasaportes digitales, timbres
               oficiales y beneficios en cada ciudad y local aliado.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            <div className="group p-8 rounded-3xl bg-gradient-to-b from-purple-950/40 via-[#141416] to-[#141416] border border-purple-500/30 hover:border-purple-400/60 transition-all duration-300 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
-              <div className="space-y-4">
-                <div className="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Stamp className="w-7 h-7" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8 max-w-5xl mx-auto">
+            <div className="group p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-b from-purple-950/40 via-[#141416] to-[#141416] border border-purple-500/30 hover:border-purple-400/60 transition-all duration-300 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Stamp className="w-6 h-6 sm:w-7 sm:h-7" />
                 </div>
-                <h3 className="text-2xl font-extrabold text-white group-hover:text-purple-300 transition-colors">
+                <h3 className="text-xl sm:text-2xl font-extrabold text-white group-hover:text-purple-300 transition-colors">
                   Pasaporte Digital del Viajero
                 </h3>
                 <p className="text-xs sm:text-sm text-white/70 leading-relaxed font-normal">
@@ -1950,10 +1961,10 @@ export default function HomePage() {
                 </p>
               </div>
 
-              <div className="pt-8">
+              <div className="pt-6 sm:pt-8">
                 <Link
                   href="/travel/passport"
-                  className="w-full py-3.5 px-6 rounded-2xl bg-purple-600/20 hover:bg-purple-600 text-purple-200 hover:text-white border border-purple-500/40 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg"
+                  className="w-full min-h-[44px] py-3.5 px-6 rounded-2xl bg-purple-600/20 hover:bg-purple-600 active:scale-[0.99] text-purple-200 hover:text-white border border-purple-500/40 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg"
                 >
                   <span>Abrir mi Pasaporte</span>
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
@@ -1961,12 +1972,12 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="group p-8 rounded-3xl bg-gradient-to-b from-cyan-950/40 via-[#141416] to-[#141416] border border-cyan-500/30 hover:border-cyan-400/60 transition-all duration-300 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
-              <div className="space-y-4">
-                <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Compass className="w-7 h-7" />
+            <div className="group p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-b from-cyan-950/40 via-[#141416] to-[#141416] border border-cyan-500/30 hover:border-cyan-400/60 transition-all duration-300 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Compass className="w-6 h-6 sm:w-7 sm:h-7" />
                 </div>
-                <h3 className="text-2xl font-extrabold text-white group-hover:text-cyan-300 transition-colors">
+                <h3 className="text-xl sm:text-2xl font-extrabold text-white group-hover:text-cyan-300 transition-colors">
                   Red Global de Aliados y Nómadas
                 </h3>
                 <p className="text-xs sm:text-sm text-white/70 leading-relaxed font-normal">
@@ -1976,10 +1987,10 @@ export default function HomePage() {
                 </p>
               </div>
 
-              <div className="pt-8">
+              <div className="pt-6 sm:pt-8">
                 <Link
                   href="/travel"
-                  className="w-full py-3.5 px-6 rounded-2xl bg-cyan-600/20 hover:bg-cyan-500 text-cyan-200 hover:text-black border border-cyan-500/40 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg"
+                  className="w-full min-h-[44px] py-3.5 px-6 rounded-2xl bg-cyan-600/20 hover:bg-cyan-500 active:scale-[0.99] text-cyan-200 hover:text-black border border-cyan-500/40 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg"
                 >
                   <span>Explorar la Red</span>
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
@@ -1992,7 +2003,7 @@ export default function HomePage() {
         {/* =====================================================================
             COMPONENTE INTERACTIVO DE PRECIOS Y PLANES (MENSUAL / ANUAL)
            ===================================================================== */}
-        <div id="planes" className="scroll-mt-28 relative z-20">
+        <div id="planes" className="scroll-mt-24 relative z-20">
           <PricingSection
             startPlan={startPlan}
             monthlyPlans={DEFAULT_MONTHLY_PLANS}
@@ -2005,25 +2016,25 @@ export default function HomePage() {
            ===================================================================== */}
         <section
           id="testimonios"
-          className="mx-auto max-w-7xl px-6 py-28 relative z-20 border-t border-white/15"
+          className="mx-auto max-w-7xl px-4 sm:px-6 py-16 sm:py-28 relative z-20 border-t border-white/15"
         >
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
+          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
+            <span className="text-[10px] sm:text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-3.5 py-1.5 rounded-full border border-white/20 shadow-sm">
               Casos de Éxito
             </span>
-            <h2 className="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tight">
+            <h2 className="text-2xl sm:text-5xl font-extrabold text-white mt-3 sm:mt-4 tracking-tight">
               Lo que dicen nuestros clientes
             </h2>
-            <p className="text-[#D4CEC7] text-sm md:text-base font-normal mt-3">
+            <p className="text-[#D4CEC7] text-xs sm:text-base font-normal mt-2 sm:mt-3">
               Locales gastronómicos y cafeterías que ya conectaron su operación
               interna con Mogu.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            <div className="p-8 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
+            <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between">
               <div>
-                <div className="flex items-center gap-1 text-amber-400 mb-4">
+                <div className="flex items-center gap-1 text-amber-400 mb-3 sm:mb-4">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
@@ -2037,8 +2048,8 @@ export default function HomePage() {
                   ordenados en tiempo real.&rdquo;
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-white/10 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-cyan-400 flex items-center justify-center font-bold text-white text-xs">
+              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 border-t border-white/10 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-cyan-400 flex items-center justify-center font-bold text-white text-xs shrink-0">
                   CR
                 </div>
                 <div>
@@ -2050,9 +2061,9 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="p-8 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between">
+            <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between">
               <div>
-                <div className="flex items-center gap-1 text-amber-400 mb-4">
+                <div className="flex items-center gap-1 text-amber-400 mb-3 sm:mb-4">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
@@ -2066,8 +2077,8 @@ export default function HomePage() {
                   retención de clientes increíble.&rdquo;
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-white/10 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-teal-400 flex items-center justify-center font-bold text-white text-xs">
+              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 border-t border-white/10 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-teal-400 flex items-center justify-center font-bold text-white text-xs shrink-0">
                   FV
                 </div>
                 <div>
@@ -2081,9 +2092,9 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="p-8 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between">
+            <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between">
               <div>
-                <div className="flex items-center gap-1 text-amber-400 mb-4">
+                <div className="flex items-center gap-1 text-amber-400 mb-3 sm:mb-4">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
@@ -2097,8 +2108,8 @@ export default function HomePage() {
                   nuestro servicio de forma única.&rdquo;
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-white/10 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-400 flex items-center justify-center font-bold text-white text-xs">
+              <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 border-t border-white/10 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-400 flex items-center justify-center font-bold text-white text-xs shrink-0">
                   MS
                 </div>
                 <div>
@@ -2117,26 +2128,26 @@ export default function HomePage() {
            ===================================================================== */}
         <section
           id="como-funciona"
-          className="mx-auto max-w-7xl px-6 py-28 relative z-20 border-t border-white/15"
+          className="mx-auto max-w-7xl px-4 sm:px-6 py-16 sm:py-28 relative z-20 border-t border-white/15"
         >
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
+          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
+            <span className="text-[10px] sm:text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-3.5 py-1.5 rounded-full border border-white/20 shadow-sm">
               Implementación Rápida
             </span>
-            <h2 className="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tight">
+            <h2 className="text-2xl sm:text-5xl font-extrabold text-white mt-3 sm:mt-4 tracking-tight">
               Simple para el equipo, impecable para el cliente
             </h2>
-            <p className="text-[#D4CEC7] text-sm md:text-base font-normal mt-3">
+            <p className="text-[#D4CEC7] text-xs sm:text-base font-normal mt-2 sm:mt-3">
               Conecta tu local al sistema operativo de Mogu en pocos minutos.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            <div className="p-8 rounded-3xl border border-white/15 bg-white/[0.05] backdrop-blur-xl shadow-lg">
-              <div className="w-12 h-12 rounded-2xl bg-white/10 text-cyan-400 font-bold flex items-center justify-center text-sm mb-6 border border-white/20 shadow-inner">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
+            <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/15 bg-white/[0.05] backdrop-blur-xl shadow-lg">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/10 text-cyan-400 font-bold flex items-center justify-center text-sm mb-4 sm:mb-6 border border-white/20 shadow-inner">
                 01
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">
+              <h3 className="text-base sm:text-lg font-bold text-white mb-2">
                 Configura tu Local
               </h3>
               <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed">
@@ -2145,11 +2156,11 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="p-8 rounded-3xl border border-white/15 bg-white/[0.05] backdrop-blur-xl shadow-lg">
-              <div className="w-12 h-12 rounded-2xl bg-white/10 text-cyan-400 font-bold flex items-center justify-center text-sm mb-6 border border-white/20 shadow-inner">
+            <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/15 bg-white/[0.05] backdrop-blur-xl shadow-lg">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/10 text-cyan-400 font-bold flex items-center justify-center text-sm mb-4 sm:mb-6 border border-white/20 shadow-inner">
                 02
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">
+              <h3 className="text-base sm:text-lg font-bold text-white mb-2">
                 Sincroniza Operación
               </h3>
               <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed">
@@ -2158,11 +2169,11 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="p-8 rounded-3xl border border-white/15 bg-white/[0.05] backdrop-blur-xl shadow-lg">
-              <div className="w-12 h-12 rounded-2xl bg-white/10 text-cyan-400 font-bold flex items-center justify-center text-sm mb-6 border border-white/20 shadow-inner">
+            <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/15 bg-white/[0.05] backdrop-blur-xl shadow-lg">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/10 text-cyan-400 font-bold flex items-center justify-center text-sm mb-4 sm:mb-6 border border-white/20 shadow-inner">
                 03
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">
+              <h3 className="text-base sm:text-lg font-bold text-white mb-2">
                 Fideliza y Escala
               </h3>
               <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed">
@@ -2178,36 +2189,36 @@ export default function HomePage() {
            ===================================================================== */}
         <section
           id="faq"
-          className="mx-auto max-w-5xl px-6 py-28 relative z-20 border-t border-white/15"
+          className="mx-auto max-w-5xl px-4 sm:px-6 py-16 sm:py-28 relative z-20 border-t border-white/15 scroll-mt-24"
         >
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
+          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
+            <span className="text-[10px] sm:text-xs font-bold tracking-widest uppercase bg-white/10 text-cyan-300 px-3.5 py-1.5 rounded-full border border-white/20 shadow-sm">
               Resolución de Dudas
             </span>
-            <h2 className="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tight">
+            <h2 className="text-2xl sm:text-5xl font-extrabold text-white mt-3 sm:mt-4 tracking-tight">
               Preguntas Frecuentes
             </h2>
-            <p className="text-[#D4CEC7] text-sm md:text-base font-normal mt-3">
+            <p className="text-[#D4CEC7] text-xs sm:text-base font-normal mt-2 sm:mt-3">
               Todo lo que necesitas saber sobre pedidos con retiro y delivery,
               operación interna y la comunidad Mogu Travel.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {FAQS.map((faq, idx) => (
               <div
                 key={idx}
-                className="p-8 rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30"
+                className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white/[0.05] backdrop-blur-xl border border-white/15 shadow-xl flex flex-col justify-between transition hover:border-white/30"
               >
                 <div>
-                  <h3 className="text-lg font-bold text-white mb-3">
+                  <h3 className="text-base sm:text-lg font-bold text-white mb-2 sm:mb-3">
                     {faq.question}
                   </h3>
                   <p className="text-xs sm:text-sm text-white/80 leading-relaxed font-normal">
                     {faq.answer}
                   </p>
                 </div>
-                <div className="mt-6 pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">
+                <div className="mt-5 sm:mt-6 pt-3 sm:pt-4 border-t border-white/10 text-[10px] font-bold text-white/40">
                   FAQ 0{idx + 1} / MOGU
                 </div>
               </div>
@@ -2218,8 +2229,8 @@ export default function HomePage() {
         {/* =====================================================================
             FOOTER
            ===================================================================== */}
-        <footer className="border-t border-white/15 py-12 px-6 bg-[#0E0C0A]/90 relative z-20">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+        <footer className="border-t border-white/15 py-10 sm:py-12 px-4 sm:px-6 bg-[#0E0C0A]/90 relative z-20">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-5 sm:gap-6 text-center md:text-left">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg overflow-hidden bg-white/10 border border-white/20 flex items-center justify-center">
                 <img
@@ -2238,23 +2249,23 @@ export default function HomePage() {
               reservados.
             </p>
 
-            <div className="flex items-center gap-6 text-xs font-medium text-white/80">
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs font-medium text-white/80">
               <Link
                 href="/cafeterias"
-                className="transition hover:text-cyan-300"
+                className="py-1 transition hover:text-cyan-300"
               >
                 Cafés y Restaurantes
               </Link>
               <Link
                 href="/comida-rapida"
-                className="transition hover:text-cyan-300"
+                className="py-1 transition hover:text-cyan-300"
               >
                 Comida Rápida
               </Link>
-              <Link href="/travel" className="transition hover:text-cyan-300">
+              <Link href="/travel" className="py-1 transition hover:text-cyan-300">
                 Mogu Travel
               </Link>
-              <Link href="/login" className="transition hover:text-cyan-300">
+              <Link href="/login" className="py-1 transition hover:text-cyan-300">
                 Iniciar Sesión
               </Link>
             </div>
